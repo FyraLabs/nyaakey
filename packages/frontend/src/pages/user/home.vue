@@ -105,6 +105,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 							</dd>
 						</dl>
 					</div>
+					<div v-if="user.socials.length > 0" class="fields">
+						<dl v-for="(social, i) in user.socials" :key="i" class="field">
+							<dt class="name"><i class="ti ti-{{ social.ident }}"></i> {{ getS  }}</dt>
+							<dd class="value"><MkA :to="social.link"/>{{ social.value }}</dd>
+						</dl>
+					</div>
 					<div class="status">
 						<MkA :to="userPage(user)">
 							<b>{{ number(user.notesCount) }}</b>
