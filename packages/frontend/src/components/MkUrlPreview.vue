@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -13,7 +13,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			v-if="player.url.startsWith('http://') || player.url.startsWith('https://')"
 			sandbox="allow-popups allow-scripts allow-storage-access-by-user-activation allow-same-origin"
 			scrolling="no"
-			:allow="player.allow.join(';')"
+			:allow="player.allow == null ? 'autoplay;encrypted-media;fullscreen' : player.allow.filter(x => ['autoplay', 'clipboard-write', 'fullscreen', 'encrypted-media', 'picture-in-picture', 'web-share'].includes(x)).join(';')"
 			:class="$style.playerIframe"
 			:src="player.url + (player.url.match(/\?/) ? '&autoplay=1&auto_play=1' : '?autoplay=1&auto_play=1')"
 			:style="{ border: 0 }"
@@ -22,7 +22,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	</div>
 	<div :class="$style.action">
 		<MkButton :small="true" inline @click="playerEnabled = false">
-			<i class="ti ti-x"></i> {{ i18n.ts.disablePlayer }}
+			<i class="ph-x ph-bold ph-lg"></i> {{ i18n.ts.disablePlayer }}
 		</MkButton>
 	</div>
 </template>
@@ -39,7 +39,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	</div>
 	<div :class="$style.action">
 		<MkButton :small="true" inline @click="tweetExpanded = false">
-			<i class="ti ti-x"></i> {{ i18n.ts.close }}
+			<i class="ph-x ph-bold ph-lg"></i> {{ i18n.ts.close }}
 		</MkButton>
 	</div>
 </template>
@@ -67,15 +67,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<template v-if="showActions">
 		<div v-if="tweetId" :class="$style.action">
 			<MkButton :small="true" inline @click="tweetExpanded = true">
-				<i class="ti ti-brand-x"></i> {{ i18n.ts.expandTweet }}
+				<i class="ph-twitter-logo ph-bold ph-lg"></i> {{ i18n.ts.expandTweet }}
 			</MkButton>
 		</div>
 		<div v-if="!playerEnabled && player.url" :class="$style.action">
 			<MkButton :small="true" inline @click="playerEnabled = true">
-				<i class="ti ti-player-play"></i> {{ i18n.ts.enablePlayer }}
+				<i class="ph-play ph-bold ph-lg"></i> {{ i18n.ts.enablePlayer }}
 			</MkButton>
 			<MkButton v-if="!isMobile" :small="true" inline @click="openPlayer()">
-				<i class="ti ti-picture-in-picture"></i> {{ i18n.ts.openInWindow }}
+				<i class="ph-picture-in-picture ph-bold ph-lg"></i> {{ i18n.ts.openInWindow }}
 			</MkButton>
 		</div>
 	</template>
@@ -83,7 +83,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { defineAsyncComponent, onUnmounted, ref } from 'vue';
+import { defineAsyncComponent, onDeactivated, onUnmounted, ref } from 'vue';
 import type { summaly } from '@misskey-dev/summaly';
 import { url as local } from '@/config.js';
 import { i18n } from '@/i18n.js';
@@ -130,6 +130,10 @@ const tweetExpanded = ref(props.detail);
 const embedId = `embed${Math.random().toString().replace(/\D/, '')}`;
 const tweetHeight = ref(150);
 const unknownUrl = ref(false);
+
+onDeactivated(() => {
+	playerEnabled.value = false;
+});
 
 const requestUrl = new URL(props.url);
 if (!['http:', 'https:'].includes(requestUrl.protocol)) throw new Error('invalid url');
@@ -233,7 +237,7 @@ onUnmounted(() => {
 	display: block;
 	font-size: 14px;
 	box-shadow: 0 0 0 1px var(--divider);
-	border-radius: 8px;
+	border-radius: var(--radius-sm);
 	overflow: clip;
 
 	&:hover {

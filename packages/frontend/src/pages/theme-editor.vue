@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -47,7 +47,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</MkFolder>
 
 			<MkFolder :defaultOpen="false">
-				<template #icon><i class="ti ti-code"></i></template>
+				<template #icon><i class="ph-code ph-bold ph-lg"></i></template>
 				<template #label>{{ i18n.ts.editCode }}</template>
 
 				<div class="_gaps_m">
@@ -135,10 +135,6 @@ const changed = ref(false);
 
 useLeaveGuard(changed);
 
-function showPreview() {
-	os.pageWindow('/preview');
-}
-
 function setBgColor(color: typeof bgColors[number]) {
 	if (theme.value.base !== color.kind) {
 		const base = color.kind === 'dark' ? darkTheme : lightTheme;
@@ -190,7 +186,7 @@ function applyThemeCode() {
 async function saveAs() {
 	const { canceled, result: name } = await os.inputText({
 		title: i18n.ts.name,
-		allowEmpty: false,
+		minLength: 1,
 	});
 	if (canceled) return;
 
@@ -208,7 +204,7 @@ async function saveAs() {
 	changed.value = false;
 	os.alert({
 		type: 'success',
-		text: i18n.t('_theme.installed', { name: theme.value.name }),
+		text: i18n.tsx._theme.installed({ name: theme.value.name }),
 	});
 }
 
@@ -216,22 +212,17 @@ watch(theme, apply, { deep: true });
 
 const headerActions = computed(() => [{
 	asFullButton: true,
-	icon: 'ti ti-eye',
-	text: i18n.ts.preview,
-	handler: showPreview,
-}, {
-	asFullButton: true,
-	icon: 'ti ti-check',
+	icon: 'ph-check ph-bold ph-lg',
 	text: i18n.ts.saveAs,
 	handler: saveAs,
 }]);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.themeEditor,
-	icon: 'ti ti-palette',
-});
+	icon: 'ph-palette ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" scoped>
@@ -245,7 +236,7 @@ definePageMetadata({
 				position: relative;
 				width: 64px;
 				height: 64px;
-				border-radius: 8px;
+				border-radius: var(--radius-sm);
 
 				> .preview {
 					position: absolute;
@@ -256,7 +247,7 @@ definePageMetadata({
 					margin: auto;
 					width: 42px;
 					height: 42px;
-					border-radius: 4px;
+					border-radius: var(--radius-xs);
 					box-shadow: 0 2px 4px rgb(0 0 0 / 30%);
 					transition: transform 0.15s ease;
 				}
@@ -272,10 +263,10 @@ definePageMetadata({
 				}
 
 				&.rounded {
-					border-radius: 999px;
+					border-radius: var(--radius-ellipse);
 
 					> .preview {
-						border-radius: 999px;
+						border-radius: var(--radius-ellipse);
 					}
 				}
 

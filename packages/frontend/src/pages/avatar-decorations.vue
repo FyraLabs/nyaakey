@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -23,8 +23,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 						<template #label>{{ i18n.ts.imageUrl }}</template>
 					</MkInput>
 					<div class="buttons _buttons">
-						<MkButton class="button" inline primary @click="save(avatarDecoration)"><i class="ti ti-device-floppy"></i> {{ i18n.ts.save }}</MkButton>
-						<MkButton v-if="avatarDecoration.id != null" class="button" inline danger @click="del(avatarDecoration)"><i class="ti ti-trash"></i> {{ i18n.ts.delete }}</MkButton>
+						<MkButton class="button" inline primary @click="save(avatarDecoration)"><i class="ph-floppy ph-bold ph-lg"></i> {{ i18n.ts.save }}</MkButton>
+						<MkButton v-if="avatarDecoration.id != null" class="button" inline danger @click="del(avatarDecoration)"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts.delete }}</MkButton>
 					</div>
 				</div>
 			</MkFolder>
@@ -40,6 +40,7 @@ import MkButton from '@/components/MkButton.vue';
 import MkInput from '@/components/MkInput.vue';
 import MkTextarea from '@/components/MkTextarea.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import MkFolder from '@/components/MkFolder.vue';
@@ -59,11 +60,11 @@ function add() {
 function del(avatarDecoration) {
 	os.confirm({
 		type: 'warning',
-		text: i18n.t('deleteAreYouSure', { x: avatarDecoration.name }),
+		text: i18n.tsx.deleteAreYouSure({ x: avatarDecoration.name }),
 	}).then(({ canceled }) => {
 		if (canceled) return;
 		avatarDecorations.value = avatarDecorations.value.filter(x => x !== avatarDecoration);
-		os.api('admin/avatar-decorations/delete', avatarDecoration);
+		misskeyApi('admin/avatar-decorations/delete', avatarDecoration);
 	});
 }
 
@@ -77,7 +78,7 @@ async function save(avatarDecoration) {
 }
 
 function load() {
-	os.api('admin/avatar-decorations/list').then(_avatarDecorations => {
+	misskeyApi('admin/avatar-decorations/list').then(_avatarDecorations => {
 		avatarDecorations.value = _avatarDecorations;
 	});
 }
@@ -86,15 +87,15 @@ load();
 
 const headerActions = computed(() => [{
 	asFullButton: true,
-	icon: 'ti ti-plus',
+	icon: 'ph-plus ph-bold ph-lg',
 	text: i18n.ts.add,
 	handler: add,
 }]);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.avatarDecorations,
-	icon: 'ti ti-sparkles',
-});
+	icon: 'ph-sparkle ph-bold ph-lg',
+}));
 </script>

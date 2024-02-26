@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -8,20 +8,8 @@ process.env.NODE_ENV = 'test';
 import * as assert from 'assert';
 import { inspect } from 'node:util';
 import { DEFAULT_POLICIES } from '@/core/RoleService.js';
-import type { Packed } from '@/misc/json-schema.js';
-import {
-	signup,
-	post,
-	page,
-	role,
-	startServer,
-	api,
-	successfulApiCall,
-	failedApiCall,
-	uploadFile,
-} from '../utils.js';
+import { api, page, post, role, signup, successfulApiCall, uploadFile } from '../utils.js';
 import type * as misskey from 'misskey-js';
-import type { INestApplicationContext } from '@nestjs/common';
 
 describe('ユーザー', () => {
 	// エンティティとしてのユーザーを主眼においたテストを記述する
@@ -71,6 +59,7 @@ describe('ユーザー', () => {
 			avatarDecorations: user.avatarDecorations,
 			isBot: user.isBot,
 			isCat: user.isCat,
+			speakAsCat: user.speakAsCat,
 			instance: user.instance,
 			emojis: user.emojis,
 			onlineStatus: user.onlineStatus,
@@ -95,6 +84,8 @@ describe('ユーザー', () => {
 			lastFetchedAt: user.lastFetchedAt,
 			bannerUrl: user.bannerUrl,
 			bannerBlurhash: user.bannerBlurhash,
+			backgroundUrl: user.backgroundUrl,
+			backgroundBlurhash: user.backgroundBlurhash,
 			isLocked: user.isLocked,
 			isSilenced: user.isSilenced,
 			isSuspended: user.isSuspended,
@@ -185,8 +176,6 @@ describe('ユーザー', () => {
 		});
 	};
 
-	let app: INestApplicationContext;
-
 	let root: User;
 	let alice: User;
 	let aliceNote: misskey.entities.Note;
@@ -229,10 +218,6 @@ describe('ユーザー', () => {
 	let userRnMutedByAlice: User;
 	let userFollowRequesting: User;
 	let userFollowRequested: User;
-
-	beforeAll(async () => {
-		app = await startServer();
-	}, 1000 * 60 * 2);
 
 	beforeAll(async () => {
 		root = await signup({ username: 'root' });
@@ -321,10 +306,6 @@ describe('ユーザー', () => {
 		await api('following/create', { userId: userFollowRequested.id }, userFollowRequesting);
 	}, 1000 * 60 * 10);
 
-	afterAll(async () => {
-		await app.close();
-	});
-
 	beforeEach(async () => {
 		alice = {
 			...alice,
@@ -356,6 +337,7 @@ describe('ユーザー', () => {
 		assert.deepStrictEqual(response.avatarDecorations, []);
 		assert.strictEqual(response.isBot, false);
 		assert.strictEqual(response.isCat, false);
+		assert.strictEqual(response.speakAsCat, false);
 		assert.strictEqual(response.instance, undefined);
 		assert.deepStrictEqual(response.emojis, {});
 		assert.strictEqual(response.onlineStatus, 'unknown');
@@ -370,6 +352,8 @@ describe('ユーザー', () => {
 		assert.strictEqual(response.lastFetchedAt, null);
 		assert.strictEqual(response.bannerUrl, null);
 		assert.strictEqual(response.bannerBlurhash, null);
+		assert.strictEqual(response.backgroundUrl, null);
+		assert.strictEqual(response.backgroundBlurhash, null);
 		assert.strictEqual(response.isLocked, false);
 		assert.strictEqual(response.isSilenced, false);
 		assert.strictEqual(response.isSuspended, false);
@@ -489,6 +473,8 @@ describe('ユーザー', () => {
 		{ parameters: (): object => ({ isBot: false }) },
 		{ parameters: (): object => ({ isCat: true }) },
 		{ parameters: (): object => ({ isCat: false }) },
+		{ parameters: (): object => ({ speakAsCat: true }) },
+		{ parameters: (): object => ({ speakAsCat: false }) },
 		{ parameters: (): object => ({ injectFeaturedNote: true }) },
 		{ parameters: (): object => ({ injectFeaturedNote: false }) },
 		{ parameters: (): object => ({ receiveAnnouncementEmail: true }) },
@@ -564,6 +550,31 @@ describe('ユーザー', () => {
 			bannerId: null,
 			bannerBlurhash: null,
 			bannerUrl: null,
+		};
+		assert.deepStrictEqual(response2, expected2, inspect(parameters));
+	});
+
+	test('を書き換えることができる(Background)', async () => {
+		const aliceFile = (await uploadFile(alice)).body;
+		const parameters = { bannerId: aliceFile.id };
+		const response = await successfulApiCall({ endpoint: 'i/update', parameters: parameters, user: alice });
+		assert.match(response.backgroundUrl ?? '.', /^[-a-zA-Z0-9@:%._\+~#&?=\/]+$/);
+		assert.match(response.backgroundBlurhash ?? '.', /[ -~]{54}/);
+		const expected = {
+			...meDetailed(alice, true),
+			backgroundId: aliceFile.id,
+			backgroundBlurhash: response.baackgroundBlurhash,
+			backgroundUrl: response.backgroundUrl,
+		};
+		assert.deepStrictEqual(response, expected, inspect(parameters));
+
+		const parameters2 = { backgroundId: null };
+		const response2 = await successfulApiCall({ endpoint: 'i/update', parameters: parameters2, user: alice });
+		const expected2 = {
+			...meDetailed(alice, true),
+			backgroundId: null,
+			backgroundBlurhash: null,
+			backgroundUrl: null,
 		};
 		assert.deepStrictEqual(response2, expected2, inspect(parameters));
 	});

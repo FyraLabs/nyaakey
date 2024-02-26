@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -13,7 +13,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<div :class="$style.editor" class="_panel">
 					<MkCodeEditor v-model="code" lang="aiscript"/>
 				</div>
-				<MkButton primary @click="run()"><i class="ti ti-player-play"></i></MkButton>
+				<MkButton primary @click="run()"><i class="ph-play ph-bold ph-lg"></i></MkButton>
 			</div>
 
 			<MkContainer v-if="root && components.length > 1" :key="uiKey" :foldable="true">
@@ -44,7 +44,7 @@ import { Interpreter, Parser, utils } from '@syuilo/aiscript';
 import MkContainer from '@/components/MkContainer.vue';
 import MkButton from '@/components/MkButton.vue';
 import MkCodeEditor from '@/components/MkCodeEditor.vue';
-import { createAiScriptEnv } from '@/scripts/aiscript/api.js';
+import { aiScriptReadline, createAiScriptEnv } from '@/scripts/aiscript/api.js';
 import * as os from '@/os.js';
 import { $i } from '@/account.js';
 import { i18n } from '@/i18n.js';
@@ -86,19 +86,7 @@ async function run() {
 			root.value = _root.value;
 		}),
 	}), {
-		in: (q) => {
-			return new Promise(ok => {
-				os.inputText({
-					title: q,
-				}).then(({ canceled, result: a }) => {
-					if (canceled) {
-						ok('');
-					} else {
-						ok(a);
-					}
-				});
-			});
-		},
+		in: aiScriptReadline,
 		out: (value) => {
 			if (value.type === 'str' && value.value.toLowerCase().replace(',', '').includes('hello world')) {
 				claimAchievement('outputHelloWorldOnScratchpad');
@@ -164,10 +152,10 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.scratchpad,
-	icon: 'ti ti-terminal-2',
-});
+	icon: 'ph-terminal-window ph-bold ph-lg-2',
+}));
 </script>
 
 <style lang="scss" module>

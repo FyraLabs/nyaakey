@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -10,13 +10,14 @@ import { i18n } from '@/i18n.js';
 import copyToClipboard from '@/scripts/copy-to-clipboard.js';
 import { host, url } from '@/config.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { defaultStore, userActions } from '@/store.js';
 import { $i, iAmModerator } from '@/account.js';
-import { mainRouter } from '@/router.js';
-import { Router } from '@/nirax.js';
+import { IRouter } from '@/nirax.js';
 import { antennasCache, rolesCache, userListsCache } from '@/cache.js';
+import { mainRouter } from '@/router/main.js';
 
-export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router = mainRouter) {
+export function getUserMenu(user: Misskey.entities.UserDetailed, router: IRouter = mainRouter) {
 	const meId = $i ? $i.id : null;
 
 	const cleanups = [] as (() => void)[];
@@ -131,7 +132,7 @@ export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router 
 	}
 
 	async function editMemo(): Promise<void> {
-		const userDetailed = await os.api('users/show', {
+		const userDetailed = await misskeyApi('users/show', {
 			userId: user.id,
 		});
 		const { canceled, result } = await os.form(i18n.ts.editMemo, {
@@ -152,46 +153,53 @@ export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router 
 	}
 
 	let menu = [{
-		icon: 'ti ti-at',
+		icon: 'ph-at ph-bold ph-lg',
 		text: i18n.ts.copyUsername,
 		action: () => {
 			copyToClipboard(`@${user.username}@${user.host ?? host}`);
 		},
 	}, ...(iAmModerator ? [{
-		icon: 'ti ti-user-exclamation',
+		icon: 'ph-warning-circle ph-bold ph-lg',
 		text: i18n.ts.moderation,
 		action: () => {
 			router.push(`/admin/user/${user.id}`);
 		},
 	}] : []), {
-		icon: 'ti ti-rss',
+		icon: 'ph-rss ph-bold ph-lg',
 		text: i18n.ts.copyRSS,
 		action: () => {
 			copyToClipboard(`${user.host ?? host}/@${user.username}.atom`);
 		},
-	}, {
-		icon: 'ti ti-share',
+	}, ...(user.host != null && user.url != null ? [{
+		icon: 'ph-share ph-bold ph-lg',
+		text: i18n.ts.showOnRemote,
+		action: () => {
+			if (user.url == null) return;
+			window.open(user.url, '_blank', 'noopener');
+		},
+	}] : []), {
+		icon: 'ph-share-network ph-bold ph-lg',
 		text: i18n.ts.copyProfileUrl,
 		action: () => {
 			const canonical = user.host === null ? `@${user.username}` : `@${user.username}@${toUnicode(user.host)}`;
 			copyToClipboard(`${url}/${canonical}`);
 		},
 	}, {
-		icon: 'ti ti-mail',
+		icon: 'ph-envelope ph-bold ph-lg',
 		text: i18n.ts.sendMessage,
 		action: () => {
 			const canonical = user.host === null ? `@${user.username}` : `@${user.username}@${user.host}`;
 			os.post({ specified: user, initialText: `${canonical} ` });
 		},
 	}, { type: 'divider' }, {
-		icon: 'ti ti-pencil',
+		icon: 'ph-pencil-simple ph-bold ph-lg',
 		text: i18n.ts.editMemo,
 		action: () => {
 			editMemo();
 		},
 	}, {
 		type: 'parent',
-		icon: 'ti ti-list',
+		icon: 'ph-list ph-bold ph-lg',
 		text: i18n.ts.addToList,
 		children: async () => {
 			const lists = await userListsCache.fetch();
@@ -224,7 +232,7 @@ export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router 
 		},
 	}, {
 		type: 'parent',
-		icon: 'ti ti-antenna',
+		icon: 'ph-flying-saucer ph-bold ph-lg',
 		text: i18n.ts.addToAntenna,
 		children: async () => {
 			const antennas = await antennasCache.fetch();
@@ -255,7 +263,7 @@ export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router 
 		if (iAmModerator) {
 			menu = menu.concat([{
 				type: 'parent',
-				icon: 'ti ti-badges',
+				icon: 'ph-seal-check ph-bold ph-lg',
 				text: i18n.ts.roles,
 				children: async () => {
 					const roles = await rolesCache.fetch();
@@ -297,40 +305,40 @@ export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router 
 		// フォローしたとしても user.isFollowing はリアルタイム更新されないので不便なため
 		//if (user.isFollowing) {
 		menu = menu.concat([{
-			icon: user.withReplies ? 'ti ti-messages-off' : 'ti ti-messages',
+			icon: user.withReplies ? 'ph-envelope-open ph-bold ph-lg' : 'ph-envelope ph-bold ph-lg-off',
 			text: user.withReplies ? i18n.ts.hideRepliesToOthersInTimeline : i18n.ts.showRepliesToOthersInTimeline,
 			action: toggleWithReplies,
 		}, {
-			icon: user.notify === 'none' ? 'ti ti-bell' : 'ti ti-bell-off',
+			icon: user.notify === 'none' ? 'ph-bell ph-bold ph-lg' : 'ph-bell ph-bold ph-lg-off',
 			text: user.notify === 'none' ? i18n.ts.notifyNotes : i18n.ts.unnotifyNotes,
 			action: toggleNotify,
 		}]);
 		//}
 
 		menu = menu.concat([{ type: 'divider' }, {
-			icon: user.isMuted ? 'ti ti-eye' : 'ti ti-eye-off',
+			icon: user.isMuted ? 'ph-eye ph-bold ph-lg' : 'ph-eye-slash ph-bold ph-lg',
 			text: user.isMuted ? i18n.ts.unmute : i18n.ts.mute,
 			action: toggleMute,
 		}, {
-			icon: user.isRenoteMuted ? 'ti ti-repeat' : 'ti ti-repeat-off',
+			icon: user.isRenoteMuted ? 'ph-repeat ph-bold ph-lg' : 'ph-repeat ph-bold ph-lg-off',
 			text: user.isRenoteMuted ? i18n.ts.renoteUnmute : i18n.ts.renoteMute,
 			action: toggleRenoteMute,
 		}, {
-			icon: 'ti ti-ban',
+			icon: 'ph-prohibit ph-bold ph-lg',
 			text: user.isBlocking ? i18n.ts.unblock : i18n.ts.block,
 			action: toggleBlock,
 		}]);
 
 		if (user.isFollowed) {
 			menu = menu.concat([{
-				icon: 'ti ti-link-off',
+				icon: 'ph-link ph-bold ph-lg-off',
 				text: i18n.ts.breakFollow,
 				action: invalidateFollow,
 			}]);
 		}
 
 		menu = menu.concat([{ type: 'divider' }, {
-			icon: 'ti ti-exclamation-circle',
+			icon: 'ph-warning-circle ph-bold ph-lg',
 			text: i18n.ts.reportAbuse,
 			action: reportAbuse,
 		}]);
@@ -338,7 +346,7 @@ export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router 
 
 	if (user.host !== null) {
 		menu = menu.concat([{ type: 'divider' }, {
-			icon: 'ti ti-refresh',
+			icon: 'ph-arrows-counter-clockwise ph-bold ph-lg',
 			text: i18n.ts.updateRemoteUser,
 			action: userInfoUpdate,
 		}]);
@@ -346,7 +354,7 @@ export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router 
 
 	if (defaultStore.state.devMode) {
 		menu = menu.concat([{ type: 'divider' }, {
-			icon: 'ti ti-id',
+			icon: 'ph-identification-card ph-bold ph-lg',
 			text: i18n.ts.copyUserId,
 			action: () => {
 				copyToClipboard(user.id);
@@ -356,7 +364,7 @@ export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router 
 
 	if ($i && meId === user.id) {
 		menu = menu.concat([{ type: 'divider' }, {
-			icon: 'ti ti-pencil',
+			icon: 'ph-pencil-simple ph-bold ph-lg',
 			text: i18n.ts.editProfile,
 			action: () => {
 				router.push('/settings/profile');
@@ -366,7 +374,7 @@ export function getUserMenu(user: Misskey.entities.UserDetailed, router: Router 
 
 	if (userActions.length > 0) {
 		menu = menu.concat([{ type: 'divider' }, ...userActions.map(action => ({
-			icon: 'ti ti-plug',
+			icon: 'ph-plug ph-bold ph-lg',
 			text: action.title,
 			action: () => {
 				action.handler(user);

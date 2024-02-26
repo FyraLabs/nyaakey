@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -41,6 +41,11 @@ export const paramDef = {
 				type: 'string',
 			},
 		},
+		prohibitedWords: {
+			type: 'array', nullable: true, items: {
+				type: 'string',
+			},
+		},
 		themeColor: { type: 'string', nullable: true, pattern: '^#[0-9a-fA-F]{6}$' },
 		mascotImageUrl: { type: 'string', nullable: true },
 		bannerUrl: { type: 'string', nullable: true },
@@ -57,12 +62,18 @@ export const paramDef = {
 		description: { type: 'string', nullable: true },
 		defaultLightTheme: { type: 'string', nullable: true },
 		defaultDarkTheme: { type: 'string', nullable: true },
+		defaultLike: { type: 'string', nullable: true },
 		cacheRemoteFiles: { type: 'boolean' },
 		cacheRemoteSensitiveFiles: { type: 'boolean' },
 		emailRequiredForSignup: { type: 'boolean' },
+		approvalRequiredForSignup: { type: 'boolean' },
 		enableHcaptcha: { type: 'boolean' },
 		hcaptchaSiteKey: { type: 'string', nullable: true },
 		hcaptchaSecretKey: { type: 'string', nullable: true },
+		enableMcaptcha: { type: 'boolean' },
+		mcaptchaSiteKey: { type: 'string', nullable: true },
+		mcaptchaInstanceUrl: { type: 'string', nullable: true },
+		mcaptchaSecretKey: { type: 'string', nullable: true },
 		enableRecaptcha: { type: 'boolean' },
 		recaptchaSiteKey: { type: 'string', nullable: true },
 		recaptchaSecretKey: { type: 'string', nullable: true },
@@ -73,6 +84,7 @@ export const paramDef = {
 		sensitiveMediaDetectionSensitivity: { type: 'string', enum: ['medium', 'low', 'high', 'veryLow', 'veryHigh'] },
 		setSensitiveFlagAutomatically: { type: 'boolean' },
 		enableSensitiveMediaDetectionForVideos: { type: 'boolean' },
+		enableBotTrending: { type: 'boolean' },
 		proxyAccountId: { type: 'string', format: 'misskey:id', nullable: true },
 		maintainerName: { type: 'string', nullable: true },
 		maintainerEmail: { type: 'string', nullable: true },
@@ -84,6 +96,8 @@ export const paramDef = {
 		summalyProxy: { type: 'string', nullable: true },
 		deeplAuthKey: { type: 'string', nullable: true },
 		deeplIsPro: { type: 'boolean' },
+		deeplFreeMode: { type: 'boolean' },
+		deeplFreeInstance: { type: 'string', nullable: true },
 		enableEmail: { type: 'boolean' },
 		email: { type: 'string', nullable: true },
 		smtpSecure: { type: 'boolean' },
@@ -95,9 +109,10 @@ export const paramDef = {
 		swPublicKey: { type: 'string', nullable: true },
 		swPrivateKey: { type: 'string', nullable: true },
 		tosUrl: { type: 'string', nullable: true },
-		repositoryUrl: { type: 'string' },
-		feedbackUrl: { type: 'string' },
+		repositoryUrl: { type: 'string', nullable: true },
+		feedbackUrl: { type: 'string', nullable: true },
 		impressumUrl: { type: 'string', nullable: true },
+		donationUrl: { type: 'string', nullable: true },
 		privacyPolicyUrl: { type: 'string', nullable: true },
 		useObjectStorage: { type: 'boolean' },
 		objectStorageBaseUrl: { type: 'string', nullable: true },
@@ -122,10 +137,12 @@ export const paramDef = {
 		enableChartsForRemoteUser: { type: 'boolean' },
 		enableChartsForFederatedInstances: { type: 'boolean' },
 		enableServerMachineStats: { type: 'boolean' },
+		enableAchievements: { type: 'boolean' },
 		enableIdenticonGeneration: { type: 'boolean' },
 		serverRules: { type: 'array', items: { type: 'string' } },
 		bannedEmailDomains: { type: 'array', items: { type: 'string' } },
 		preservedUsernames: { type: 'array', items: { type: 'string' } },
+		bubbleInstances: { type: 'array', items: { type: 'string' } },
 		manifestJsonOverride: { type: 'string' },
 		enableFanoutTimeline: { type: 'boolean' },
 		enableFanoutTimelineDbFallback: { type: 'boolean' },
@@ -172,6 +189,9 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 
 			if (Array.isArray(ps.sensitiveWords)) {
 				set.sensitiveWords = ps.sensitiveWords.filter(Boolean);
+			}
+			if (Array.isArray(ps.prohibitedWords)) {
+				set.prohibitedWords = ps.prohibitedWords.filter(Boolean);
 			}
 			if (Array.isArray(ps.silencedHosts)) {
 				let lastValue = '';
@@ -245,6 +265,10 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				set.defaultDarkTheme = ps.defaultDarkTheme;
 			}
 
+			if (ps.defaultLike !== undefined) {
+				set.defaultLike = ps.defaultLike;
+			}
+
 			if (ps.cacheRemoteFiles !== undefined) {
 				set.cacheRemoteFiles = ps.cacheRemoteFiles;
 			}
@@ -257,6 +281,10 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				set.emailRequiredForSignup = ps.emailRequiredForSignup;
 			}
 
+			if (ps.approvalRequiredForSignup !== undefined) {
+				set.approvalRequiredForSignup = ps.approvalRequiredForSignup;
+			}
+
 			if (ps.enableHcaptcha !== undefined) {
 				set.enableHcaptcha = ps.enableHcaptcha;
 			}
@@ -267,6 +295,22 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 
 			if (ps.hcaptchaSecretKey !== undefined) {
 				set.hcaptchaSecretKey = ps.hcaptchaSecretKey;
+			}
+
+			if (ps.enableMcaptcha !== undefined) {
+				set.enableMcaptcha = ps.enableMcaptcha;
+			}
+
+			if (ps.mcaptchaSiteKey !== undefined) {
+				set.mcaptchaSitekey = ps.mcaptchaSiteKey;
+			}
+
+			if (ps.mcaptchaInstanceUrl !== undefined) {
+				set.mcaptchaInstanceUrl = ps.mcaptchaInstanceUrl;
+			}
+
+			if (ps.mcaptchaSecretKey !== undefined) {
+				set.mcaptchaSecretKey = ps.mcaptchaSecretKey;
 			}
 
 			if (ps.enableRecaptcha !== undefined) {
@@ -293,20 +337,8 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				set.turnstileSecretKey = ps.turnstileSecretKey;
 			}
 
-			if (ps.sensitiveMediaDetection !== undefined) {
-				set.sensitiveMediaDetection = ps.sensitiveMediaDetection;
-			}
-
-			if (ps.sensitiveMediaDetectionSensitivity !== undefined) {
-				set.sensitiveMediaDetectionSensitivity = ps.sensitiveMediaDetectionSensitivity;
-			}
-
-			if (ps.setSensitiveFlagAutomatically !== undefined) {
-				set.setSensitiveFlagAutomatically = ps.setSensitiveFlagAutomatically;
-			}
-
-			if (ps.enableSensitiveMediaDetectionForVideos !== undefined) {
-				set.enableSensitiveMediaDetectionForVideos = ps.enableSensitiveMediaDetectionForVideos;
+			if (ps.enableBotTrending !== undefined) {
+				set.enableBotTrending = ps.enableBotTrending;
 			}
 
 			if (ps.proxyAccountId !== undefined) {
@@ -374,7 +406,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 			}
 
 			if (ps.repositoryUrl !== undefined) {
-				set.repositoryUrl = ps.repositoryUrl;
+				set.repositoryUrl = URL.canParse(ps.repositoryUrl!) ? ps.repositoryUrl : null;
 			}
 
 			if (ps.feedbackUrl !== undefined) {
@@ -383,6 +415,10 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 
 			if (ps.impressumUrl !== undefined) {
 				set.impressumUrl = ps.impressumUrl;
+			}
+
+			if (ps.donationUrl !== undefined) {
+				set.donationUrl = ps.donationUrl;
 			}
 
 			if (ps.privacyPolicyUrl !== undefined) {
@@ -453,6 +489,18 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				set.deeplIsPro = ps.deeplIsPro;
 			}
 
+			if (ps.deeplFreeMode !== undefined) {
+				set.deeplFreeMode = ps.deeplFreeMode;
+			}
+
+			if (ps.deeplFreeInstance !== undefined) {
+				if (ps.deeplFreeInstance === '') {
+					set.deeplFreeInstance = null;
+				} else {
+					set.deeplFreeInstance = ps.deeplFreeInstance;
+				}
+			}
+
 			if (ps.enableIpLogging !== undefined) {
 				set.enableIpLogging = ps.enableIpLogging;
 			}
@@ -472,7 +520,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 					set.verifymailAuthKey = ps.verifymailAuthKey;
 				}
 			}
-			
+
 			if (ps.enableTruemailApi !== undefined) {
 				set.enableTruemailApi = ps.enableTruemailApi;
 			}
@@ -505,6 +553,10 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				set.enableServerMachineStats = ps.enableServerMachineStats;
 			}
 
+			if (ps.enableAchievements !== undefined) {
+				set.enableAchievements = ps.enableAchievements;
+			}
+
 			if (ps.enableIdenticonGeneration !== undefined) {
 				set.enableIdenticonGeneration = ps.enableIdenticonGeneration;
 			}
@@ -515,6 +567,10 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 
 			if (ps.preservedUsernames !== undefined) {
 				set.preservedUsernames = ps.preservedUsernames;
+			}
+
+			if (ps.bubbleInstances !== undefined) {
+				set.bubbleInstances = ps.bubbleInstances;
 			}
 
 			if (ps.manifestJsonOverride !== undefined) {

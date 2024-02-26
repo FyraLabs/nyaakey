@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -8,12 +8,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<div class="_panel">
 		<div :class="$style.banner" :style="{ backgroundImage: $i.bannerUrl ? `url(${ $i.bannerUrl })` : null }">
 			<MkButton primary rounded :class="$style.bannerEdit" @click="changeBanner">{{ i18n.ts._profile.changeBanner }}</MkButton>
+			<MkButton primary rounded :class="$style.backgroundEdit" @click="changeBackground">{{ i18n.ts._profile.changeBackground }}</MkButton>
 		</div>
 		<div :class="$style.avatarContainer">
 			<MkAvatar :class="$style.avatar" :user="$i" forceShowDecoration @click="changeAvatar"/>
 			<div class="_buttonsCenter">
 				<MkButton primary rounded @click="changeAvatar">{{ i18n.ts._profile.changeAvatar }}</MkButton>
-				<MkButton primary rounded link to="/settings/avatar-decoration">{{ i18n.ts.decorate }} <i class="ti ti-sparkles"></i></MkButton>
+				<MkButton primary rounded link to="/settings/avatar-decoration">{{ i18n.ts.decorate }} <i class="ph-sparkle ph-bold ph-lg"></i></MkButton>
 			</div>
 		</div>
 	</div>
@@ -29,12 +30,17 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 	<MkInput v-model="profile.location" manualSave>
 		<template #label>{{ i18n.ts.location }}</template>
-		<template #prefix><i class="ti ti-map-pin"></i></template>
+		<template #prefix><i class="ph-map-pin ph-bold ph-lg"></i></template>
 	</MkInput>
 
-	<MkInput v-model="profile.birthday" type="date" manualSave>
+	<MkInput v-model="profile.birthday" :max="setMaxBirthDate()" type="date" manualSave>
 		<template #label>{{ i18n.ts.birthday }}</template>
-		<template #prefix><i class="ti ti-cake"></i></template>
+		<template #prefix><i class="ph-cake ph-bold ph-lg"></i></template>
+	</MkInput>
+
+	<MkInput v-model="profile.listenbrainz" manualSave>
+		<template #label>ListenBrainz</template>
+		<template #prefix><i class="ph-headphones ph-bold ph-lg"></i></template>
 	</MkInput>
 
 	<MkSelect v-model="profile.lang">
@@ -44,15 +50,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 	<FormSlot>
 		<MkFolder>
-			<template #icon><i class="ti ti-list"></i></template>
+			<template #icon><i class="ph-list ph-bold ph-lg"></i></template>
 			<template #label>{{ i18n.ts._profile.metadataEdit }}</template>
 
 			<div :class="$style.metadataRoot">
 				<div :class="$style.metadataMargin">
-					<MkButton :disabled="fields.length >= 16" inline style="margin-right: 8px;" @click="addField"><i class="ti ti-plus"></i> {{ i18n.ts.add }}</MkButton>
-					<MkButton v-if="!fieldEditMode" :disabled="fields.length <= 1" inline danger style="margin-right: 8px;" @click="fieldEditMode = !fieldEditMode"><i class="ti ti-trash"></i> {{ i18n.ts.delete }}</MkButton>
-					<MkButton v-else inline style="margin-right: 8px;" @click="fieldEditMode = !fieldEditMode"><i class="ti ti-arrows-sort"></i> {{ i18n.ts.rearrange }}</MkButton>
-					<MkButton inline primary @click="saveFields"><i class="ti ti-check"></i> {{ i18n.ts.save }}</MkButton>
+					<MkButton :disabled="fields.length >= 16" inline style="margin-right: 8px;" @click="addField"><i class="ph-plus ph-bold ph-lg"></i> {{ i18n.ts.add }}</MkButton>
+					<MkButton v-if="!fieldEditMode" :disabled="fields.length <= 1" inline danger style="margin-right: 8px;" @click="fieldEditMode = !fieldEditMode"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts.delete }}</MkButton>
+					<MkButton v-else inline style="margin-right: 8px;" @click="fieldEditMode = !fieldEditMode"><i class="ph-arrows-down-up ph-bold ph-lg"></i> {{ i18n.ts.rearrange }}</MkButton>
+					<MkButton inline primary @click="saveFields"><i class="ph-check ph-bold ph-lg"></i> {{ i18n.ts.save }}</MkButton>
 				</div>
 
 				<Sortable
@@ -66,8 +72,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 				>
 					<template #item="{element, index}">
 						<div :class="$style.fieldDragItem">
-							<button v-if="!fieldEditMode" class="_button" :class="$style.dragItemHandle" tabindex="-1"><i class="ti ti-menu"></i></button>
-							<button v-if="fieldEditMode" :disabled="fields.length <= 1" class="_button" :class="$style.dragItemRemove" @click="deleteField(index)"><i class="ti ti-x"></i></button>
+							<button v-if="!fieldEditMode" class="_button" :class="$style.dragItemHandle" tabindex="-1"><i class="ph-list ph-bold ph-lg"></i></button>
+							<button v-if="fieldEditMode" :disabled="fields.length <= 1" class="_button" :class="$style.dragItemRemove" @click="deleteField(index)"><i class="ph-x ph-bold ph-lg"></i></button>
 							<div :class="$style.dragItemForm">
 								<FormSplit :minWidth="200">
 									<MkInput v-model="element.name" small>
@@ -93,6 +99,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 		<div class="_gaps_m">
 			<MkSwitch v-model="profile.isCat">{{ i18n.ts.flagAsCat }}<template #caption>{{ i18n.ts.flagAsCatDescription }}</template></MkSwitch>
+			<MkSwitch v-if="profile.isCat" v-model="profile.speakAsCat">{{ i18n.ts.flagSpeakAsCat }}<template #caption>{{ i18n.ts.flagSpeakAsCatDescription }}</template></MkSwitch>
 			<MkSwitch v-model="profile.isBot">{{ i18n.ts.flagAsBot }}<template #caption>{{ i18n.ts.flagAsBotDescription }}</template></MkSwitch>
 		</div>
 	</MkFolder>
@@ -120,26 +127,39 @@ import FormSlot from '@/components/form/slot.vue';
 import { selectFile } from '@/scripts/select-file.js';
 import * as os from '@/os.js';
 import { i18n } from '@/i18n.js';
-import { $i } from '@/account.js';
+import { signinRequired } from '@/account.js';
 import { langmap } from '@/scripts/langmap.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { claimAchievement } from '@/scripts/achievements.js';
 import { defaultStore } from '@/store.js';
+import { globalEvents } from '@/events.js';
 import MkInfo from '@/components/MkInfo.vue';
 import MkTextarea from '@/components/MkTextarea.vue';
+
+const $i = signinRequired();
 
 const Sortable = defineAsyncComponent(() => import('vuedraggable').then(x => x.default));
 
 const reactionAcceptance = computed(defaultStore.makeGetterSetter('reactionAcceptance'));
+
+const now = new Date();
+
+const setMaxBirthDate = () => {
+	const y = now.getFullYear();
+
+	return `${y}-12-31`;
+};
 
 const profile = reactive({
 	name: $i.name,
 	description: $i.description,
 	location: $i.location,
 	birthday: $i.birthday,
+	listenbrainz: $i.listenbrainz,
 	lang: $i.lang,
-	isBot: $i.isBot,
-	isCat: $i.isCat,
+	isBot: $i.isBot ?? false,
+	isCat: $i.isCat ?? false,
+	speakAsCat: $i.speakAsCat ?? false,
 });
 
 watch(() => profile, () => {
@@ -148,7 +168,7 @@ watch(() => profile, () => {
 	deep: true,
 });
 
-const fields = ref($i?.fields.map(field => ({ id: Math.random().toString(), name: field.name, value: field.value })) ?? []);
+const fields = ref($i.fields.map(field => ({ id: Math.random().toString(), name: field.name, value: field.value })) ?? []);
 const fieldEditMode = ref(false);
 
 function addField() {
@@ -171,9 +191,17 @@ function saveFields() {
 	os.apiWithDialog('i/update', {
 		fields: fields.value.filter(field => field.name !== '' && field.value !== '').map(field => ({ name: field.name, value: field.value })),
 	});
+	globalEvents.emit('requestClearPageCache');
 }
 
 function save() {
+	if (profile.birthday && profile.birthday > setMaxBirthDate()) {
+		os.alert({
+			type: 'warning',
+			text: 'You can\'t set your birthday to the future',
+		});
+		return undefined;
+	}
 	os.apiWithDialog('i/update', {
 		// 空文字列をnullにしたいので??は使うな
 		// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
@@ -184,11 +212,14 @@ function save() {
 		location: profile.location || null,
 		// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 		birthday: profile.birthday || null,
+		listenbrainz: profile.listenbrainz || null,
 		// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
 		lang: profile.lang || null,
 		isBot: !!profile.isBot,
 		isCat: !!profile.isCat,
+		speakAsCat: !!profile.speakAsCat,
 	});
+	globalEvents.emit('requestClearPageCache');
 	claimAchievement('profileFilled');
 	if (profile.name === 'syuilo' || profile.name === 'しゅいろ') {
 		claimAchievement('setNameToSyuilo');
@@ -204,7 +235,7 @@ function changeAvatar(ev) {
 
 		const { canceled } = await os.confirm({
 			type: 'question',
-			text: i18n.t('cropImageAsk'),
+			text: i18n.ts.cropImageAsk,
 			okText: i18n.ts.cropYes,
 			cancelText: i18n.ts.cropNo,
 		});
@@ -220,43 +251,153 @@ function changeAvatar(ev) {
 		});
 		$i.avatarId = i.avatarId;
 		$i.avatarUrl = i.avatarUrl;
+		globalEvents.emit('requestClearPageCache');
 		claimAchievement('profileFilled');
 	});
 }
 
 function changeBanner(ev) {
-	selectFile(ev.currentTarget ?? ev.target, i18n.ts.banner).then(async (file) => {
-		let originalOrCropped = file;
+	if ($i.bannerId) {
+		os.popupMenu([{
+			text: i18n.ts._profile.updateBanner,
+			action: async () => {
+				selectFile(ev.currentTarget ?? ev.target, i18n.ts.banner).then(async (file) => {
+					let originalOrCropped = file;
 
-		const { canceled } = await os.confirm({
-			type: 'question',
-			text: i18n.t('cropImageAsk'),
-			okText: i18n.ts.cropYes,
-			cancelText: i18n.ts.cropNo,
-		});
+					const { canceled } = await os.confirm({
+						type: 'question',
+						text: i18n.ts.cropImageAsk,
+						okText: i18n.ts.cropYes,
+						cancelText: i18n.ts.cropNo,
+					});
 
-		if (!canceled) {
-			originalOrCropped = await os.cropImage(file, {
-				aspectRatio: 2,
+					if (!canceled) {
+						originalOrCropped = await os.cropImage(file, {
+							aspectRatio: 2,
+						});
+					}
+
+					const i = await os.apiWithDialog('i/update', {
+						bannerId: originalOrCropped.id,
+					});
+					$i.bannerId = i.bannerId;
+					$i.bannerUrl = i.bannerUrl;
+					globalEvents.emit('requestClearPageCache');
+				});
+			},
+		}, {
+			text: i18n.ts._profile.removeBanner,
+			action: async () => {
+				const i = await os.apiWithDialog('i/update', {
+					bannerId: null,
+				});
+				$i.bannerId = i.bannerId;
+				$i.bannerUrl = i.bannerUrl;
+				globalEvents.emit('requestClearPageCache');
+			},
+		}], ev.currentTarget ?? ev.target);
+	} else {
+		selectFile(ev.currentTarget ?? ev.target, i18n.ts.banner).then(async (file) => {
+			let originalOrCropped = file;
+
+			const { canceled } = await os.confirm({
+				type: 'question',
+				text: i18n.ts.cropImageAsk,
+				okText: i18n.ts.cropYes,
+				cancelText: i18n.ts.cropNo,
 			});
-		}
 
-		const i = await os.apiWithDialog('i/update', {
-			bannerId: originalOrCropped.id,
+			if (!canceled) {
+				originalOrCropped = await os.cropImage(file, {
+					aspectRatio: 2,
+				});
+			}
+
+			const i = await os.apiWithDialog('i/update', {
+				bannerId: originalOrCropped.id,
+			});
+			$i.bannerId = i.bannerId;
+			$i.bannerUrl = i.bannerUrl;
+			globalEvents.emit('requestClearPageCache');
 		});
-		$i.bannerId = i.bannerId;
-		$i.bannerUrl = i.bannerUrl;
-	});
+	}
+}
+
+function changeBackground(ev) {
+	if ($i.backgroundId) {
+		os.popupMenu([{
+			text: i18n.ts._profile.updateBackground,
+			action: async () => {
+				selectFile(ev.currentTarget ?? ev.target, i18n.ts.background).then(async (file) => {
+					let originalOrCropped = file;
+
+					const { canceled } = await os.confirm({
+						type: 'question',
+						text: i18n.ts.cropImageAsk,
+						okText: i18n.ts.cropYes,
+						cancelText: i18n.ts.cropNo,
+					});
+
+					if (!canceled) {
+						originalOrCropped = await os.cropImage(file, {
+							aspectRatio: 1,
+						});
+					}
+
+					const i = await os.apiWithDialog('i/update', {
+						backgroundId: originalOrCropped.id,
+					});
+					$i.backgroundId = i.backgroundId;
+					$i.backgroundUrl = i.backgroundUrl;
+					globalEvents.emit('requestClearPageCache');
+				});
+			},
+		}, {
+			text: i18n.ts._profile.removeBackground,
+			action: async () => {
+				const i = await os.apiWithDialog('i/update', {
+					backgroundId: null,
+				});
+				$i.backgroundId = i.backgroundId;
+				$i.backgroundUrl = i.backgroundUrl;
+				globalEvents.emit('requestClearPageCache');
+			},
+		}], ev.currentTarget ?? ev.target);
+	} else {
+		selectFile(ev.currentTarget ?? ev.target, i18n.ts.background).then(async (file) => {
+			let originalOrCropped = file;
+
+			const { canceled } = await os.confirm({
+				type: 'question',
+				text: i18n.ts.cropImageAsk,
+				okText: i18n.ts.cropYes,
+				cancelText: i18n.ts.cropNo,
+			});
+
+			if (!canceled) {
+				originalOrCropped = await os.cropImage(file, {
+					aspectRatio: 1,
+				});
+			}
+
+			const i = await os.apiWithDialog('i/update', {
+				backgroundId: originalOrCropped.id,
+			});
+			$i.backgroundId = i.backgroundId;
+			$i.backgroundUrl = i.backgroundUrl;
+			globalEvents.emit('requestClearPageCache');
+		});
+	}
 }
 
 const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.profile,
-	icon: 'ti ti-user',
-});
+	icon: 'ph-user ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>
@@ -285,6 +426,11 @@ definePageMetadata({
 .bannerEdit {
 	position: absolute;
 	top: 16px;
+	right: 16px;
+}
+.backgroundEdit {
+	position: absolute;
+	top: 95px;
 	right: 16px;
 }
 

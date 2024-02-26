@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -22,9 +22,10 @@ import { getAccountFromId } from '@/scripts/get-account-from-id.js';
 import { deckStore } from '@/ui/deck/deck-store.js';
 import { miLocalStorage } from '@/local-storage.js';
 import { fetchCustomEmojis } from '@/custom-emojis.js';
+import { setupRouter } from '@/router/definition.js';
 
 export async function common(createVue: () => App<Element>) {
-	console.info(`Misskey v${version}`);
+	console.info(`Sharkey v${version}`);
 
 	if (_DEV_) {
 		console.warn('Development mode!!!');
@@ -58,12 +59,6 @@ export async function common(createVue: () => App<Element>) {
 			*/
 		});
 	}
-
-	const splash = document.getElementById('splash');
-	// 念のためnullチェック(HTMLが古い場合があるため(そのうち消す))
-	if (splash) splash.addEventListener('transitionend', () => {
-		splash.remove();
-	});
 
 	let isClientUpdated = false;
 
@@ -208,7 +203,11 @@ export async function common(createVue: () => App<Element>) {
 	// Keep screen on
 	const onVisibilityChange = () => document.addEventListener('visibilitychange', () => {
 		if (document.visibilityState === 'visible') {
-			navigator.wakeLock.request('screen');
+			try {
+				navigator.wakeLock.request('screen');
+			} catch (err) {
+				return;
+			}
 		}
 	});
 	if (defaultStore.state.keepScreenOn && 'wakeLock' in navigator) {
@@ -241,6 +240,8 @@ export async function common(createVue: () => App<Element>) {
 
 	const app = createVue();
 
+	setupRouter(app);
+
 	if (_DEV_) {
 		app.config.performance = true;
 	}
@@ -252,7 +253,7 @@ export async function common(createVue: () => App<Element>) {
 	// https://github.com/misskey-dev/misskey/pull/8575#issuecomment-1114239210
 	// なぜか2回実行されることがあるため、mountするdivを1つに制限する
 	const rootEl = ((): HTMLElement => {
-		const MISSKEY_MOUNT_DIV_ID = 'misskey_app';
+		const MISSKEY_MOUNT_DIV_ID = 'sharkey_app';
 
 		const currentRoot = document.getElementById(MISSKEY_MOUNT_DIV_ID);
 
@@ -286,5 +287,10 @@ function removeSplash() {
 	if (splash) {
 		splash.style.opacity = '0';
 		splash.style.pointerEvents = 'none';
+
+		// transitionendイベントが発火しない場合があるため
+		window.setTimeout(() => {
+			splash.remove();
+		}, 1000);
 	}
 }

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -42,7 +42,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 						</div>
 						<div class="_buttonsCenter" style="margin-top: 16px;">
 							<MkButton rounded @click="cancel">{{ i18n.ts.cancel }}</MkButton>
-							<MkButton primary rounded gradate @click="page++">{{ i18n.ts.continue }} <i class="ti ti-arrow-right"></i></MkButton>
+							<MkButton primary rounded gradate @click="page++">{{ i18n.ts.continue }} <i class="ph-arrow-right ph-bold ph-lg"></i></MkButton>
 						</div>
 					</MkSpacer>
 				</div>
@@ -56,8 +56,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 							<div>{{ i18n.ts._2fa.step3 }}</div>
 						</div>
 						<div class="_buttonsCenter" style="margin-top: 16px;">
-							<MkButton rounded @click="page--"><i class="ti ti-arrow-left"></i> {{ i18n.ts.goBack }}</MkButton>
-							<MkButton primary rounded gradate @click="tokenDone">{{ i18n.ts.continue }} <i class="ti ti-arrow-right"></i></MkButton>
+							<MkButton rounded @click="page--"><i class="ph-arrow-left ph-bold ph-lg"></i> {{ i18n.ts.goBack }}</MkButton>
+							<MkButton primary rounded gradate @click="tokenDone">{{ i18n.ts.continue }} <i class="ph-arrow-right ph-bold ph-lg"></i></MkButton>
 						</div>
 					</MkSpacer>
 				</div>
@@ -71,7 +71,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 							<div style="text-align: center; font-weight: bold;">{{ i18n.ts._2fa.checkBackupCodesBeforeCloseThisWizard }}</div>
 
 							<MkFolder :defaultOpen="true">
-								<template #icon><i class="ti ti-key"></i></template>
+								<template #icon><i class="ph-key ph-bold ph-lg"></i></template>
 								<template #label>{{ i18n.ts._2fa.backupCodes }}</template>
 
 								<div class="_gaps">
@@ -84,7 +84,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 										</MkKeyValue>
 									</div>
 
-									<MkButton primary rounded gradate @click="downloadBackupCodes"><i class="ti ti-download"></i> {{ i18n.ts.download }}</MkButton>
+									<MkButton primary rounded gradate @click="downloadBackupCodes"><i class="ph-download ph-bold ph-lg"></i> {{ i18n.ts.download }}</MkButton>
 								</div>
 							</MkFolder>
 						</div>
@@ -110,7 +110,9 @@ import * as os from '@/os.js';
 import MkFolder from '@/components/MkFolder.vue';
 import MkInfo from '@/components/MkInfo.vue';
 import { confetti } from '@/scripts/confetti.js';
-import { $i } from '@/account.js';
+import { signinRequired } from '@/account.js';
+
+const $i = signinRequired();
 
 defineProps<{
 	twoFactorData: {
@@ -151,7 +153,7 @@ function downloadBackupCodes() {
 		const txtBlob = new Blob([backupCodes.value.join('\n')], { type: 'text/plain' });
 		const dummya = document.createElement('a');
 		dummya.href = URL.createObjectURL(txtBlob);
-		dummya.download = `${$i?.username}-2fa-backup-codes.txt`;
+		dummya.download = `${$i.username}-2fa-backup-codes.txt`;
 		dummya.click();
 	}
 }

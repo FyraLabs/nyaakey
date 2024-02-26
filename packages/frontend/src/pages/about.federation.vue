@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <div class="_gaps">
 	<div>
 		<MkInput v-model="host" :debounce="true" class="">
-			<template #prefix><i class="ti ti-search"></i></template>
+			<template #prefix><i class="ph-magnifying-glass ph-bold ph-lg"></i></template>
 			<template #label>{{ i18n.ts.host }}</template>
 		</MkInput>
 		<FormSplit style="margin-top: var(--margin);">
@@ -17,9 +17,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<option value="federating">{{ i18n.ts.federating }}</option>
 				<option value="subscribing">{{ i18n.ts.subscribing }}</option>
 				<option value="publishing">{{ i18n.ts.publishing }}</option>
-				<option value="suspended">{{ i18n.ts.suspended }}</option>
-				<option value="silenced">{{ i18n.ts.silence }}</option>
-				<option value="blocked">{{ i18n.ts.blocked }}</option>
+				<option value="bubble">Bubble</option>
+				<option value="nsfw">NSFW</option>
+				<option v-if="$i" value="suspended">{{ i18n.ts.suspended }}</option>
+				<option v-if="$i" value="silenced">{{ i18n.ts.silence }}</option>
+				<option v-if="$i" value="blocked">{{ i18n.ts.blocked }}</option>
 				<option value="notResponding">{{ i18n.ts.notResponding }}</option>
 			</MkSelect>
 			<MkSelect v-model="sort">
@@ -58,6 +60,7 @@ import MkPagination, { Paging } from '@/components/MkPagination.vue';
 import MkInstanceCardMini from '@/components/MkInstanceCardMini.vue';
 import FormSplit from '@/components/form/split.vue';
 import { i18n } from '@/i18n.js';
+import { $i } from '@/account.js';
 
 const host = ref('');
 const state = ref('federating');
@@ -78,6 +81,8 @@ const pagination = {
 			state.value === 'blocked' ? { blocked: true } :
 			state.value === 'silenced' ? { silenced: true } :
 			state.value === 'notResponding' ? { notResponding: true } :
+			state.value === 'nsfw' ? { nsfw: true } :
+			state.value === 'bubble' ? { bubble: true } :
 			{}),
 	})),
 } as Paging;
@@ -87,6 +92,7 @@ function getStatus(instance) {
 	if (instance.isBlocked) return 'Blocked';
 	if (instance.isSilenced) return 'Silenced';
 	if (instance.isNotResponding) return 'Error';
+	if (instance.isNSFW) return 'NSFW';
 	return 'Alive';
 }
 </script>

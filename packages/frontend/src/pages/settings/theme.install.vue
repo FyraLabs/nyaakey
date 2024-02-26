@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -10,8 +10,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 	</MkCodeEditor>
 
 	<div class="_buttons">
-		<MkButton :disabled="installThemeCode == null" inline @click="() => previewTheme(installThemeCode)"><i class="ti ti-eye"></i> {{ i18n.ts.preview }}</MkButton>
-		<MkButton :disabled="installThemeCode == null" primary inline @click="() => install(installThemeCode)"><i class="ti ti-check"></i> {{ i18n.ts.install }}</MkButton>
+		<MkButton :disabled="installThemeCode == null" inline @click="() => previewTheme(installThemeCode)"><i class="ph-eye ph-bold ph-lg"></i> {{ i18n.ts.preview }}</MkButton>
+		<MkButton :disabled="installThemeCode == null" primary inline @click="() => install(installThemeCode)"><i class="ph-check ph-bold ph-lg"></i> {{ i18n.ts.install }}</MkButton>
 	</div>
 </div>
 </template>
@@ -33,7 +33,7 @@ async function install(code: string): Promise<void> {
 		await installTheme(code);
 		os.alert({
 			type: 'success',
-			text: i18n.t('_theme.installed', { name: theme.name }),
+			text: i18n.tsx._theme.installed({ name: theme.name }),
 		});
 	} catch (err) {
 		switch (err.message.toLowerCase()) {
@@ -59,8 +59,8 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts._theme.install,
-	icon: 'ti ti-download',
-});
+	icon: 'ph-download ph-bold ph-lg',
+}));
 </script>

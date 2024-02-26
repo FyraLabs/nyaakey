@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -31,4 +31,9 @@ export class MiUserPending {
 		length: 128,
 	})
 	public password: string;
+
+	@Column('varchar', {
+		length: 1000,
+	})
+	public reason: string;
 }

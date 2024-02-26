@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<div :class="$style.file" @click="showFileMenu(element, $event)" @contextmenu.prevent="showFileMenu(element, $event)">
 				<MkDriveFileThumbnail :data-id="element.id" :class="$style.thumbnail" :file="element" fit="cover"/>
 				<div v-if="element.isSensitive" :class="$style.sensitive">
-					<i class="ti ti-eye-exclamation" style="margin: auto;"></i>
+					<i class="ph-eye-closed ph-bold ph-lg" style="margin: auto;"></i>
 				</div>
 			</div>
 		</template>
@@ -24,6 +24,7 @@ import { defineAsyncComponent, inject } from 'vue';
 import * as Misskey from 'misskey-js';
 import MkDriveFileThumbnail from '@/components/MkDriveFileThumbnail.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 
 const Sortable = defineAsyncComponent(() => import('vuedraggable').then(x => x.default));
@@ -55,13 +56,30 @@ function detachMedia(id: string) {
 	}
 }
 
+async function detachAndDeleteMedia(file: Misskey.entities.DriveFile) {
+	if (mock) return;
+
+	detachMedia(file.id);
+
+	const { canceled } = await os.confirm({
+		type: 'warning',
+		text: i18n.t('driveFileDeleteConfirm', { name: file.name }),
+	});
+
+	if (canceled) return;
+
+	os.apiWithDialog('drive/files/delete', {
+		fileId: file.id,
+	});
+}
+
 function toggleSensitive(file) {
 	if (mock) {
 		emit('changeSensitive', file, !file.isSensitive);
 		return;
 	}
 
-	os.api('drive/files/update', {
+	misskeyApi('drive/files/update', {
 		fileId: file.id,
 		isSensitive: !file.isSensitive,
 	}).then(() => {
@@ -75,10 +93,10 @@ async function rename(file) {
 	const { canceled, result } = await os.inputText({
 		title: i18n.ts.enterFileName,
 		default: file.name,
-		allowEmpty: false,
+		minLength: 1,
 	});
 	if (canceled) return;
-	os.api('drive/files/update', {
+	misskeyApi('drive/files/update', {
 		fileId: file.id,
 		name: result,
 	}).then(() => {
@@ -96,7 +114,7 @@ async function describe(file) {
 	}, {
 		done: caption => {
 			let comment = caption.length === 0 ? null : caption;
-			os.api('drive/files/update', {
+			misskeyApi('drive/files/update', {
 				fileId: file.id,
 				comment: comment,
 			}).then(() => {
@@ -119,24 +137,31 @@ function showFileMenu(file: Misskey.entities.DriveFile, ev: MouseEvent): void {
 	const isImage = file.type.startsWith('image/');
 	os.popupMenu([{
 		text: i18n.ts.renameFile,
-		icon: 'ti ti-forms',
+		icon: 'ph-textbox ph-bold ph-lg',
 		action: () => { rename(file); },
 	}, {
 		text: file.isSensitive ? i18n.ts.unmarkAsSensitive : i18n.ts.markAsSensitive,
-		icon: file.isSensitive ? 'ti ti-eye-exclamation' : 'ti ti-eye',
+		icon: file.isSensitive ? 'ph-eye-closed ph-bold ph-lg' : 'ph-eye ph-bold ph-lg',
 		action: () => { toggleSensitive(file); },
 	}, {
 		text: i18n.ts.describeFile,
-		icon: 'ti ti-text-caption',
+		icon: 'ph-text-indent ph-bold ph-lg',
 		action: () => { describe(file); },
 	}, ...isImage ? [{
 		text: i18n.ts.cropImage,
-		icon: 'ti ti-crop',
+		icon: 'ph-crop ph-bold ph-lg',
 		action: () : void => { crop(file); },
 	}] : [], {
+		type: 'divider',
+	}, {
 		text: i18n.ts.attachCancel,
-		icon: 'ti ti-circle-x',
+		icon: 'ph-x-circle ph-bold ph-lg',
 		action: () => { detachMedia(file.id); },
+	}, {
+		text: i18n.ts.deleteFile,
+		icon: 'ph-trash ph-bold ph-lg',
+		danger: true,
+		action: () => { detachAndDeleteMedia(file); },
 	}], ev.currentTarget ?? ev.target).then(() => menuShowing = false);
 	menuShowing = true;
 }
@@ -158,7 +183,7 @@ function showFileMenu(file: Misskey.entities.DriveFile, ev: MouseEvent): void {
 	width: 64px;
 	height: 64px;
 	margin-right: 4px;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	overflow: hidden;
 	cursor: move;
 }

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -9,20 +9,29 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div v-if="!thin_ && narrow && props.displayMyAvatar && $i" class="_button" :class="$style.buttonsLeft" @click="openAccountMenu">
 			<MkAvatar :class="$style.avatar" :user="$i"/>
 		</div>
-		<div v-else-if="!thin_ && narrow && !hideTitle" :class="$style.buttonsLeft"/>
+		<div v-else-if="!thin_ && narrow && !hideTitle" :class="$style.buttonsLeft">
+			<button v-if="displayBackButton" class="_button" :class="$style.button" @click.stop="goBack()" @touchstart="preventDrag">
+				<i class="ph-caret-left ph-bold ph-lg"></i>
+			</button>
+		</div>
 
-		<template v-if="metadata">
+		<template v-if="pageMetadata">
+			<div v-if="displayBackButton && !narrow" style="margin: 0 -45px 0 0;" :class="$style.buttonsLeft">
+				<button class="_button" :class="$style.button" style="left: 5px;" @click.stop="goBack()" @touchstart="preventDrag">
+					<i class="ph-caret-left ph-bold ph-lg"></i>
+				</button>
+			</div>
 			<div v-if="!hideTitle" :class="$style.titleContainer" @click="top">
-				<div v-if="metadata.avatar" :class="$style.titleAvatarContainer">
-					<MkAvatar :class="$style.titleAvatar" :user="metadata.avatar" indicator/>
+				<div v-if="pageMetadata.avatar" :class="$style.titleAvatarContainer">
+					<MkAvatar :class="$style.titleAvatar" :user="pageMetadata.avatar" indicator/>
 				</div>
-				<i v-else-if="metadata.icon" :class="[$style.titleIcon, metadata.icon]"></i>
+				<i v-else-if="pageMetadata.icon" :class="[$style.titleIcon, pageMetadata.icon]"></i>
 
 				<div :class="$style.title">
-					<MkUserName v-if="metadata.userName" :user="metadata.userName" :nowrap="true"/>
-					<div v-else-if="metadata.title">{{ metadata.title }}</div>
-					<div v-if="metadata.subtitle" :class="$style.subtitle">
-						{{ metadata.subtitle }}
+					<MkUserName v-if="pageMetadata.userName" :user="pageMetadata.userName" :nowrap="true"/>
+					<div v-else-if="pageMetadata.title">{{ pageMetadata.title }}</div>
+					<div v-if="pageMetadata.subtitle" :class="$style.subtitle">
+						{{ pageMetadata.subtitle }}
 					</div>
 				</div>
 			</div>
@@ -46,7 +55,7 @@ import tinycolor from 'tinycolor2';
 import XTabs, { Tab } from './MkPageHeader.tabs.vue';
 import { scrollToTop } from '@/scripts/scroll.js';
 import { globalEvents } from '@/events.js';
-import { injectPageMetadata } from '@/scripts/page-metadata.js';
+import { injectReactiveMetadata } from '@/scripts/page-metadata.js';
 import { $i, openAccountMenu as openAccountMenu_ } from '@/account.js';
 import { PageHeaderItem } from '@/types/page-header.js';
 
@@ -56,6 +65,7 @@ const props = withDefaults(defineProps<{
 	actions?: PageHeaderItem[] | null;
 	thin?: boolean;
 	displayMyAvatar?: boolean;
+	displayBackButton?: boolean;
 }>(), {
 	tabs: () => ([] as Tab[]),
 });
@@ -64,7 +74,9 @@ const emit = defineEmits<{
 	(ev: 'update:tab', key: string);
 }>();
 
-const metadata = injectPageMetadata();
+const displayBackButton = props.displayBackButton && history.state.key !== 'index' && history.length > 1 && inject('shouldBackButton', true);
+
+const pageMetadata = injectReactiveMetadata();
 
 const hideTitle = inject('shouldOmitHeaderTitle', false);
 const thin_ = props.thin || inject('shouldHeaderThin', false);
@@ -96,6 +108,10 @@ function openAccountMenu(ev: MouseEvent) {
 
 function onTabClick(): void {
 	top();
+}
+
+function goBack(): void {
+	window.history.back();
 }
 
 const calcBg = () => {
@@ -223,7 +239,7 @@ onUnmounted(() => {
 	width: calc(var(--height) - (var(--margin)));
 	box-sizing: border-box;
 	position: relative;
-	border-radius: 5px;
+	border-radius: var(--radius-xs);
 
 	&:hover {
 		background: rgba(0, 0, 0, 0.05);

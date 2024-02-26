@@ -1,4 +1,4 @@
-export const notificationTypes = ['note', 'follow', 'mention', 'reply', 'renote', 'quote', 'reaction', 'pollVote', 'pollEnded', 'receiveFollowRequest', 'followRequestAccepted', 'groupInvited', 'app', 'roleAssigned', 'achievementEarned'] as const;
+export const notificationTypes = ['note', 'follow', 'mention', 'reply', 'renote', 'quote', 'reaction', 'pollVote', 'pollEnded', 'receiveFollowRequest', 'followRequestAccepted', 'groupInvited', 'app', 'roleAssigned', 'achievementEarned', 'edited'] as const;
 
 export const noteVisibilities = ['public', 'home', 'followers', 'specified'] as const;
 
@@ -60,6 +60,11 @@ export const permissions = [
 	'read:admin:show-user',
 	'read:admin:show-users',
 	'write:admin:suspend-user',
+	'write:admin:approve-user',
+	'write:admin:nsfw-user',
+	'write:admin:unnsfw-user',
+	'write:admin:silence-user',
+	'write:admin:unsilence-user',
 	'write:admin:unset-user-avatar',
 	'write:admin:unset-user-banner',
 	'write:admin:unsuspend-user',
@@ -98,6 +103,7 @@ export const permissions = [
 export const moderationLogTypes = [
 	'updateServerSettings',
 	'suspend',
+	'approve',
 	'unsuspend',
 	'updateUserNote',
 	'addCustomEmoji',
@@ -121,6 +127,7 @@ export const moderationLogTypes = [
 	'resetPassword',
 	'suspendRemoteInstance',
 	'unsuspendRemoteInstance',
+	'updateRemoteInstanceNote',
 	'markSensitiveDriveFile',
 	'unmarkSensitiveDriveFile',
 	'resolveAbuseReport',
@@ -141,6 +148,11 @@ export type ModerationLogPayloads = {
 		after: any | null;
 	};
 	suspend: {
+		userId: string;
+		userUsername: string;
+		userHost: string | null;
+	};
+	approve: {
 		userId: string;
 		userUsername: string;
 		userHost: string | null;
@@ -260,6 +272,12 @@ export type ModerationLogPayloads = {
 	unsuspendRemoteInstance: {
 		id: string;
 		host: string;
+	};
+	updateRemoteInstanceNote: {
+		id: string;
+		host: string;
+		before: string | null;
+		after: string | null;
 	};
 	markSensitiveDriveFile: {
 		fileId: string;

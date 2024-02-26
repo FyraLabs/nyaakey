@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -33,6 +33,7 @@ export default function(app: App) {
 	app.component('WidgetAichan', defineAsyncComponent(() => import('./WidgetAichan.vue')));
 	app.component('WidgetUserList', defineAsyncComponent(() => import('./WidgetUserList.vue')));
 	app.component('WidgetClicker', defineAsyncComponent(() => import('./WidgetClicker.vue')));
+	app.component('WidgetSearch', defineAsyncComponent(() => import('./WidgetSearch.vue')));
 	app.component('WidgetBirthdayFollowings', defineAsyncComponent(() => import('./WidgetBirthdayFollowings.vue')));
 }
 
@@ -64,5 +65,6 @@ export const widgets = [
 	'aichan',
 	'userList',
 	'clicker',
+	'search',
 	'birthdayFollowings',
 ];

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -15,6 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<template #default="{ items: notes }">
 		<div :class="[$style.root, { [$style.noGap]: noGap }]">
 			<MkDateSeparatedList
+				v-if="defaultStore.state.noteDesign === 'misskey'"
 				ref="notes"
 				v-slot="{ item: note }"
 				:items="notes"
@@ -26,18 +27,35 @@ SPDX-License-Identifier: AGPL-3.0-only
 			>
 				<MkNote :key="note._featuredId_ || note._prId_ || note.id" :class="$style.note" :note="note" :withHardMute="true"/>
 			</MkDateSeparatedList>
+			<MkDateSeparatedList
+				v-else-if="defaultStore.state.noteDesign === 'sharkey'"
+				ref="notes" 
+				v-slot="{ item: note }"
+				:items="notes"
+				:direction="pagination.reversed ? 'up' : 'down'"
+				:reversed="pagination.reversed"
+				:noGap="noGap"
+				:ad="true"
+				:class="$style.notes"
+			>
+				<SkNote :key="note._featuredId_ || note._prId_ || note.id" :class="$style.note" :note="note" :withHardMute="true"/>
+			</MkDateSeparatedList>
 		</div>
 	</template>
 </MkPagination>
 </template>
 
 <script lang="ts" setup>
-import { shallowRef } from 'vue';
+import { shallowRef, ref } from 'vue';
 import MkNote from '@/components/MkNote.vue';
+import SkNote from '@/components/SkNote.vue';
 import MkDateSeparatedList from '@/components/MkDateSeparatedList.vue';
 import MkPagination, { Paging } from '@/components/MkPagination.vue';
 import { i18n } from '@/i18n.js';
 import { infoImageUrl } from '@/instance.js';
+import { defaultStore } from '@/store.js';
+
+console.log(defaultStore.state.noteDesign, defaultStore.state.noteDesign === 'sharkey');
 
 const props = defineProps<{
 	pagination: Paging;
@@ -55,8 +73,10 @@ defineExpose({
 <style lang="scss" module>
 .root {
 	&.noGap {
+		border-radius: var(--radius);
+
 		> .notes {
-			background: var(--panel);
+			background: color-mix(in srgb, var(--panel) 65%, transparent);
 		}
 	}
 
@@ -65,7 +85,7 @@ defineExpose({
 			background: var(--bg);
 
 			.note {
-				background: var(--panel);
+				background: color-mix(in srgb, var(--panel) 65%, transparent);
 				border-radius: var(--radius);
 			}
 		}

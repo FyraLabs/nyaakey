@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -61,7 +61,8 @@ export class MiDriveFile {
 	public size: number;
 
 	@Column('varchar', {
-		length: 512, nullable: true,
+		length: 8192,
+		nullable: true,
 		comment: 'The comment of the DriveFile.',
 	})
 	public comment: string | null;

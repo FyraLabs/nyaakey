@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -24,9 +24,11 @@ import { getProxiedImageUrl, getStaticImageUrl } from '@/scripts/media-proxy.js'
 import { defaultStore } from '@/store.js';
 import { customEmojisMap } from '@/custom-emojis.js';
 import * as os from '@/os.js';
+import { misskeyApiGet } from '@/scripts/misskey-api.js';
 import copyToClipboard from '@/scripts/copy-to-clipboard.js';
 import * as sound from '@/scripts/sound.js';
 import { i18n } from '@/i18n.js';
+import MkCustomEmojiDetailedDialog from '@/components/MkCustomEmojiDetailedDialog.vue';
 
 const props = defineProps<{
 	name: string;
@@ -55,7 +57,7 @@ const rawUrl = computed(() => {
 });
 
 const url = computed(() => {
-	if (rawUrl.value == null) return null;
+	if (rawUrl.value == null) return undefined;
 
 	const proxied =
 		(rawUrl.value.startsWith('/emoji/') || (props.useOriginalSize && isLocal.value))
@@ -81,19 +83,31 @@ function onClick(ev: MouseEvent) {
 			text: `:${props.name}:`,
 		}, {
 			text: i18n.ts.copy,
-			icon: 'ti ti-copy',
+			icon: 'ph-copy ph-bold ph-lg',
 			action: () => {
 				copyToClipboard(`:${props.name}:`);
 				os.success();
 			},
 		}, ...(props.menuReaction && react ? [{
 			text: i18n.ts.doReaction,
-			icon: 'ti ti-plus',
+			icon: 'ph-smiley ph-bold ph-lg',
 			action: () => {
 				react(`:${props.name}:`);
-				sound.play('reaction');
+				sound.playMisskeySfx('reaction');
 			},
-		}] : [])], ev.currentTarget ?? ev.target);
+		}] : []), {
+			text: i18n.ts.info,
+			icon: 'ph-info ph-bold ph-lg',
+			action: async () => {
+				os.popup(MkCustomEmojiDetailedDialog, {
+					emoji: await misskeyApiGet('emoji', {
+						name: customEmojiName.value,
+					}),
+				}, {
+					anchor: ev.target,
+				});
+			},
+		}], ev.currentTarget ?? ev.target);
 	}
 }
 </script>

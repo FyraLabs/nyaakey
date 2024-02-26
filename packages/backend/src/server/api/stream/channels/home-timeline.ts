@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -52,7 +52,7 @@ class HomeTimelineChannel extends Channel {
 		}
 
 		// Ignore notes from instances the user has muted
-		if (isInstanceMuted(note, new Set<string>(this.userProfile!.mutedInstances))) return;
+		if (isInstanceMuted(note, new Set<string>(this.userProfile!.mutedInstances)) && !this.following[note.userId]) return;
 
 		if (note.visibility === 'followers') {
 			if (!isMe && !Object.hasOwn(this.following, note.userId)) return;
@@ -71,12 +71,17 @@ class HomeTimelineChannel extends Channel {
 			}
 		}
 
+		if (note.user.isSilenced && !this.following[note.userId] && note.userId !== this.user!.id) return;
+
 		if (note.renote && note.text == null && (note.fileIds == null || note.fileIds.length === 0) && !this.withRenotes) return;
 
 		// 流れてきたNoteがミュートしているユーザーが関わるものだったら無視する
 		if (isUserRelated(note, this.userIdsWhoMeMuting)) return;
 		// 流れてきたNoteがブロックされているユーザーが関わるものだったら無視する
 		if (isUserRelated(note, this.userIdsWhoBlockingMe)) return;
+		
+		if (note.renote && !note.text && note.renote.mentions?.some(mention => this.userIdsWhoMeMuting.has(mention))) return;
+		if (note.mentions?.some(mention => this.userIdsWhoMeMuting.has(mention))) return;
 
 		if (note.renote && !note.text && isUserRelated(note, this.userIdsWhoMeMutingRenotes)) return;
 

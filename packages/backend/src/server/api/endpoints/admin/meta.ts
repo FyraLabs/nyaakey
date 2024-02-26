@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -33,11 +33,27 @@ export const meta = {
 				type: 'boolean',
 				optional: false, nullable: false,
 			},
+			approvalRequiredForSignup: {
+				type: 'boolean',
+				optional: false, nullable: false,
+			},
 			enableHcaptcha: {
 				type: 'boolean',
 				optional: false, nullable: false,
 			},
 			hcaptchaSiteKey: {
+				type: 'string',
+				optional: false, nullable: true,
+			},
+			enableMcaptcha: {
+				type: 'boolean',
+				optional: false, nullable: false,
+			},
+			mcaptchaSiteKey: {
+				type: 'string',
+				optional: false, nullable: true,
+			},
+			mcaptchaInstanceUrl: {
 				type: 'string',
 				optional: false, nullable: true,
 			},
@@ -144,6 +160,13 @@ export const meta = {
 					type: 'string',
 				},
 			},
+			prohibitedWords: {
+				type: 'array',
+				optional: false, nullable: false,
+				items: {
+					type: 'string',
+				},
+			},
 			bannedEmailDomains: {
 				type: 'array',
 				optional: true, nullable: false,
@@ -159,7 +182,18 @@ export const meta = {
 					type: 'string',
 				},
 			},
+			bubbleInstances: {
+				type: 'array',
+				optional: false, nullable: false,
+				items: {
+					type: 'string',
+				},
+			},
 			hcaptchaSecretKey: {
+				type: 'string',
+				optional: false, nullable: true,
+			},
+			mcaptchaSecretKey: {
 				type: 'string',
 				optional: false, nullable: true,
 			},
@@ -184,6 +218,10 @@ export const meta = {
 				optional: false, nullable: false,
 			},
 			enableSensitiveMediaDetectionForVideos: {
+				type: 'boolean',
+				optional: false, nullable: false,
+			},
+			enableBotTrending: {
 				type: 'boolean',
 				optional: false, nullable: false,
 			},
@@ -308,6 +346,10 @@ export const meta = {
 				type: 'boolean',
 				optional: false, nullable: false,
 			},
+			enableAchievements: {
+				type: 'boolean',
+				optional: false, nullable: false,
+			},
 			enableIdenticonGeneration: {
 				type: 'boolean',
 				optional: false, nullable: false,
@@ -360,6 +402,14 @@ export const meta = {
 				type: 'boolean',
 				optional: false, nullable: false,
 			},
+			deeplFreeMode: {
+				type: 'boolean',
+				optional: false, nullable: false,
+			},
+			deeplFreeInstance: {
+				type: 'string',
+				optional: false, nullable: true,
+			},
 			defaultDarkTheme: {
 				type: 'string',
 				optional: false, nullable: true,
@@ -377,6 +427,10 @@ export const meta = {
 				optional: false, nullable: false,
 			},
 			impressumUrl: {
+				type: 'string',
+				optional: false, nullable: true,
+			},
+			donationUrl: {
 				type: 'string',
 				optional: false, nullable: true,
 			},
@@ -406,7 +460,7 @@ export const meta = {
 			},
 			repositoryUrl: {
 				type: 'string',
-				optional: false, nullable: false,
+				optional: false, nullable: true,
 			},
 			summalyProxy: {
 				type: 'string',
@@ -463,11 +517,16 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				repositoryUrl: instance.repositoryUrl,
 				feedbackUrl: instance.feedbackUrl,
 				impressumUrl: instance.impressumUrl,
+				donationUrl: instance.donationUrl,
 				privacyPolicyUrl: instance.privacyPolicyUrl,
 				disableRegistration: instance.disableRegistration,
 				emailRequiredForSignup: instance.emailRequiredForSignup,
+				approvalRequiredForSignup: instance.approvalRequiredForSignup,
 				enableHcaptcha: instance.enableHcaptcha,
 				hcaptchaSiteKey: instance.hcaptchaSiteKey,
+				enableMcaptcha: instance.enableMcaptcha,
+				mcaptchaSiteKey: instance.mcaptchaSitekey,
+				mcaptchaInstanceUrl: instance.mcaptchaInstanceUrl,
 				enableRecaptcha: instance.enableRecaptcha,
 				recaptchaSiteKey: instance.recaptchaSiteKey,
 				enableTurnstile: instance.enableTurnstile,
@@ -486,6 +545,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				logoImageUrl: instance.logoImageUrl,
 				defaultLightTheme: instance.defaultLightTheme,
 				defaultDarkTheme: instance.defaultDarkTheme,
+				defaultLike: instance.defaultLike,
 				enableEmail: instance.enableEmail,
 				enableServiceWorker: instance.enableServiceWorker,
 				translatorAvailable: instance.deeplAuthKey != null,
@@ -496,14 +556,18 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				blockedHosts: instance.blockedHosts,
 				silencedHosts: instance.silencedHosts,
 				sensitiveWords: instance.sensitiveWords,
+				prohibitedWords: instance.prohibitedWords,
 				preservedUsernames: instance.preservedUsernames,
+				bubbleInstances: instance.bubbleInstances,
 				hcaptchaSecretKey: instance.hcaptchaSecretKey,
+				mcaptchaSecretKey: instance.mcaptchaSecretKey,
 				recaptchaSecretKey: instance.recaptchaSecretKey,
 				turnstileSecretKey: instance.turnstileSecretKey,
 				sensitiveMediaDetection: instance.sensitiveMediaDetection,
 				sensitiveMediaDetectionSensitivity: instance.sensitiveMediaDetectionSensitivity,
 				setSensitiveFlagAutomatically: instance.setSensitiveFlagAutomatically,
 				enableSensitiveMediaDetectionForVideos: instance.enableSensitiveMediaDetectionForVideos,
+				enableBotTrending: instance.enableBotTrending,
 				proxyAccountId: instance.proxyAccountId,
 				summalyProxy: instance.summalyProxy,
 				email: instance.email,
@@ -528,6 +592,8 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				objectStorageS3ForcePathStyle: instance.objectStorageS3ForcePathStyle,
 				deeplAuthKey: instance.deeplAuthKey,
 				deeplIsPro: instance.deeplIsPro,
+				deeplFreeMode: instance.deeplFreeMode,
+				deeplFreeInstance: instance.deeplFreeInstance,
 				enableIpLogging: instance.enableIpLogging,
 				enableActiveEmailValidation: instance.enableActiveEmailValidation,
 				enableVerifymailApi: instance.enableVerifymailApi,
@@ -538,6 +604,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				enableChartsForRemoteUser: instance.enableChartsForRemoteUser,
 				enableChartsForFederatedInstances: instance.enableChartsForFederatedInstances,
 				enableServerMachineStats: instance.enableServerMachineStats,
+				enableAchievements: instance.enableAchievements,
 				enableIdenticonGeneration: instance.enableIdenticonGeneration,
 				bannedEmailDomains: instance.bannedEmailDomains,
 				policies: { ...DEFAULT_POLICIES, ...instance.policies },

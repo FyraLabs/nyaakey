@@ -71,6 +71,7 @@ export function getConfig(): UserConfig {
 				'/client-assets/': __dirname + '/assets/',
 				'/static-assets/': __dirname + '/../backend/assets/',
 				'/fluent-emojis/': __dirname + '/../../fluent-emojis/dist/',
+				'/tossface/': __dirname + '/../../tossface-emojis/dist/',
 				'/fluent-emoji/': __dirname + '/../../fluent-emojis/dist/',
 			},
 		},
@@ -79,11 +80,8 @@ export function getConfig(): UserConfig {
 			modules: {
 				generateScopedName(name, filename, _css): string {
 					const id = (path.relative(__dirname, filename.split('?')[0]) + '-' + name).replace(/[\\\/\.\?&=]/g, '-').replace(/(src-|vue-)/g, '');
-					if (process.env.NODE_ENV === 'production') {
-						return 'x' + toBase62(hash(id)).substring(0, 4);
-					} else {
-						return id;
-					}
+					const shortId = id.replace(/^(components(-global)?|widgets|ui(-_common_)?)-/, '');
+					return shortId + '-' + toBase62(hash(id)).substring(0, 4);
 				},
 			},
 		},
@@ -99,11 +97,6 @@ export function getConfig(): UserConfig {
 			_DATA_TRANSFER_DECK_COLUMN_: JSON.stringify('mk_deck_column'),
 			__VUE_OPTIONS_API__: true,
 			__VUE_PROD_DEVTOOLS__: false,
-		},
-
-		// https://vitejs.dev/guide/dep-pre-bundling.html#monorepos-and-linked-dependencies
-		optimizeDeps: {
-			include: ['misskey-js'],
 		},
 
 		build: {
@@ -135,7 +128,7 @@ export function getConfig(): UserConfig {
 
 			// https://vitejs.dev/guide/dep-pre-bundling.html#monorepos-and-linked-dependencies
 			commonjsOptions: {
-				include: [/misskey-js/, /node_modules/],
+				include: [/misskey-js/, /misskey-reversi/, /misskey-bubble-game/, /node_modules/],
 			},
 		},
 
@@ -155,6 +148,7 @@ export function getConfig(): UserConfig {
 					},
 				},
 			},
+			includeSource: ['src/**/*.ts'],
 		},
 	};
 }

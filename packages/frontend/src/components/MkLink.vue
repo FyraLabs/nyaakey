@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -7,9 +7,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 <component
 	:is="self ? 'MkA' : 'a'" ref="el" style="word-break: break-all;" class="_link" :[attr]="self ? url.substring(local.length) : url" :rel="rel ?? 'nofollow noopener'" :target="target"
 	:title="url"
+	@click.stop
 >
 	<slot></slot>
-	<i v-if="target === '_blank'" class="ti ti-external-link" :class="$style.icon"></i>
+	<i v-if="target === '_blank'" class="ph-arrow-square-out ph-bold ph-lg" :class="$style.icon"></i>
 </component>
 </template>
 

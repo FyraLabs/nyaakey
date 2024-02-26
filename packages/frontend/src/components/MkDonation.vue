@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -23,7 +23,17 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</template>
 			</I18n>
 			<div style="margin-top: 0.2em;">
-				<MkLink target="_blank" url="https://misskey-hub.net/docs/for-users/resources/donate/">{{ i18n.ts.learnMore }}</MkLink>
+				<MkLink target="_blank" url="https://ko-fi.com/transfem">{{ i18n.ts.learnMore }}</MkLink>
+			</div>
+		</div>
+		<div v-if="instance.donationUrl" :class="$style.text">
+			<I18n :src="i18n.ts.pleaseDonateInstance" tag="span">
+				<template #host>
+					{{ instance.name ?? host }}
+				</template>
+			</I18n>
+			<div style="margin-top: 0.2em;">
+				<MkLink target="_blank" :url="instance.donationUrl">{{ i18n.ts.learnMore }}</MkLink>
 			</div>
 		</div>
 		<div class="_buttons">
@@ -31,7 +41,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<MkButton @click="neverShow">{{ i18n.ts.neverShow }}</MkButton>
 		</div>
 	</div>
-	<button class="_button" :class="$style.close" @click="close"><i class="ti ti-x"></i></button>
+	<button class="_button" :class="$style.close" @click="close"><i class="ph-x ph-bold ph-lg"></i></button>
 </div>
 </template>
 
@@ -73,6 +83,7 @@ function neverShow() {
 	width: calc(100% - (var(--margin) * 2));
 	max-width: 500px;
 	display: flex;
+	backdrop-filter: var(--blur, blur(15px));
 }
 
 .icon {

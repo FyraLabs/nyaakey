@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -22,7 +22,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <MkA
 	v-else class="_button"
 	:class="[$style.root, { [$style.inline]: inline, [$style.primary]: primary, [$style.gradate]: gradate, [$style.danger]: danger, [$style.rounded]: rounded, [$style.full]: full, [$style.small]: small, [$style.large]: large, [$style.transparent]: transparent, [$style.asLike]: asLike }]"
-	:to="to"
+	:to="to ?? '#'"
 	@mousedown="onMousedown"
 >
 	<div ref="ripples" :class="$style.ripples" :data-children-class="$style.ripple"></div>
@@ -126,10 +126,14 @@ function onMousedown(evt: MouseEvent): void {
 	box-shadow: none;
 	text-decoration: none;
 	background: var(--buttonBg);
-	border-radius: 5px;
+	border-radius: var(--radius-xs);
 	overflow: clip;
 	box-sizing: border-box;
 	transition: background 0.1s ease;
+
+	&:hover {
+		text-decoration: none;
+	}
 
 	&:not(:disabled):hover {
 		background: var(--buttonHoverBg);
@@ -154,7 +158,7 @@ function onMousedown(evt: MouseEvent): void {
 	}
 
 	&.rounded {
-		border-radius: 999px;
+		border-radius: var(--radius-ellipse);
 	}
 
 	&.primary {
@@ -264,7 +268,7 @@ function onMousedown(evt: MouseEvent): void {
 	left: 0;
 	width: 100%;
 	height: 100%;
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	overflow: clip;
 	pointer-events: none;
 }
@@ -273,7 +277,7 @@ function onMousedown(evt: MouseEvent): void {
 	position: absolute;
 	width: 2px;
 	height: 2px;
-	border-radius: 100%;
+	border-radius: var(--radius-full);
 	background: rgba(0, 0, 0, 0.1);
 	opacity: 1;
 	transform: scale(1);

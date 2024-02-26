@@ -1,11 +1,10 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
-import type { Schema } from '@/misc/json-schema.js';
 import { permissions } from 'misskey-js';
-import { RolePolicies } from '@/core/RoleService.js';
+import type { KeyOf, Schema } from '@/misc/json-schema.js';
 
 import * as ep___admin_meta from './endpoints/admin/meta.js';
 import * as ep___admin_abuseUserReports from './endpoints/admin/abuse-user-reports.js';
@@ -69,7 +68,12 @@ import * as ep___admin_serverInfo from './endpoints/admin/server-info.js';
 import * as ep___admin_showModerationLogs from './endpoints/admin/show-moderation-logs.js';
 import * as ep___admin_showUser from './endpoints/admin/show-user.js';
 import * as ep___admin_showUsers from './endpoints/admin/show-users.js';
+import * as ep___admin_nsfwUser from './endpoints/admin/nsfw-user.js';
+import * as ep___admin_unnsfwUser from './endpoints/admin/unnsfw-user.js';
+import * as ep___admin_silenceUser from './endpoints/admin/silence-user.js';
+import * as ep___admin_unsilenceUser from './endpoints/admin/unsilence-user.js';
 import * as ep___admin_suspendUser from './endpoints/admin/suspend-user.js';
+import * as ep___admin_approveUser from './endpoints/admin/approve-user.js';
 import * as ep___admin_unsuspendUser from './endpoints/admin/unsuspend-user.js';
 import * as ep___admin_updateMeta from './endpoints/admin/update-meta.js';
 import * as ep___admin_deleteAccount from './endpoints/admin/delete-account.js';
@@ -205,10 +209,12 @@ import * as ep___i_authorizedApps from './endpoints/i/authorized-apps.js';
 import * as ep___i_claimAchievement from './endpoints/i/claim-achievement.js';
 import * as ep___i_changePassword from './endpoints/i/change-password.js';
 import * as ep___i_deleteAccount from './endpoints/i/delete-account.js';
+import * as ep___i_exportData from './endpoints/i/export-data.js';
 import * as ep___i_exportBlocking from './endpoints/i/export-blocking.js';
 import * as ep___i_exportFollowing from './endpoints/i/export-following.js';
 import * as ep___i_exportMute from './endpoints/i/export-mute.js';
 import * as ep___i_exportNotes from './endpoints/i/export-notes.js';
+import * as ep___i_exportClips from './endpoints/i/export-clips.js';
 import * as ep___i_exportFavorites from './endpoints/i/export-favorites.js';
 import * as ep___i_exportUserLists from './endpoints/i/export-user-lists.js';
 import * as ep___i_exportAntennas from './endpoints/i/export-antennas.js';
@@ -217,6 +223,7 @@ import * as ep___i_gallery_likes from './endpoints/i/gallery/likes.js';
 import * as ep___i_gallery_posts from './endpoints/i/gallery/posts.js';
 import * as ep___i_importBlocking from './endpoints/i/import-blocking.js';
 import * as ep___i_importFollowing from './endpoints/i/import-following.js';
+import * as ep___i_importNotes from './endpoints/i/import-notes.js';
 import * as ep___i_importMuting from './endpoints/i/import-muting.js';
 import * as ep___i_importUserLists from './endpoints/i/import-user-lists.js';
 import * as ep___i_importAntennas from './endpoints/i/import-antennas.js';
@@ -229,6 +236,7 @@ import * as ep___i_readAllUnreadNotes from './endpoints/i/read-all-unread-notes.
 import * as ep___i_readAnnouncement from './endpoints/i/read-announcement.js';
 import * as ep___i_regenerateToken from './endpoints/i/regenerate-token.js';
 import * as ep___i_registry_getAll from './endpoints/i/registry/get-all.js';
+import * as ep___i_registry_getUnsecure from './endpoints/i/registry/get-unsecure.js';
 import * as ep___i_registry_getDetail from './endpoints/i/registry/get-detail.js';
 import * as ep___i_registry_get from './endpoints/i/registry/get.js';
 import * as ep___i_registry_keysWithType from './endpoints/i/registry/keys-with-type.js';
@@ -272,6 +280,7 @@ import * as ep___notes_favorites_create from './endpoints/notes/favorites/create
 import * as ep___notes_favorites_delete from './endpoints/notes/favorites/delete.js';
 import * as ep___notes_featured from './endpoints/notes/featured.js';
 import * as ep___notes_globalTimeline from './endpoints/notes/global-timeline.js';
+import * as ep___notes_bubbleTimeline from './endpoints/notes/bubble-timeline.js';
 import * as ep___notes_hybridTimeline from './endpoints/notes/hybrid-timeline.js';
 import * as ep___notes_localTimeline from './endpoints/notes/local-timeline.js';
 import * as ep___notes_mentions from './endpoints/notes/mentions.js';
@@ -280,6 +289,7 @@ import * as ep___notes_polls_vote from './endpoints/notes/polls/vote.js';
 import * as ep___notes_reactions from './endpoints/notes/reactions.js';
 import * as ep___notes_reactions_create from './endpoints/notes/reactions/create.js';
 import * as ep___notes_reactions_delete from './endpoints/notes/reactions/delete.js';
+import * as ep___notes_like from './endpoints/notes/like.js';
 import * as ep___notes_renotes from './endpoints/notes/renotes.js';
 import * as ep___notes_replies from './endpoints/notes/replies.js';
 import * as ep___notes_searchByTag from './endpoints/notes/search-by-tag.js';
@@ -292,6 +302,8 @@ import * as ep___notes_timeline from './endpoints/notes/timeline.js';
 import * as ep___notes_translate from './endpoints/notes/translate.js';
 import * as ep___notes_unrenote from './endpoints/notes/unrenote.js';
 import * as ep___notes_userListTimeline from './endpoints/notes/user-list-timeline.js';
+import * as ep___notes_edit from './endpoints/notes/edit.js';
+import * as ep___notes_versions from './endpoints/notes/versions.js';
 import * as ep___notifications_create from './endpoints/notifications/create.js';
 import * as ep___notifications_markAllAsRead from './endpoints/notifications/mark-all-as-read.js';
 import * as ep___notifications_testNotification from './endpoints/notifications/test-notification.js';
@@ -364,6 +376,16 @@ import * as ep___users_updateMemo from './endpoints/users/update-memo.js';
 import * as ep___fetchRss from './endpoints/fetch-rss.js';
 import * as ep___fetchExternalResources from './endpoints/fetch-external-resources.js';
 import * as ep___retention from './endpoints/retention.js';
+import * as ep___sponsors from './endpoints/sponsors.js';
+import * as ep___bubbleGame_register from './endpoints/bubble-game/register.js';
+import * as ep___bubbleGame_ranking from './endpoints/bubble-game/ranking.js';
+import * as ep___reversi_cancelMatch from './endpoints/reversi/cancel-match.js';
+import * as ep___reversi_games from './endpoints/reversi/games.js';
+import * as ep___reversi_match from './endpoints/reversi/match.js';
+import * as ep___reversi_invitations from './endpoints/reversi/invitations.js';
+import * as ep___reversi_showGame from './endpoints/reversi/show-game.js';
+import * as ep___reversi_surrender from './endpoints/reversi/surrender.js';
+import * as ep___reversi_verify from './endpoints/reversi/verify.js';
 
 const eps = [
 	['admin/meta', ep___admin_meta],
@@ -428,7 +450,12 @@ const eps = [
 	['admin/show-moderation-logs', ep___admin_showModerationLogs],
 	['admin/show-user', ep___admin_showUser],
 	['admin/show-users', ep___admin_showUsers],
+	['admin/nsfw-user', ep___admin_nsfwUser],
+	['admin/unnsfw-user', ep___admin_unnsfwUser],
+	['admin/silence-user', ep___admin_silenceUser],
+	['admin/unsilence-user', ep___admin_unsilenceUser],
 	['admin/suspend-user', ep___admin_suspendUser],
+	['admin/approve-user', ep___admin_approveUser],
 	['admin/unsuspend-user', ep___admin_unsuspendUser],
 	['admin/update-meta', ep___admin_updateMeta],
 	['admin/delete-account', ep___admin_deleteAccount],
@@ -564,10 +591,12 @@ const eps = [
 	['i/claim-achievement', ep___i_claimAchievement],
 	['i/change-password', ep___i_changePassword],
 	['i/delete-account', ep___i_deleteAccount],
+	['i/export-data', ep___i_exportData],
 	['i/export-blocking', ep___i_exportBlocking],
 	['i/export-following', ep___i_exportFollowing],
 	['i/export-mute', ep___i_exportMute],
 	['i/export-notes', ep___i_exportNotes],
+	['i/export-clips', ep___i_exportClips],
 	['i/export-favorites', ep___i_exportFavorites],
 	['i/export-user-lists', ep___i_exportUserLists],
 	['i/export-antennas', ep___i_exportAntennas],
@@ -576,6 +605,7 @@ const eps = [
 	['i/gallery/posts', ep___i_gallery_posts],
 	['i/import-blocking', ep___i_importBlocking],
 	['i/import-following', ep___i_importFollowing],
+	['i/import-notes', ep___i_importNotes],
 	['i/import-muting', ep___i_importMuting],
 	['i/import-user-lists', ep___i_importUserLists],
 	['i/import-antennas', ep___i_importAntennas],
@@ -588,6 +618,7 @@ const eps = [
 	['i/read-announcement', ep___i_readAnnouncement],
 	['i/regenerate-token', ep___i_regenerateToken],
 	['i/registry/get-all', ep___i_registry_getAll],
+	['i/registry/get-unsecure', ep___i_registry_getUnsecure],
 	['i/registry/get-detail', ep___i_registry_getDetail],
 	['i/registry/get', ep___i_registry_get],
 	['i/registry/keys-with-type', ep___i_registry_keysWithType],
@@ -631,6 +662,7 @@ const eps = [
 	['notes/favorites/delete', ep___notes_favorites_delete],
 	['notes/featured', ep___notes_featured],
 	['notes/global-timeline', ep___notes_globalTimeline],
+	['notes/bubble-timeline', ep___notes_bubbleTimeline],
 	['notes/hybrid-timeline', ep___notes_hybridTimeline],
 	['notes/local-timeline', ep___notes_localTimeline],
 	['notes/mentions', ep___notes_mentions],
@@ -639,6 +671,7 @@ const eps = [
 	['notes/reactions', ep___notes_reactions],
 	['notes/reactions/create', ep___notes_reactions_create],
 	['notes/reactions/delete', ep___notes_reactions_delete],
+	['notes/like', ep___notes_like],
 	['notes/renotes', ep___notes_renotes],
 	['notes/replies', ep___notes_replies],
 	['notes/search-by-tag', ep___notes_searchByTag],
@@ -651,6 +684,8 @@ const eps = [
 	['notes/translate', ep___notes_translate],
 	['notes/unrenote', ep___notes_unrenote],
 	['notes/user-list-timeline', ep___notes_userListTimeline],
+	['notes/edit', ep___notes_edit],
+	['notes/versions', ep___notes_versions],
 	['notifications/create', ep___notifications_create],
 	['notifications/mark-all-as-read', ep___notifications_markAllAsRead],
 	['notifications/test-notification', ep___notifications_testNotification],
@@ -723,6 +758,16 @@ const eps = [
 	['fetch-rss', ep___fetchRss],
 	['fetch-external-resources', ep___fetchExternalResources],
 	['retention', ep___retention],
+	['sponsors', ep___sponsors],
+	['bubble-game/register', ep___bubbleGame_register],
+	['bubble-game/ranking', ep___bubbleGame_ranking],
+	['reversi/cancel-match', ep___reversi_cancelMatch],
+	['reversi/games', ep___reversi_games],
+	['reversi/match', ep___reversi_match],
+	['reversi/invitations', ep___reversi_invitations],
+	['reversi/show-game', ep___reversi_showGame],
+	['reversi/surrender', ep___reversi_surrender],
+	['reversi/verify', ep___reversi_verify],
 ];
 
 interface IEndpointMetaBase {
@@ -756,7 +801,7 @@ interface IEndpointMetaBase {
 	 */
 	readonly requireAdmin?: boolean;
 
-	readonly requireRolePolicy?: keyof RolePolicies;
+	readonly requireRolePolicy?: KeyOf<'RolePolicies'>;
 
 	/**
 	 * 引っ越し済みのユーザーによるリクエストを禁止するか

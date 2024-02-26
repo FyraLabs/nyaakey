@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -59,7 +59,7 @@ defineProps<{
 				width: 100%;
 				box-sizing: border-box;
 				padding: 9px 16px 9px 8px;
-				border-radius: 9px;
+				border-radius: var(--radius-sm);
 				font-size: 0.9em;
 
 				&:hover {
@@ -141,7 +141,7 @@ defineProps<{
 						height: 60px;
 						aspect-ratio: 1;
 						background: var(--panel);
-						border-radius: 100%;
+						border-radius: var(--radius-full);
 					}
 
 					> .text {

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -28,10 +28,10 @@ import { computed, watch, ref, shallowRef } from 'vue';
 import * as Misskey from 'misskey-js';
 import MkTimeline from '@/components/MkTimeline.vue';
 import { scroll } from '@/scripts/scroll.js';
-import * as os from '@/os.js';
-import { useRouter } from '@/router.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { i18n } from '@/i18n.js';
+import { useRouter } from '@/router/supplier.js';
 
 const router = useRouter();
 
@@ -45,7 +45,7 @@ const tlEl = shallowRef<InstanceType<typeof MkTimeline>>();
 const rootEl = shallowRef<HTMLElement>();
 
 watch(() => props.listId, async () => {
-	list.value = await os.api('users/lists/show', {
+	list.value = await misskeyApi('users/lists/show', {
 		listId: props.listId,
 	});
 }, { immediate: true });
@@ -63,17 +63,17 @@ function settings() {
 }
 
 const headerActions = computed(() => list.value ? [{
-	icon: 'ti ti-settings',
+	icon: 'ph-gear ph-bold ph-lg',
 	text: i18n.ts.settings,
 	handler: settings,
 }] : []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(computed(() => list.value ? {
-	title: list.value.name,
-	icon: 'ti ti-list',
-} : null));
+definePageMetadata(() => ({
+	title: list.value ? list.value.name : i18n.ts.lists,
+	icon: 'ph-list ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>
@@ -93,7 +93,7 @@ definePageMetadata(computed(() => list.value ? {
 	display: block;
 	margin: var(--margin) auto 0 auto;
 	padding: 8px 16px;
-	border-radius: 32px;
+	border-radius: var(--radius-xl);
 }
 
 .tl {

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -7,15 +7,23 @@ SPDX-License-Identifier: AGPL-3.0-only
 <div class="_gaps">
 	<div class="_gaps">
 		<MkInput v-model="searchQuery" :large="true" :autofocus="true" type="search" @enter="search">
-			<template #prefix><i class="ti ti-search"></i></template>
+			<template #prefix><i class="ph-magnifying-glass ph-bold ph-lg"></i></template>
 		</MkInput>
 		<MkFolder>
 			<template #label>{{ i18n.ts.options }}</template>
 
 			<div class="_gaps_m">
 				<MkSwitch v-model="isLocalOnly">{{ i18n.ts.localOnly }}</MkSwitch>
+				<MkSwitch v-model="order">Sort by newest to oldest</MkSwitch>
+				<MkSelect v-model="filetype" small>
+					<template #label>File Type</template>
+					<option :value="null">None</option>
+					<option value="image">Images</option>
+					<option value="video">Videos</option>
+					<option value="audio">Audio</option>
+				</MkSelect>
 
-				<MkFolder>
+				<MkFolder :defaultOpen="true">
 					<template #label>{{ i18n.ts.specifyUser }}</template>
 					<template v-if="user" #suffix>@{{ user.username }}</template>
 
@@ -47,11 +55,13 @@ import MkNotes from '@/components/MkNotes.vue';
 import MkInput from '@/components/MkInput.vue';
 import MkButton from '@/components/MkButton.vue';
 import MkSwitch from '@/components/MkSwitch.vue';
+import MkSelect from '@/components/MkSelect.vue';
 import { i18n } from '@/i18n.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import MkFoldableSection from '@/components/MkFoldableSection.vue';
-import { useRouter } from '@/router.js';
 import MkFolder from '@/components/MkFolder.vue';
+import { useRouter } from '@/router/supplier.js';
 
 const router = useRouter();
 
@@ -61,9 +71,11 @@ const searchOrigin = ref('combined');
 const notePagination = ref();
 const user = ref<any>(null);
 const isLocalOnly = ref(false);
+const order = ref(false);
+const filetype = ref(null);
 
 function selectUser() {
-	os.selectUser().then(_user => {
+	os.selectUser({ includeSelf: true }).then(_user => {
 		user.value = _user;
 	});
 }
@@ -74,7 +86,7 @@ async function search() {
 	if (query == null || query === '') return;
 
 	if (query.startsWith('https://')) {
-		const promise = os.api('ap/show', {
+		const promise = misskeyApi('ap/show', {
 			uri: query,
 		});
 
@@ -97,6 +109,8 @@ async function search() {
 		params: {
 			query: searchQuery.value,
 			userId: user.value ? user.value.id : null,
+			order: order.value ? 'desc' : 'asc',
+			filetype: filetype.value,
 		},
 	};
 

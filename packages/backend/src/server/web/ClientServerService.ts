@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -19,6 +19,7 @@ import fastifyView from '@fastify/view';
 import fastifyCookie from '@fastify/cookie';
 import fastifyProxy from '@fastify/http-proxy';
 import vary from 'vary';
+import htmlSafeJsonStringify from 'htmlescape';
 import type { Config } from '@/config.js';
 import { getNoteSummary } from '@/misc/get-note-summary.js';
 import { DI } from '@/di-symbols.js';
@@ -28,15 +29,17 @@ import type { DbQueue, DeliverQueue, EndedPollNotificationQueue, InboxQueue, Obj
 import { UserEntityService } from '@/core/entities/UserEntityService.js';
 import { NoteEntityService } from '@/core/entities/NoteEntityService.js';
 import { PageEntityService } from '@/core/entities/PageEntityService.js';
+import { MetaEntityService } from '@/core/entities/MetaEntityService.js';
 import { GalleryPostEntityService } from '@/core/entities/GalleryPostEntityService.js';
 import { ClipEntityService } from '@/core/entities/ClipEntityService.js';
 import { ChannelEntityService } from '@/core/entities/ChannelEntityService.js';
-import type { ChannelsRepository, ClipsRepository, FlashsRepository, GalleryPostsRepository, MiMeta, NotesRepository, PagesRepository, UserProfilesRepository, UsersRepository } from '@/models/_.js';
+import type { ChannelsRepository, ClipsRepository, FlashsRepository, GalleryPostsRepository, MiMeta, NotesRepository, PagesRepository, ReversiGamesRepository, UserProfilesRepository, UsersRepository } from '@/models/_.js';
 import type Logger from '@/logger.js';
-import { deepClone } from '@/misc/clone.js';
+import { handleRequestRedirectToOmitSearch } from '@/misc/fastify-hook-handlers.js';
 import { bindThis } from '@/decorators.js';
 import { FlashEntityService } from '@/core/entities/FlashEntityService.js';
 import { RoleService } from '@/core/RoleService.js';
+import { ReversiGameEntityService } from '@/core/entities/ReversiGameEntityService.js';
 import { FeedService } from './FeedService.js';
 import { UrlPreviewService } from './UrlPreviewService.js';
 import { ClientLoggerService } from './ClientLoggerService.js';
@@ -50,6 +53,7 @@ const clientAssets = `${_dirname}/../../../../frontend/assets/`;
 const assets = `${_dirname}/../../../../../built/_frontend_dist_/`;
 const swAssets = `${_dirname}/../../../../../built/_sw_dist_/`;
 const viteOut = `${_dirname}/../../../../../built/_vite_/`;
+const tarball = `${_dirname}/../../../../../built/tarball/`;
 
 @Injectable()
 export class ClientServerService {
@@ -83,13 +87,18 @@ export class ClientServerService {
 		@Inject(DI.flashsRepository)
 		private flashsRepository: FlashsRepository,
 
+		@Inject(DI.reversiGamesRepository)
+		private reversiGamesRepository: ReversiGamesRepository,
+
 		private flashEntityService: FlashEntityService,
 		private userEntityService: UserEntityService,
 		private noteEntityService: NoteEntityService,
 		private pageEntityService: PageEntityService,
+		private metaEntityService: MetaEntityService,
 		private galleryPostEntityService: GalleryPostEntityService,
 		private clipEntityService: ClipEntityService,
 		private channelEntityService: ChannelEntityService,
+		private reversiGameEntityService: ReversiGameEntityService,
 		private metaService: MetaService,
 		private urlPreviewService: UrlPreviewService,
 		private feedService: FeedService,
@@ -139,7 +148,9 @@ export class ClientServerService {
 				'type': 'image/png',
 				'purpose': 'maskable',
 			}, {
-				'src': '/static-assets/splash.png',
+				// 空文字列の場合右辺を使いたいため
+				// eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+				'src': instance.app512IconUrl || '/static-assets/icons/512.png',
 				'sizes': '300x300',
 				'type': 'image/png',
 				'purpose': 'any',
@@ -166,16 +177,19 @@ export class ClientServerService {
 	}
 
 	@bindThis
-	private generateCommonPugData(meta: MiMeta) {
+	private async generateCommonPugData(meta: MiMeta) {
 		return {
-			instanceName: meta.name ?? 'Misskey',
+			instanceName: meta.name ?? 'Sharkey',
 			icon: meta.iconUrl,
 			appleTouchIcon: meta.app512IconUrl,
 			themeColor: meta.themeColor,
-			serverErrorImageUrl: meta.serverErrorImageUrl ?? 'https://xn--931a.moe/assets/error.jpg',
-			infoImageUrl: meta.infoImageUrl ?? 'https://xn--931a.moe/assets/info.jpg',
-			notFoundImageUrl: meta.notFoundImageUrl ?? 'https://xn--931a.moe/assets/not-found.jpg',
+			serverErrorImageUrl: meta.serverErrorImageUrl ?? 'https://launcher.moe/error.png',
+			infoImageUrl: meta.infoImageUrl ?? 'https://launcher.moe/nothinghere.png',
+			notFoundImageUrl: meta.notFoundImageUrl ?? 'https://launcher.moe/missingpage.webp',
 			instanceUrl: this.config.url,
+			randomMOTD: this.config.customMOTD ? this.config.customMOTD[Math.floor(Math.random() * this.config.customMOTD.length)] : undefined,
+			metaJson: htmlSafeJsonStringify(await this.metaEntityService.packDetailed(meta)),
+			now: Date.now(),
 		};
 	}
 
@@ -247,11 +261,16 @@ export class ClientServerService {
 
 		//#region vite assets
 		if (this.config.clientManifestExists) {
-			fastify.register(fastifyStatic, {
-				root: viteOut,
-				prefix: '/vite/',
-				maxAge: ms('30 days'),
-				decorateReply: false,
+			fastify.register((fastify, options, done) => {
+				fastify.register(fastifyStatic, {
+					root: viteOut,
+					prefix: '/vite/',
+					maxAge: ms('30 days'),
+					immutable: true,
+					decorateReply: false,
+				});
+				fastify.addHook('onRequest', handleRequestRedirectToOmitSearch);
+				done();
 			});
 		} else {
 			const port = (process.env.VITE_PORT ?? '5173');
@@ -284,6 +303,18 @@ export class ClientServerService {
 			prefix: '/assets/',
 			maxAge: ms('7 days'),
 			decorateReply: false,
+		});
+
+		fastify.register((fastify, options, done) => {
+			fastify.register(fastifyStatic, {
+				root: tarball,
+				prefix: '/tarball/',
+				maxAge: ms('30 days'),
+				immutable: true,
+				decorateReply: false,
+			});
+			fastify.addHook('onRequest', handleRequestRedirectToOmitSearch);
+			done();
 		});
 
 		fastify.get('/favicon.ico', async (request, reply) => {
@@ -320,6 +351,21 @@ export class ClientServerService {
 			reply.header('Content-Security-Policy', 'default-src \'none\'; style-src \'unsafe-inline\'');
 
 			return await reply.sendFile(path, `${_dirname}/../../../node_modules/@discordapp/twemoji/dist/svg/`, {
+				maxAge: ms('30 days'),
+			});
+		});
+
+		fastify.get<{ Params: { path: string } }>('/tossface/:path(.*)', async (request, reply) => {
+			const path = request.params.path;
+
+			if (!path.match(/^[0-9a-f-]+\.svg$/)) {
+				reply.code(404);
+				return;
+			}
+
+			reply.header('Content-Security-Policy', 'default-src \'none\'; style-src \'unsafe-inline\'');
+
+			return await reply.sendFile(path, `${_dirname}/../../../../../tossface-emojis/dist`, {
 				maxAge: ms('30 days'),
 			});
 		});
@@ -385,7 +431,7 @@ export class ClientServerService {
 		fastify.get('/opensearch.xml', async (request, reply) => {
 			const meta = await this.metaService.fetch();
 
-			const name = meta.name ?? 'Misskey';
+			const name = meta.name ?? 'Sharkey';
 			let content = '';
 			content += '<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">';
 			content += `<ShortName>${name}</ShortName>`;
@@ -409,7 +455,7 @@ export class ClientServerService {
 				url: this.config.url,
 				title: meta.name ?? 'Misskey',
 				desc: meta.description,
-				...this.generateCommonPugData(meta),
+				...await this.generateCommonPugData(meta),
 			});
 		};
 
@@ -476,6 +522,8 @@ export class ClientServerService {
 				isSuspended: false,
 			});
 
+			vary(reply.raw, 'Accept');
+
 			if (user != null) {
 				const profile = await this.userProfilesRepository.findOneByOrFail({ userId: user.id });
 				const meta = await this.metaService.fetch();
@@ -494,7 +542,7 @@ export class ClientServerService {
 					user, profile, me,
 					avatarUrl: user.avatarUrl ?? this.userEntityService.getIdenticonUrl(user),
 					sub: request.params.sub,
-					...this.generateCommonPugData(meta),
+					...await this.generateCommonPugData(meta),
 				});
 			} else {
 				// リモートユーザーなので
@@ -514,6 +562,8 @@ export class ClientServerService {
 				reply.code(404);
 				return;
 			}
+
+			vary(reply.raw, 'Accept');
 
 			reply.redirect(`/@${user.username}${ user.host == null ? '' : '@' + user.host}`);
 		});
@@ -542,7 +592,7 @@ export class ClientServerService {
 					avatarUrl: _note.user.avatarUrl,
 					// TODO: Let locale changeable by instance setting
 					summary: getNoteSummary(_note),
-					...this.generateCommonPugData(meta),
+					...await this.generateCommonPugData(meta),
 				});
 			} else {
 				return await renderBase(reply);
@@ -581,7 +631,7 @@ export class ClientServerService {
 					page: _page,
 					profile,
 					avatarUrl: _page.user.avatarUrl,
-					...this.generateCommonPugData(meta),
+					...await this.generateCommonPugData(meta),
 				});
 			} else {
 				return await renderBase(reply);
@@ -607,7 +657,7 @@ export class ClientServerService {
 					flash: _flash,
 					profile,
 					avatarUrl: _flash.user.avatarUrl,
-					...this.generateCommonPugData(meta),
+					...await this.generateCommonPugData(meta),
 				});
 			} else {
 				return await renderBase(reply);
@@ -633,7 +683,7 @@ export class ClientServerService {
 					clip: _clip,
 					profile,
 					avatarUrl: _clip.user.avatarUrl,
-					...this.generateCommonPugData(meta),
+					...await this.generateCommonPugData(meta),
 				});
 			} else {
 				return await renderBase(reply);
@@ -657,7 +707,7 @@ export class ClientServerService {
 					post: _post,
 					profile,
 					avatarUrl: _post.user.avatarUrl,
-					...this.generateCommonPugData(meta),
+					...await this.generateCommonPugData(meta),
 				});
 			} else {
 				return await renderBase(reply);
@@ -676,7 +726,26 @@ export class ClientServerService {
 				reply.header('Cache-Control', 'public, max-age=15');
 				return await reply.view('channel', {
 					channel: _channel,
-					...this.generateCommonPugData(meta),
+					...await this.generateCommonPugData(meta),
+				});
+			} else {
+				return await renderBase(reply);
+			}
+		});
+
+		// Reversi game
+		fastify.get<{ Params: { game: string; } }>('/reversi/g/:game', async (request, reply) => {
+			const game = await this.reversiGamesRepository.findOneBy({
+				id: request.params.game,
+			});
+
+			if (game) {
+				const _game = await this.reversiGameEntityService.packDetail(game);
+				const meta = await this.metaService.fetch();
+				reply.header('Cache-Control', 'public, max-age=3600');
+				return await reply.view('reversi-game', {
+					game: _game,
+					...await this.generateCommonPugData(meta),
 				});
 			} else {
 				return await renderBase(reply);

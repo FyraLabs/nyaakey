@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -29,9 +29,10 @@ import * as Misskey from 'misskey-js';
 import MkTimeline from '@/components/MkTimeline.vue';
 import { scroll } from '@/scripts/scroll.js';
 import * as os from '@/os.js';
-import { useRouter } from '@/router.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { i18n } from '@/i18n.js';
+import { useRouter } from '@/router/supplier.js';
 
 const router = useRouter();
 
@@ -73,27 +74,27 @@ function focus() {
 }
 
 watch(() => props.antennaId, async () => {
-	antenna.value = await os.api('antennas/show', {
+	antenna.value = await misskeyApi('antennas/show', {
 		antennaId: props.antennaId,
 	});
 }, { immediate: true });
 
 const headerActions = computed(() => antenna.value ? [{
-	icon: 'ti ti-calendar-time',
+	icon: 'ph-calendar ph-bold ph-lg',
 	text: i18n.ts.jumpToSpecifiedDate,
 	handler: timetravel,
 }, {
-	icon: 'ti ti-settings',
+	icon: 'ph-gear ph-bold ph-lg',
 	text: i18n.ts.settings,
 	handler: settings,
 }] : []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(computed(() => antenna.value ? {
-	title: antenna.value.name,
-	icon: 'ti ti-antenna',
-} : null));
+definePageMetadata(() => ({
+	title: antenna.value ? antenna.value.name : i18n.ts.antennas,
+	icon: 'ph-flying-saucer ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>
@@ -113,7 +114,7 @@ definePageMetadata(computed(() => antenna.value ? {
 	display: block;
 	margin: var(--margin) auto 0 auto;
 	padding: 8px 16px;
-	border-radius: 32px;
+	border-radius: var(--radius-xl);
 }
 
 .tl {

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -8,7 +8,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<div v-if="isPullStart" :class="$style.frame" :style="`--frame-min-height: ${pullDistance / (PULL_BRAKE_BASE + (pullDistance / PULL_BRAKE_FACTOR))}px;`">
 		<div :class="$style.frameContent">
 			<MkLoading v-if="isRefreshing" :class="$style.loader" :em="true"/>
-			<i v-else class="ti ti-arrow-bar-to-down" :class="[$style.icon, { [$style.refresh]: isPullEnd }]"></i>
+			<i v-else class="ph-arrow-line-down ph-bold ph-lg" :class="[$style.icon, { [$style.refresh]: isPullEnd }]"></i>
 			<div :class="$style.text">
 				<template v-if="isPullEnd">{{ i18n.ts.releaseToRefresh }}</template>
 				<template v-else-if="isRefreshing">{{ i18n.ts.refreshing }}</template>
@@ -26,6 +26,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import { onMounted, onUnmounted, ref, shallowRef } from 'vue';
 import { i18n } from '@/i18n.js';
 import { getScrollContainer } from '@/scripts/scroll.js';
+import { isHorizontalSwipeSwiping } from '@/scripts/touch.js';
 
 const SCROLL_STOP = 10;
 const MAX_PULL_DISTANCE = Infinity;
@@ -129,7 +130,7 @@ function moveEnd() {
 function moving(event: TouchEvent | PointerEvent) {
 	if (!isPullStart.value || isRefreshing.value || disabled) return;
 
-	if ((scrollEl?.scrollTop ?? 0) > (supportPointerDesktop ? SCROLL_STOP : SCROLL_STOP + pullDistance.value)) {
+	if ((scrollEl?.scrollTop ?? 0) > (supportPointerDesktop ? SCROLL_STOP : SCROLL_STOP + pullDistance.value) || isHorizontalSwipeSwiping.value) {
 		pullDistance.value = 0;
 		isPullEnd.value = false;
 		moveEnd();
@@ -146,6 +147,10 @@ function moving(event: TouchEvent | PointerEvent) {
 
 	if (pullDistance.value > 0) {
 		if (event.cancelable) event.preventDefault();
+	}
+
+	if (pullDistance.value > SCROLL_STOP) {
+		event.stopPropagation();
 	}
 
 	isPullEnd.value = pullDistance.value >= FIRE_THRESHOLD;

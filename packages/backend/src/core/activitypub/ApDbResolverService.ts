@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -12,7 +12,7 @@ import type { MiUserPublickey } from '@/models/UserPublickey.js';
 import { CacheService } from '@/core/CacheService.js';
 import type { MiNote } from '@/models/Note.js';
 import { bindThis } from '@/decorators.js';
-import { MiLocalUser, MiRemoteUser } from '@/models/User.js';
+import type { MiLocalUser, MiRemoteUser } from '@/models/User.js';
 import { getApId } from './type.js';
 import { ApPersonService } from './models/ApPersonService.js';
 import type { IObject } from './type.js';
@@ -106,12 +106,12 @@ export class ApDbResolverService implements OnApplicationShutdown {
 
 			return await this.cacheService.userByIdCache.fetchMaybe(
 				parsed.id,
-				() => this.usersRepository.findOneBy({ id: parsed.id }).then(x => x ?? undefined),
+				() => this.usersRepository.findOneBy({ id: parsed.id, isDeleted: false }).then(x => x ?? undefined),
 			) as MiLocalUser | undefined ?? null;
 		} else {
 			return await this.cacheService.uriPersonCache.fetch(
 				parsed.uri,
-				() => this.usersRepository.findOneBy({ uri: parsed.uri }),
+				() => this.usersRepository.findOneBy({ uri: parsed.uri, isDeleted: false }),
 			) as MiRemoteUser | null;
 		}
 	}
@@ -136,8 +136,12 @@ export class ApDbResolverService implements OnApplicationShutdown {
 
 		if (key == null) return null;
 
+		const user = await this.cacheService.findUserById(key.userId).catch(() => null) as MiRemoteUser | null;
+		if (user == null) return null;
+		if (user.isDeleted) return null;
+
 		return {
-			user: await this.cacheService.findUserById(key.userId) as MiRemoteUser,
+			user,
 			key,
 		};
 	}
@@ -151,6 +155,7 @@ export class ApDbResolverService implements OnApplicationShutdown {
 		key: MiUserPublickey | null;
 	} | null> {
 		const user = await this.apPersonService.resolvePerson(uri) as MiRemoteUser;
+		if (user.isDeleted) return null;
 
 		const key = await this.publicKeyByUserIdCache.fetch(
 			user.id,
@@ -162,6 +167,19 @@ export class ApDbResolverService implements OnApplicationShutdown {
 			user,
 			key,
 		};
+	}
+
+	/**
+	 * Sharkey User -> Refetched Key
+	 */
+	@bindThis
+	public async refetchPublicKeyForApId(user: MiRemoteUser): Promise<MiUserPublickey | null> {
+		await this.apPersonService.updatePerson(user.uri);
+		const key = await this.userPublickeysRepository.findOneBy({ userId: user.id });
+		if (key != null) {
+			await this.publicKeyByUserIdCache.set(user.id, key);
+		}
+		return key;
 	}
 
 	@bindThis

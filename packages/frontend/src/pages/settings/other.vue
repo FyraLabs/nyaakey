@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -18,7 +18,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<FormSection first>
 		<div class="_gaps_s">
 			<MkFolder>
-				<template #icon><i class="ti ti-info-circle"></i></template>
+				<template #icon><i class="ph-info ph-bold ph-lg"></i></template>
 				<template #label>{{ i18n.ts.accountInfo }}</template>
 
 				<div class="_gaps_m">
@@ -35,7 +35,18 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</MkFolder>
 
 			<MkFolder>
-				<template #icon><i class="ti ti-alert-triangle"></i></template>
+				<template #icon><i class="ph-database ph-bold ph-lg"></i></template>
+				<template #label>{{ i18n.ts._dataRequest.title }}</template>
+
+				<div class="_gaps_m">
+					<FormInfo warn>{{ i18n.ts._dataRequest.warn }}</FormInfo>
+					<FormInfo>{{ i18n.ts._dataRequest.text }}</FormInfo>
+					<MkButton primary @click="exportData">{{ i18n.ts._dataRequest.button }}</MkButton>
+				</div>
+			</MkFolder>
+
+			<MkFolder>
+				<template #icon><i class="ph-warning ph-bold ph-lg"></i></template>
 				<template #label>{{ i18n.ts.closeAccount }}</template>
 
 				<div class="_gaps_m">
@@ -47,7 +58,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</MkFolder>
 
 			<MkFolder>
-				<template #icon><i class="ti ti-flask"></i></template>
+				<template #icon><i class="ph-flask ph-bold ph-lg"></i></template>
 				<template #label>{{ i18n.ts.experimentalFeatures }}</template>
 
 				<div class="_gaps_m">
@@ -58,7 +69,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</MkFolder>
 
 			<MkFolder>
-				<template #icon><i class="ti ti-code"></i></template>
+				<template #icon><i class="ph-code ph-bold ph-lg"></i></template>
 				<template #label>{{ i18n.ts.developer }}</template>
 
 				<div class="_gaps_m">
@@ -71,14 +82,14 @@ SPDX-License-Identifier: AGPL-3.0-only
 	</FormSection>
 
 	<FormSection>
-		<FormLink to="/registry"><template #icon><i class="ti ti-adjustments"></i></template>{{ i18n.ts.registry }}</FormLink>
+		<FormLink to="/registry"><template #icon><i class="ph-faders ph-bold ph-lg"></i></template>{{ i18n.ts.registry }}</FormLink>
 	</FormSection>
 
 	<FormSection>
 		<div class="_gaps_s">
 			<MkSwitch v-model="defaultWithReplies">{{ i18n.ts.withRepliesByDefaultForNewlyFollowed }}</MkSwitch>
-			<MkButton danger @click="updateRepliesAll(true)"><i class="ti ti-messages"></i> {{ i18n.ts.showRepliesToOthersInTimelineAll }}</MkButton>
-			<MkButton danger @click="updateRepliesAll(false)"><i class="ti ti-messages-off"></i> {{ i18n.ts.hideRepliesToOthersInTimelineAll }}</MkButton>
+			<MkButton danger @click="updateRepliesAll(true)"><i class="ph-chats ph-bold ph-lg"></i> {{ i18n.ts.showRepliesToOthersInTimelineAll }}</MkButton>
+			<MkButton danger @click="updateRepliesAll(false)"><i class="ph-chat ph-bold ph-lg"></i> {{ i18n.ts.hideRepliesToOthersInTimelineAll }}</MkButton>
 		</div>
 	</FormSection>
 </div>
@@ -93,25 +104,20 @@ import FormInfo from '@/components/MkInfo.vue';
 import MkKeyValue from '@/components/MkKeyValue.vue';
 import MkButton from '@/components/MkButton.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { defaultStore } from '@/store.js';
-import { signout, $i } from '@/account.js';
+import { signout, signinRequired } from '@/account.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { unisonReload } from '@/scripts/unison-reload.js';
 import FormSection from '@/components/form/section.vue';
 
+const $i = signinRequired();
+
 const reportError = computed(defaultStore.makeGetterSetter('reportError'));
 const enableCondensedLineForAcct = computed(defaultStore.makeGetterSetter('enableCondensedLineForAcct'));
 const devMode = computed(defaultStore.makeGetterSetter('devMode'));
 const defaultWithReplies = computed(defaultStore.makeGetterSetter('defaultWithReplies'));
-
-function onChangeInjectFeaturedNote(v) {
-	os.api('i/update', {
-		injectFeaturedNote: v,
-	}).then((i) => {
-		$i!.injectFeaturedNote = i.injectFeaturedNote;
-	});
-}
 
 async function deleteAccount() {
 	{
@@ -154,8 +160,22 @@ async function updateRepliesAll(withReplies: boolean) {
 	});
 	if (canceled) return;
 
-	os.api('following/update-all', { withReplies });
+	misskeyApi('following/update-all', { withReplies });
 }
+
+const exportData = () => {
+	misskeyApi('i/export-data', {}).then(() => {
+		os.alert({
+			type: 'info',
+			text: i18n.ts.exportRequested,
+		});
+	}).catch((ev) => {
+		os.alert({
+			type: 'error',
+			text: ev.message,
+		});
+	});
+};
 
 watch([
 	enableCondensedLineForAcct,
@@ -167,8 +187,8 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.other,
-	icon: 'ti ti-dots',
-});
+	icon: 'ph-dots-three ph-bold ph-lg',
+}));
 </script>

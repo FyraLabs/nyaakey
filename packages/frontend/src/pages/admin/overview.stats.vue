@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<MkLoading v-if="fetching"/>
 		<div v-else :class="$style.root">
 			<div class="item _panel users">
-				<div class="icon"><i class="ti ti-users"></i></div>
+				<div class="icon"><i class="ph-users ph-bold ph-lg"></i></div>
 				<div class="body">
 					<div class="value">
 						<MkNumber :value="stats.originalUsersCount" style="margin-right: 0.5em;"/>
@@ -19,7 +19,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 			</div>
 			<div class="item _panel notes">
-				<div class="icon"><i class="ti ti-pencil"></i></div>
+				<div class="icon"><i class="ph-pencil-simple ph-bold ph-lg"></i></div>
 				<div class="body">
 					<div class="value">
 						<MkNumber :value="stats.originalNotesCount" style="margin-right: 0.5em;"/>
@@ -29,7 +29,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 			</div>
 			<div class="item _panel instances">
-				<div class="icon"><i class="ti ti-planet"></i></div>
+				<div class="icon"><i class="ph-planet ph-bold ph-lg"></i></div>
 				<div class="body">
 					<div class="value">
 						<MkNumber :value="stats.instances" style="margin-right: 0.5em;"/>
@@ -38,7 +38,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 			</div>
 			<div class="item _panel emojis">
-				<div class="icon"><i class="ti ti-icons"></i></div>
+				<div class="icon"><i class="ph-smiley ph-bold ph-lg"></i></div>
 				<div class="body">
 					<div class="value">
 						<MkNumber :value="customEmojis.length" style="margin-right: 0.5em;"/>
@@ -47,7 +47,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 			</div>
 			<div class="item _panel online">
-				<div class="icon"><i class="ti ti-access-point"></i></div>
+				<div class="icon"><i class="ph-broadcast ph-bold ph-lg"></i></div>
 				<div class="body">
 					<div class="value">
 						<MkNumber :value="onlineUsersCount" style="margin-right: 0.5em;"/>
@@ -63,7 +63,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import * as Misskey from 'misskey-js';
-import * as os from '@/os.js';
+import { misskeyApi, misskeyApiGet } from '@/scripts/misskey-api.js';
 import MkNumberDiff from '@/components/MkNumberDiff.vue';
 import MkNumber from '@/components/MkNumber.vue';
 import { i18n } from '@/i18n.js';
@@ -78,17 +78,17 @@ const fetching = ref(true);
 
 onMounted(async () => {
 	const [_stats, _onlineUsersCount] = await Promise.all([
-		os.api('stats', {}),
-		os.apiGet('get-online-users-count').then(res => res.count),
+		misskeyApi('stats', {}),
+		misskeyApiGet('get-online-users-count').then(res => res.count),
 	]);
 	stats.value = _stats;
 	onlineUsersCount.value = _onlineUsersCount;
 
-	os.apiGet('charts/users', { limit: 2, span: 'day' }).then(chart => {
+	misskeyApiGet('charts/users', { limit: 2, span: 'day' }).then(chart => {
 		usersComparedToThePrevDay.value = stats.value.originalUsersCount - chart.local.total[1];
 	});
 
-	os.apiGet('charts/notes', { limit: 2, span: 'day' }).then(chart => {
+	misskeyApiGet('charts/notes', { limit: 2, span: 'day' }).then(chart => {
 		notesComparedToThePrevDay.value = stats.value.originalNotesCount - chart.local.total[1];
 	});
 
@@ -116,7 +116,7 @@ onMounted(async () => {
 				margin-right: 12px;
 				background: var(--accentedBg);
 				color: var(--accent);
-				border-radius: 10px;
+				border-radius: var(--radius);
 			}
 
 			&.users {

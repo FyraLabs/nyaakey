@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -36,7 +36,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		</section>
 
 		<div v-if="tab === 'index'" class="group index">
-			<section v-if="showPinned && pinned.length > 0">
+			<section v-if="showPinned && (pinned && pinned.length > 0)">
 				<div class="body">
 					<button
 						v-for="emoji in pinned"
@@ -54,7 +54,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</section>
 
 			<section>
-				<header class="_acrylic"><i class="ti ti-clock ti-fw"></i> {{ i18n.ts.recentUsed }}</header>
+				<header class="_acrylic"><i class="ph-clock ph-bold ph-lg ti-fw"></i> {{ i18n.ts.recentUsed }}</header>
 				<div class="body">
 					<button
 						v-for="emoji in recentlyUsedEmojis"
@@ -90,10 +90,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 		</div>
 	</div>
 	<div class="tabs">
-		<button class="_button tab" :class="{ active: tab === 'index' }" @click="tab = 'index'"><i class="ti ti-asterisk ti-fw"></i></button>
-		<button class="_button tab" :class="{ active: tab === 'custom' }" @click="tab = 'custom'"><i class="ti ti-mood-happy ti-fw"></i></button>
-		<button class="_button tab" :class="{ active: tab === 'unicode' }" @click="tab = 'unicode'"><i class="ti ti-leaf ti-fw"></i></button>
-		<button class="_button tab" :class="{ active: tab === 'tags' }" @click="tab = 'tags'"><i class="ti ti-hash ti-fw"></i></button>
+		<button class="_button tab" :class="{ active: tab === 'index' }" @click="tab = 'index'"><i class="ph-asterisk ph-bold ph-lg ti-fw"></i></button>
+		<button class="_button tab" :class="{ active: tab === 'custom' }" @click="tab = 'custom'"><i class="ph-smiley ph-bold ph-lg ti-fw"></i></button>
+		<button class="_button tab" :class="{ active: tab === 'unicode' }" @click="tab = 'unicode'"><i class="ph-leaf ph-bold ph-lg ti-fw"></i></button>
+		<button class="_button tab" :class="{ active: tab === 'tags' }" @click="tab = 'tags'"><i class="ph-hash ph-bold ph-lg ti-fw"></i></button>
 	</div>
 </div>
 </template>
@@ -118,6 +118,7 @@ import { i18n } from '@/i18n.js';
 import { defaultStore } from '@/store.js';
 import { customEmojiCategories, customEmojis, customEmojisMap } from '@/custom-emojis.js';
 import { $i } from '@/account.js';
+import { checkReactionPermissions } from '@/scripts/check-reaction-permissions.js';
 
 const props = withDefaults(defineProps<{
 	showPinned?: boolean;
@@ -126,6 +127,7 @@ const props = withDefaults(defineProps<{
 	asDrawer?: boolean;
 	asWindow?: boolean;
 	asReactionPicker?: boolean; // 今は使われてないが将来的に使いそう
+	targetNote?: Misskey.entities.Note;
 }>(), {
 	showPinned: true,
 });
@@ -221,6 +223,19 @@ watch(q, () => {
 				}
 			}
 		} else {
+			if (customEmojisMap.has(newQ)) {
+				matches.add(customEmojisMap.get(newQ)!);
+			}
+			if (matches.size >= max) return matches;
+
+			for (const emoji of emojis) {
+				if (emoji.aliases.some(alias => alias === newQ)) {
+					matches.add(emoji);
+					if (matches.size >= max) break;
+				}
+			}
+			if (matches.size >= max) return matches;
+
 			for (const emoji of emojis) {
 				if (emoji.name.startsWith(newQ)) {
 					matches.add(emoji);
@@ -327,7 +342,7 @@ watch(q, () => {
 });
 
 function filterAvailable(emoji: Misskey.entities.EmojiSimple): boolean {
-	return (emoji.roleIdsThatCanBeUsedThisEmojiAsReaction == null || emoji.roleIdsThatCanBeUsedThisEmojiAsReaction.length === 0) || ($i && $i.roles.some(r => emoji.roleIdsThatCanBeUsedThisEmojiAsReaction.includes(r.id)));
+	return !props.targetNote || checkReactionPermissions($i!, props.targetNote, emoji);
 }
 
 function focus() {
@@ -631,7 +646,7 @@ defineExpose({
 					width: var(--eachSize);
 					height: var(--eachSize);
 					contain: strict;
-					border-radius: 4px;
+					border-radius: var(--radius-xs);
 					font-size: 24px;
 
 					&:focus-visible {

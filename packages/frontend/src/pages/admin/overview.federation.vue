@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -21,7 +21,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		</div>
 		<div v-if="!fetching" class="items">
 			<div class="item _panel sub">
-				<div class="icon"><i class="ti ti-world-download"></i></div>
+				<div class="icon"><i class="ph-globe-hemisphere-west ph-bold ph-lg-download"></i></div>
 				<div class="body">
 					<div class="value">
 						{{ number(federationSubActive) }}
@@ -31,7 +31,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 			</div>
 			<div class="item _panel pub">
-				<div class="icon"><i class="ti ti-world-upload"></i></div>
+				<div class="icon"><i class="ph-globe-hemisphere-west ph-bold ph-lg-upload"></i></div>
 				<div class="body">
 					<div class="value">
 						{{ number(federationPubActive) }}
@@ -49,6 +49,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import { onMounted, ref } from 'vue';
 import XPie, { type InstanceForPie } from './overview.pie.vue';
 import * as os from '@/os.js';
+import { misskeyApiGet } from '@/scripts/misskey-api.js';
 import number from '@/filters/number.js';
 import MkNumberDiff from '@/components/MkNumberDiff.vue';
 import { i18n } from '@/i18n.js';
@@ -65,13 +66,13 @@ const fetching = ref(true);
 const { handler: externalTooltipHandler } = useChartTooltip();
 
 onMounted(async () => {
-	const chart = await os.apiGet('charts/federation', { limit: 2, span: 'day' });
+	const chart = await misskeyApiGet('charts/federation', { limit: 2, span: 'day' });
 	federationPubActive.value = chart.pubActive[0];
 	federationPubActiveDiff.value = chart.pubActive[0] - chart.pubActive[1];
 	federationSubActive.value = chart.subActive[0];
 	federationSubActiveDiff.value = chart.subActive[0] - chart.subActive[1];
 
-	os.apiGet('federation/stats', { limit: 10 }).then(res => {
+	misskeyApiGet('federation/stats', { limit: 10 }).then(res => {
 		topSubInstancesForPie.value = [
 			...res.topSubInstances.map(x => ({
 				name: x.host,
@@ -152,7 +153,7 @@ onMounted(async () => {
 					margin-right: 12px;
 					background: var(--accentedBg);
 					color: var(--accent);
-					border-radius: 10px;
+					border-radius: var(--radius);
 				}
 
 				&.sub {

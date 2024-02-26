@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -47,7 +47,7 @@ export const meta = {
 		bothWithRepliesAndWithFiles: {
 			message: 'Specifying both withReplies and withFiles is not supported',
 			code: 'BOTH_WITH_REPLIES_AND_WITH_FILES',
-			id: 'dfaa3eb7-8002-4cb7-bcc4-1095df46656f'
+			id: 'dfaa3eb7-8002-4cb7-bcc4-1095df46656f',
 		},
 	},
 } as const;
@@ -67,6 +67,7 @@ export const paramDef = {
 		withFiles: { type: 'boolean', default: false },
 		withRenotes: { type: 'boolean', default: true },
 		withReplies: { type: 'boolean', default: false },
+		withBots: { type: 'boolean', default: true },
 	},
 	required: [],
 } as const;
@@ -113,6 +114,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 					includeLocalRenotes: ps.includeLocalRenotes,
 					withFiles: ps.withFiles,
 					withReplies: ps.withReplies,
+					withBots: ps.withBots,
 				}, me);
 
 				process.nextTick(() => {
@@ -152,6 +154,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				useDbFallback: serverSettings.enableFanoutTimelineDbFallback,
 				alwaysIncludeMyNotes: true,
 				excludePureRenotes: !ps.withRenotes,
+				excludeBots: !ps.withBots,
 				dbFallback: async (untilId, sinceId, limit) => await this.getFromDb({
 					untilId,
 					sinceId,
@@ -161,6 +164,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 					includeLocalRenotes: ps.includeLocalRenotes,
 					withFiles: ps.withFiles,
 					withReplies: ps.withReplies,
+					withBots: ps.withBots,
 				}, me),
 			});
 
@@ -181,6 +185,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 		includeLocalRenotes: boolean,
 		withFiles: boolean,
 		withReplies: boolean,
+		withBots: boolean,
 	}, me: MiLocalUser) {
 		const followees = await this.userFollowingService.getFollowees(me.id);
 		const followingChannels = await this.channelFollowingsRepository.find({
@@ -267,6 +272,8 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 		if (ps.withFiles) {
 			query.andWhere('note.fileIds != \'{}\'');
 		}
+
+		if (!ps.withBots) query.andWhere('user.isBot = FALSE');
 		//#endregion
 
 		return await query.limit(ps.limit).getMany();

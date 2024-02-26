@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<div :class="$style.formContainer">
 		<form :class="$style.form" class="_panel" @submit.prevent="submit()">
 			<div :class="$style.title">
-				<div>Welcome to Misskey!</div>
+				<div>Welcome to Sharkey!</div>
 				<div :class="$style.version">v{{ version }}</div>
 			</div>
 			<div class="_gaps_m" style="padding: 32px;">
@@ -21,7 +21,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</MkInput>
 				<MkInput v-model="password" type="password" data-cy-admin-password>
 					<template #label>{{ i18n.ts.password }}</template>
-					<template #prefix><i class="ti ti-lock"></i></template>
+					<template #prefix><i class="ph-lock ph-bold ph-lg"></i></template>
 				</MkInput>
 				<div>
 					<MkButton gradate large rounded type="submit" :disabled="submitting" data-cy-admin-ok style="margin: 0 auto;">
@@ -40,6 +40,7 @@ import MkButton from '@/components/MkButton.vue';
 import MkInput from '@/components/MkInput.vue';
 import { host, version } from '@/config.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { login } from '@/account.js';
 import { i18n } from '@/i18n.js';
 import MkAnimBg from '@/components/MkAnimBg.vue';
@@ -52,7 +53,7 @@ function submit() {
 	if (submitting.value) return;
 	submitting.value = true;
 
-	os.api('admin/accounts/create', {
+	misskeyApi('admin/accounts/create', {
 		username: username.value,
 		password: password.value,
 	}).then(res => {

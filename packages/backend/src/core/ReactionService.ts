@@ -1,12 +1,12 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
 import { Inject, Injectable } from '@nestjs/common';
 import * as Redis from 'ioredis';
 import { DI } from '@/di-symbols.js';
-import type { EmojisRepository, NoteReactionsRepository, UsersRepository, NotesRepository } from '@/models/_.js';
+import type { EmojisRepository, NoteReactionsRepository, UsersRepository, NotesRepository, NoteThreadMutingsRepository } from '@/models/_.js';
 import { IdentifiableError } from '@/misc/identifiable-error.js';
 import type { MiRemoteUser, MiUser } from '@/models/User.js';
 import type { MiNote } from '@/models/Note.js';
@@ -28,13 +28,14 @@ import { UserBlockingService } from '@/core/UserBlockingService.js';
 import { CustomEmojiService } from '@/core/CustomEmojiService.js';
 import { RoleService } from '@/core/RoleService.js';
 import { FeaturedService } from '@/core/FeaturedService.js';
+import { trackPromise } from '@/misc/promise-tracker.js';
 
-const FALLBACK = '❤';
+const FALLBACK = '\u2764';
 const PER_NOTE_REACTION_USER_PAIR_CACHE_MAX = 16;
 
 const legacies: Record<string, string> = {
 	'like': '👍',
-	'love': '❤', // ここに記述する場合は異体字セレクタを入れない
+	'love': '\u2764', // ハート、異体字セレクタを入れない
 	'laugh': '😆',
 	'hmm': '🤔',
 	'surprise': '😮',
@@ -81,6 +82,9 @@ export class ReactionService {
 		@Inject(DI.noteReactionsRepository)
 		private noteReactionsRepository: NoteReactionsRepository,
 
+		@Inject(DI.noteThreadMutingsRepository)
+		private noteThreadMutingsRepository: NoteThreadMutingsRepository,
+
 		@Inject(DI.emojisRepository)
 		private emojisRepository: EmojisRepository,
 
@@ -119,7 +123,7 @@ export class ReactionService {
 		let reaction = _reaction ?? FALLBACK;
 
 		if (note.reactionAcceptance === 'likeOnly' || ((note.reactionAcceptance === 'likeOnlyForRemote' || note.reactionAcceptance === 'nonSensitiveOnlyForLocalLikeOnlyForRemote') && (user.host != null))) {
-			reaction = '❤️';
+			reaction = '\u2764';
 		} else if (_reaction) {
 			const custom = reaction.match(isCustomEmojiRegexp);
 			if (custom) {
@@ -244,10 +248,19 @@ export class ReactionService {
 
 		// リアクションされたユーザーがローカルユーザーなら通知を作成
 		if (note.userHost === null) {
-			this.notificationService.createNotification(note.userId, 'reaction', {
-				noteId: note.id,
-				reaction: reaction,
-			}, user.id);
+			const isThreadMuted = await this.noteThreadMutingsRepository.exists({
+				where: {
+					userId: note.userId,
+					threadId: note.threadId ?? note.id,
+				},
+			});
+
+			if (!isThreadMuted) {
+				this.notificationService.createNotification(note.userId, 'reaction', {
+					noteId: note.id,
+					reaction: reaction,
+				}, user.id);
+			}
 		}
 
 		//#region 配信
@@ -268,7 +281,7 @@ export class ReactionService {
 				}
 			}
 
-			dm.execute();
+			trackPromise(dm.execute());
 		}
 		//#endregion
 	}
@@ -316,40 +329,41 @@ export class ReactionService {
 				dm.addDirectRecipe(reactee as MiRemoteUser);
 			}
 			dm.addFollowersRecipe();
-			dm.execute();
+			trackPromise(dm.execute());
 		}
 		//#endregion
 	}
 
+	/**
+	 * 文字列タイプのレガシーな形式のリアクションを現在の形式に変換しつつ、
+	 * データベース上には存在する「0個のリアクションがついている」という情報を削除する。
+	 */
 	@bindThis
-	public convertLegacyReactions(reactions: Record<string, number>) {
-		const _reactions = {} as Record<string, number>;
+	public convertLegacyReactions(reactions: MiNote['reactions']): MiNote['reactions'] {
+		return Object.entries(reactions)
+			.filter(([, count]) => {
+				// `ReactionService.prototype.delete`ではリアクション削除時に、
+				// `MiNote['reactions']`のエントリの値をデクリメントしているが、
+				// デクリメントしているだけなのでエントリ自体は0を値として持つ形で残り続ける。
+				// そのため、この処理がなければ、「0個のリアクションがついている」ということになってしまう。
+				return count > 0;
+			})
+			.map(([reaction, count]) => {
+				// unchecked indexed access
+				const convertedReaction = legacies[reaction] as string | undefined;
 
-		for (const reaction of Object.keys(reactions)) {
-			if (reactions[reaction] <= 0) continue;
+				const key = this.decodeReaction(convertedReaction ?? reaction).reaction;
 
-			if (Object.keys(legacies).includes(reaction)) {
-				if (_reactions[legacies[reaction]]) {
-					_reactions[legacies[reaction]] += reactions[reaction];
-				} else {
-					_reactions[legacies[reaction]] = reactions[reaction];
-				}
-			} else {
-				if (_reactions[reaction]) {
-					_reactions[reaction] += reactions[reaction];
-				} else {
-					_reactions[reaction] = reactions[reaction];
-				}
-			}
-		}
+				return [key, count] as const;
+			})
+			.reduce<MiNote['reactions']>((acc, [key, count]) => {
+				// unchecked indexed access
+				const prevCount = acc[key] as number | undefined;
 
-		const _reactions2 = {} as Record<string, number>;
+				acc[key] = (prevCount ?? 0) + count;
 
-		for (const reaction of Object.keys(_reactions)) {
-			_reactions2[this.decodeReaction(reaction).reaction] = _reactions[reaction];
-		}
-
-		return _reactions2;
+				return acc;
+			}, {});
 	}
 
 	@bindThis

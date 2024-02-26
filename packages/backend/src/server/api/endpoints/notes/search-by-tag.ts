@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -12,6 +12,9 @@ import { Endpoint } from '@/server/api/endpoint-base.js';
 import { QueryService } from '@/core/QueryService.js';
 import { NoteEntityService } from '@/core/entities/NoteEntityService.js';
 import { DI } from '@/di-symbols.js';
+import { MetaService } from '@/core/MetaService.js';
+import { CacheService } from '@/core/CacheService.js';
+import { UtilityService } from '@/core/UtilityService.js';
 
 export const meta = {
 	tags: ['notes', 'hashtags'],
@@ -71,30 +74,44 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 
 		private noteEntityService: NoteEntityService,
 		private queryService: QueryService,
+		private metaService: MetaService,
+		private cacheService: CacheService,
+		private utilityService: UtilityService,
 	) {
 		super(meta, paramDef, async (ps, me) => {
+			const meta = await this.metaService.fetch(true);
+
 			const query = this.queryService.makePaginationQuery(this.notesRepository.createQueryBuilder('note'), ps.sinceId, ps.untilId)
+				.andWhere('note.visibility = \'public\'')
 				.innerJoinAndSelect('note.user', 'user')
 				.leftJoinAndSelect('note.reply', 'reply')
 				.leftJoinAndSelect('note.renote', 'renote')
 				.leftJoinAndSelect('reply.user', 'replyUser')
 				.leftJoinAndSelect('renote.user', 'renoteUser');
 
+			if (!meta.enableBotTrending) query.andWhere('user.isBot = FALSE');
+
 			this.queryService.generateVisibilityQuery(query, me);
 			if (me) this.queryService.generateMutedUserQuery(query, me);
 			if (me) this.queryService.generateBlockedUserQuery(query, me);
 
+			const [
+				followings,
+			] = me ? await Promise.all([
+				this.cacheService.userFollowingsCache.fetch(me.id),
+			]) : [undefined];
+
 			try {
 				if (ps.tag) {
 					if (!safeForSql(normalizeForSearch(ps.tag))) throw new Error('Injection');
-					query.andWhere(`'{"${normalizeForSearch(ps.tag)}"}' <@ note.tags`);
+					query.andWhere(':tag <@ note.tags', { tag: [normalizeForSearch(ps.tag)] });
 				} else {
 					query.andWhere(new Brackets(qb => {
 						for (const tags of ps.query!) {
 							qb.orWhere(new Brackets(qb => {
 								for (const tag of tags) {
 									if (!safeForSql(normalizeForSearch(tag))) throw new Error('Injection');
-									qb.andWhere(`'{"${normalizeForSearch(tag)}"}' <@ note.tags`);
+									qb.andWhere(':tag <@ note.tags', { tag: [normalizeForSearch(tag)] });
 								}
 							}));
 						}
@@ -134,7 +151,15 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 			}
 
 			// Search notes
-			const notes = await query.limit(ps.limit).getMany();
+			let notes = await query.limit(ps.limit).getMany();
+
+			notes = notes.filter(note => {
+				if (note.user?.isSilenced && me && followings && note.userId !== me.id && !followings[note.userId]) return false;
+				if (note.user?.isSuspended) return false;
+				if (this.utilityService.isBlockedHost(meta.blockedHosts, note.userHost)) return false;
+				if (this.utilityService.isSilencedHost(meta.silencedHosts, note.userHost)) return false;
+				return true;
+			});
 
 			return await this.noteEntityService.packMany(notes, me);
 		});

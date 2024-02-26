@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -84,6 +84,10 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 
 			if (note.replyId) {
 				await get(note.replyId);
+			}
+
+			if (note.hasPoll) {
+				return await this.noteEntityService.packMany(conversation, me, { detail: true });
 			}
 
 			return await this.noteEntityService.packMany(conversation, me);

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -32,10 +32,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 	<FormSection>
 		<div class="_gaps_m">
-			<FormLink @click="chooseUploadFolder()">
+			<FormLink to="" @click="chooseUploadFolder()">
 				{{ i18n.ts.uploadFolder }}
 				<template #suffix>{{ uploadFolder ? uploadFolder.name : '-' }}</template>
-				<template #suffixIcon><i class="ti ti-folder"></i></template>
+				<template #suffixIcon><i class="ph-folder ph-bold ph-lg"></i></template>
 			</FormLink>
 			<FormLink to="/settings/drive/cleaner">
 				{{ i18n.ts.drivecleaner }}
@@ -46,10 +46,6 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</MkSwitch>
 			<MkSwitch v-model="alwaysMarkNsfw" @update:modelValue="saveProfile()">
 				<template #label>{{ i18n.ts.alwaysMarkSensitive }}</template>
-			</MkSwitch>
-			<MkSwitch v-model="autoSensitive" @update:modelValue="saveProfile()">
-				<template #label>{{ i18n.ts.enableAutoSensitive }}<span class="_beta">{{ i18n.ts.beta }}</span></template>
-				<template #caption>{{ i18n.ts.enableAutoSensitiveDescription }}</template>
 			</MkSwitch>
 		</div>
 	</FormSection>
@@ -66,21 +62,24 @@ import FormSection from '@/components/form/section.vue';
 import MkKeyValue from '@/components/MkKeyValue.vue';
 import FormSplit from '@/components/form/split.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import bytes from '@/filters/bytes.js';
 import { defaultStore } from '@/store.js';
 import MkChart from '@/components/MkChart.vue';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
-import { $i } from '@/account.js';
+import { signinRequired } from '@/account.js';
+
+const $i = signinRequired();
 
 const fetching = ref(true);
 const usage = ref<number | null>(null);
 const capacity = ref<number | null>(null);
 const uploadFolder = ref<Misskey.entities.DriveFolder | null>(null);
 const alwaysMarkNsfw = ref($i.alwaysMarkNsfw);
-const autoSensitive = ref($i.autoSensitive);
 
 const meterStyle = computed(() => {
+	if (!capacity.value || !usage.value) return {};
 	return {
 		width: `${usage.value / capacity.value * 100}%`,
 		background: tinycolor({
@@ -93,14 +92,14 @@ const meterStyle = computed(() => {
 
 const keepOriginalUploading = computed(defaultStore.makeGetterSetter('keepOriginalUploading'));
 
-os.api('drive').then(info => {
+misskeyApi('drive').then(info => {
 	capacity.value = info.capacity;
 	usage.value = info.usage;
 	fetching.value = false;
 });
 
 if (defaultStore.state.uploadFolder) {
-	os.api('drive/folders/show', {
+	misskeyApi('drive/folders/show', {
 		folderId: defaultStore.state.uploadFolder,
 	}).then(response => {
 		uploadFolder.value = response;
@@ -112,7 +111,7 @@ function chooseUploadFolder() {
 		defaultStore.set('uploadFolder', folder ? folder.id : null);
 		os.success();
 		if (defaultStore.state.uploadFolder) {
-			uploadFolder.value = await os.api('drive/folders/show', {
+			uploadFolder.value = await misskeyApi('drive/folders/show', {
 				folderId: defaultStore.state.uploadFolder,
 			});
 		} else {
@@ -122,9 +121,8 @@ function chooseUploadFolder() {
 }
 
 function saveProfile() {
-	os.api('i/update', {
+	misskeyApi('i/update', {
 		alwaysMarkNsfw: !!alwaysMarkNsfw.value,
-		autoSensitive: !!autoSensitive.value,
 	}).catch(err => {
 		os.alert({
 			type: 'error',
@@ -139,22 +137,22 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.drive,
-	icon: 'ti ti-cloud',
-});
+	icon: 'ph-cloud ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>
 .meter {
 	height: 10px;
 	background: rgba(0, 0, 0, 0.1);
-	border-radius: 999px;
+	border-radius: var(--radius-ellipse);
 	overflow: clip;
 }
 
 .meterValue {
 	height: 100%;
-	border-radius: 999px;
+	border-radius: var(--radius-ellipse);
 }
 </style>

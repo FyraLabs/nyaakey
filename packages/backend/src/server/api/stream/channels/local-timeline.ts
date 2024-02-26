@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -19,6 +19,7 @@ class LocalTimelineChannel extends Channel {
 	public static requireCredential = false as const;
 	private withRenotes: boolean;
 	private withReplies: boolean;
+	private withBots: boolean;
 	private withFiles: boolean;
 
 	constructor(
@@ -40,6 +41,7 @@ class LocalTimelineChannel extends Channel {
 
 		this.withRenotes = params.withRenotes ?? true;
 		this.withReplies = params.withReplies ?? false;
+		this.withBots = params.withBots ?? true;
 		this.withFiles = params.withFiles ?? false;
 
 		// Subscribe events
@@ -49,6 +51,7 @@ class LocalTimelineChannel extends Channel {
 	@bindThis
 	private async onNote(note: Packed<'Note'>) {
 		if (this.withFiles && (note.fileIds == null || note.fileIds.length === 0)) return;
+		if (!this.withBots && note.user.isBot) return;
 
 		if (note.user.host !== null) return;
 		if (note.visibility !== 'public') return;
@@ -61,12 +64,17 @@ class LocalTimelineChannel extends Channel {
 			if (reply.userId !== this.user.id && note.userId !== this.user.id && reply.userId !== note.userId) return;
 		}
 
+		if (note.user.isSilenced && !this.following[note.userId] && note.userId !== this.user!.id) return;
+
 		if (note.renote && note.text == null && (note.fileIds == null || note.fileIds.length === 0) && !this.withRenotes) return;
 
 		// 流れてきたNoteがミュートしているユーザーが関わるものだったら無視する
 		if (isUserRelated(note, this.userIdsWhoMeMuting)) return;
 		// 流れてきたNoteがブロックされているユーザーが関わるものだったら無視する
 		if (isUserRelated(note, this.userIdsWhoBlockingMe)) return;
+
+		if (note.renote && !note.text && note.renote.mentions?.some(mention => this.userIdsWhoMeMuting.has(mention))) return;
+		if (note.mentions?.some(mention => this.userIdsWhoMeMuting.has(mention))) return;
 
 		if (note.renote && !note.text && isUserRelated(note, this.userIdsWhoMeMutingRenotes)) return;
 

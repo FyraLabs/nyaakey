@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -46,8 +46,10 @@ export const paramDef = {
 			type: 'string',
 			description: 'The local host is represented with `.`.',
 		},
+		filetype: { type: 'string', nullable: true },
 		userId: { type: 'string', format: 'misskey:id', nullable: true, default: null },
 		channelId: { type: 'string', format: 'misskey:id', nullable: true, default: null },
+		order: { type: 'string' },
 	},
 	required: ['query'],
 } as const;
@@ -71,6 +73,8 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				userId: ps.userId,
 				channelId: ps.channelId,
 				host: ps.host,
+				filetype: ps.filetype,
+				order: ps.order,
 			}, {
 				untilId: ps.untilId,
 				sinceId: ps.sinceId,

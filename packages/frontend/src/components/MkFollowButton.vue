@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -12,20 +12,20 @@ SPDX-License-Identifier: AGPL-3.0-only
 >
 	<template v-if="!wait">
 		<template v-if="hasPendingFollowRequestFromYou && user.isLocked">
-			<span v-if="full" :class="$style.text">{{ i18n.ts.followRequestPending }}</span><i class="ti ti-hourglass-empty"></i>
+			<span v-if="full" :class="$style.text">{{ i18n.ts.followRequestPending }}</span><i class="ph-hourglass ph-bold ph-lg"></i>
 		</template>
 		<template v-else-if="hasPendingFollowRequestFromYou && !user.isLocked">
 			<!-- つまりリモートフォローの場合。 -->
 			<span v-if="full" :class="$style.text">{{ i18n.ts.processing }}</span><MkLoading :em="true" :colored="false"/>
 		</template>
 		<template v-else-if="isFollowing">
-			<span v-if="full" :class="$style.text">{{ i18n.ts.unfollow }}</span><i class="ti ti-minus"></i>
+			<span v-if="full" :class="$style.text">{{ i18n.ts.unfollow }}</span><i class="ph-minus ph-bold ph-lg"></i>
 		</template>
 		<template v-else-if="!isFollowing && user.isLocked">
-			<span v-if="full" :class="$style.text">{{ i18n.ts.followRequest }}</span><i class="ti ti-plus"></i>
+			<span v-if="full" :class="$style.text">{{ i18n.ts.followRequest }}</span><i class="ph-plus ph-bold ph-lg"></i>
 		</template>
 		<template v-else-if="!isFollowing && !user.isLocked">
-			<span v-if="full" :class="$style.text">{{ i18n.ts.follow }}</span><i class="ti ti-plus"></i>
+			<span v-if="full" :class="$style.text">{{ i18n.ts.follow }}</span><i class="ph-plus ph-bold ph-lg"></i>
 		</template>
 	</template>
 	<template v-else>
@@ -38,11 +38,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import * as Misskey from 'misskey-js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { useStream } from '@/stream.js';
 import { i18n } from '@/i18n.js';
 import { claimAchievement } from '@/scripts/achievements.js';
 import { $i } from '@/account.js';
-import { defaultStore } from "@/store.js";
+import { defaultStore } from '@/store.js';
 
 const props = withDefaults(defineProps<{
 	user: Misskey.entities.UserDetailed,
@@ -63,7 +64,7 @@ const wait = ref(false);
 const connection = useStream().useChannel('main');
 
 if (props.user.isFollowing == null) {
-	os.api('users/show', {
+	misskeyApi('users/show', {
 		userId: props.user.id,
 	})
 		.then(onFollowChange);
@@ -83,22 +84,22 @@ async function onClick() {
 		if (isFollowing.value) {
 			const { canceled } = await os.confirm({
 				type: 'warning',
-				text: i18n.t('unfollowConfirm', { name: props.user.name || props.user.username }),
+				text: i18n.tsx.unfollowConfirm({ name: props.user.name || props.user.username }),
 			});
 
 			if (canceled) return;
 
-			await os.api('following/delete', {
+			await misskeyApi('following/delete', {
 				userId: props.user.id,
 			});
 		} else {
 			if (hasPendingFollowRequestFromYou.value) {
-				await os.api('following/requests/cancel', {
+				await misskeyApi('following/requests/cancel', {
 					userId: props.user.id,
 				});
 				hasPendingFollowRequestFromYou.value = false;
 			} else {
-				await os.api('following/create', {
+				await misskeyApi('following/create', {
 					userId: props.user.id,
 					withReplies: defaultStore.state.defaultWithReplies,
 				});
@@ -151,7 +152,7 @@ onBeforeUnmount(() => {
 	padding: 0;
 	height: 31px;
 	font-size: 16px;
-	border-radius: 32px;
+	border-radius: var(--radius-xl);
 	background: #fff;
 
 	&.full {
@@ -179,7 +180,7 @@ onBeforeUnmount(() => {
 			bottom: -5px;
 			left: -5px;
 			border: 2px solid var(--focus);
-			border-radius: 32px;
+			border-radius: var(--radius-xl);
 		}
 	}
 

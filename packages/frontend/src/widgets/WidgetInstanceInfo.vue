@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -66,7 +66,7 @@ defineExpose<WidgetComponentExpose>({
 	display: inline-block;
 	width: 60px;
 	height: 60px;
-	border-radius: 8px;
+	border-radius: var(--radius-sm);
 	box-sizing: border-box;
 	border: solid 3px #fff;
 }

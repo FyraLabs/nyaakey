@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -8,10 +8,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<template #header><MkPageHeader v-model:tab="tab" :actions="headerActions" :tabs="headerTabs"/></template>
 	<MkSpacer :contentMax="700">
 		<div class="jqqmcavi">
-			<MkButton v-if="pageId" class="button" inline link :to="`/@${ author.username }/pages/${ currentName }`"><i class="ti ti-external-link"></i> {{ i18n.ts._pages.viewPage }}</MkButton>
-			<MkButton v-if="!readonly" inline primary class="button" @click="save"><i class="ti ti-device-floppy"></i> {{ i18n.ts.save }}</MkButton>
-			<MkButton v-if="pageId" inline class="button" @click="duplicate"><i class="ti ti-copy"></i> {{ i18n.ts.duplicate }}</MkButton>
-			<MkButton v-if="pageId && !readonly" inline class="button" danger @click="del"><i class="ti ti-trash"></i> {{ i18n.ts.delete }}</MkButton>
+			<MkButton v-if="pageId" class="button" inline link :to="`/@${ author.username }/pages/${ currentName }`"><i class="ph-arrow-square-out ph-bold ph-lg"></i> {{ i18n.ts._pages.viewPage }}</MkButton>
+			<MkButton v-if="!readonly" inline primary class="button" @click="save"><i class="ph-floppy-disk ph-bold ph-lg"></i> {{ i18n.ts.save }}</MkButton>
+			<MkButton v-if="pageId" inline class="button" @click="duplicate"><i class="ph-copy ph-bold ph-lg"></i> {{ i18n.ts.duplicate }}</MkButton>
+			<MkButton v-if="pageId && !readonly" inline class="button" danger @click="del"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts.delete }}</MkButton>
 		</div>
 
 		<div v-if="tab === 'settings'">
@@ -25,7 +25,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</MkInput>
 
 				<MkInput v-model="name">
-					<template #prefix>{{ url }}/@{{ author.username }}/pages/</template>
+					<template #prefix>@{{ author.username }}/pages/</template>
 					<template #label>{{ i18n.ts._pages.url }}</template>
 				</MkInput>
 
@@ -40,10 +40,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<MkSwitch v-model="hideTitleWhenPinned">{{ i18n.ts._pages.hideTitleWhenPinned }}</MkSwitch>
 
 				<div class="eyeCatch">
-					<MkButton v-if="eyeCatchingImageId == null && !readonly" @click="setEyeCatchingImage"><i class="ti ti-plus"></i> {{ i18n.ts._pages.eyeCatchingImageSet }}</MkButton>
+					<MkButton v-if="eyeCatchingImageId == null && !readonly" @click="setEyeCatchingImage"><i class="ph-plus ph-bold ph-lg"></i> {{ i18n.ts._pages.eyeCatchingImageSet }}</MkButton>
 					<div v-else-if="eyeCatchingImage">
 						<img :src="eyeCatchingImage.url" :alt="eyeCatchingImage.name" style="max-width: 100%;"/>
-						<MkButton v-if="!readonly" @click="removeEyeCatchingImage()"><i class="ti ti-trash"></i> {{ i18n.ts._pages.eyeCatchingImageRemove }}</MkButton>
+						<MkButton v-if="!readonly" @click="removeEyeCatchingImage()"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts._pages.eyeCatchingImageRemove }}</MkButton>
 					</div>
 				</div>
 			</div>
@@ -53,7 +53,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<div :class="$style.contents">
 				<XBlocks v-model="content" class="content"/>
 
-				<MkButton v-if="!readonly" rounded class="add" @click="add()"><i class="ti ti-plus"></i></MkButton>
+				<MkButton v-if="!readonly" rounded class="add" @click="add()"><i class="ph-plus ph-bold ph-lg"></i></MkButton>
 			</div>
 		</div>
 	</MkSpacer>
@@ -69,13 +69,13 @@ import MkButton from '@/components/MkButton.vue';
 import MkSelect from '@/components/MkSelect.vue';
 import MkSwitch from '@/components/MkSwitch.vue';
 import MkInput from '@/components/MkInput.vue';
-import { url } from '@/config.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { selectFile } from '@/scripts/select-file.js';
-import { mainRouter } from '@/router.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { $i } from '@/account.js';
+import { mainRouter } from '@/router/main.js';
 
 const props = defineProps<{
 	initPageId?: string;
@@ -106,7 +106,7 @@ watch(eyeCatchingImageId, async () => {
 	if (eyeCatchingImageId.value == null) {
 		eyeCatchingImage.value = null;
 	} else {
-		eyeCatchingImage.value = await os.api('drive/files/show', {
+		eyeCatchingImage.value = await misskeyApi('drive/files/show', {
 			fileId: eyeCatchingImageId.value,
 		});
 	}
@@ -149,7 +149,7 @@ function save() {
 
 	if (pageId.value) {
 		options.pageId = pageId.value;
-		os.api('pages/update', options)
+		misskeyApi('pages/update', options)
 			.then(page => {
 				currentName.value = name.value.trim();
 				os.alert({
@@ -158,7 +158,7 @@ function save() {
 				});
 			}).catch(onError);
 	} else {
-		os.api('pages/create', options)
+		misskeyApi('pages/create', options)
 			.then(created => {
 				pageId.value = created.id;
 				currentName.value = name.value.trim();
@@ -174,10 +174,10 @@ function save() {
 function del() {
 	os.confirm({
 		type: 'warning',
-		text: i18n.t('removeAreYouSure', { x: title.value.trim() }),
+		text: i18n.tsx.removeAreYouSure({ x: title.value.trim() }),
 	}).then(({ canceled }) => {
 		if (canceled) return;
-		os.api('pages/delete', {
+		misskeyApi('pages/delete', {
 			pageId: pageId.value,
 		}).then(() => {
 			os.alert({
@@ -192,7 +192,7 @@ function del() {
 function duplicate() {
 	title.value = title.value + ' - copy';
 	name.value = name.value + '-copy';
-	os.api('pages/create', getSaveOptions()).then(created => {
+	misskeyApi('pages/create', getSaveOptions()).then(created => {
 		pageId.value = created.id;
 		currentName.value = name.value.trim();
 		os.alert({
@@ -236,11 +236,11 @@ function removeEyeCatchingImage() {
 
 async function init() {
 	if (props.initPageId) {
-		page.value = await os.api('pages/show', {
+		page.value = await misskeyApi('pages/show', {
 			pageId: props.initPageId,
 		});
 	} else if (props.initPageName && props.initUser) {
-		page.value = await os.api('pages/show', {
+		page.value = await misskeyApi('pages/show', {
 			name: props.initPageName,
 			username: props.initUser,
 		});
@@ -276,24 +276,18 @@ const headerActions = computed(() => []);
 const headerTabs = computed(() => [{
 	key: 'settings',
 	title: i18n.ts._pages.pageSetting,
-	icon: 'ti ti-settings',
+	icon: 'ph-gear ph-bold ph-lg',
 }, {
 	key: 'contents',
 	title: i18n.ts._pages.contents,
-	icon: 'ti ti-note',
+	icon: 'ph-note ph-bold ph-lg',
 }]);
 
-definePageMetadata(computed(() => {
-	let title = i18n.ts._pages.newPage;
-	if (props.initPageId) {
-		title = i18n.ts._pages.editPage;
-	} else if (props.initPageName && props.initUser) {
-		title = i18n.ts._pages.readPage;
-	}
-	return {
-		title: title,
-		icon: 'ti ti-pencil',
-	};
+definePageMetadata(() => ({
+	title: props.initPageId ? i18n.ts._pages.editPage
+				: props.initPageName && props.initUser ? i18n.ts._pages.readPage
+				: i18n.ts._pages.newPage,
+	icon: 'ph-pencil-simple ph-bold ph-lg',
 }));
 </script>
 

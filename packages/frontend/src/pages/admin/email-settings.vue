@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -54,8 +54,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div :class="$style.footer">
 			<MkSpacer :contentMax="700" :marginMin="16" :marginMax="16">
 				<div class="_buttons">
-					<MkButton primary rounded @click="save"><i class="ti ti-check"></i> {{ i18n.ts.save }}</MkButton>
-					<MkButton rounded @click="testEmail"><i class="ti ti-send"></i> {{ i18n.ts.testEmail }}</MkButton>
+					<MkButton primary rounded @click="save"><i class="ph-check ph-bold ph-lg"></i> {{ i18n.ts.save }}</MkButton>
+					<MkButton rounded @click="testEmail"><i class="ph-paper-plane-tilt ph-bold ph-lg"></i> {{ i18n.ts.testEmail }}</MkButton>
 				</div>
 			</MkSpacer>
 		</div>
@@ -73,6 +73,7 @@ import FormSuspense from '@/components/form/suspense.vue';
 import FormSplit from '@/components/form/split.vue';
 import FormSection from '@/components/form/section.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { fetchInstance, instance } from '@/instance.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
@@ -87,7 +88,7 @@ const smtpUser = ref<string>('');
 const smtpPass = ref<string>('');
 
 async function init() {
-	const meta = await os.api('admin/meta');
+	const meta = await misskeyApi('admin/meta');
 	enableEmail.value = meta.enableEmail;
 	email.value = meta.email;
 	smtpSecure.value = meta.smtpSecure;
@@ -123,16 +124,16 @@ function save() {
 		smtpUser: smtpUser.value,
 		smtpPass: smtpPass.value,
 	}).then(() => {
-		fetchInstance();
+		fetchInstance(true);
 	});
 }
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.emailServer,
-	icon: 'ti ti-mail',
-});
+	icon: 'ph-envelope ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>

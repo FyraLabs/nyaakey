@@ -1,11 +1,11 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
 <MkContainer :showHeader="widgetProps.showHeader" :naked="widgetProps.transparent" :class="$style.root" :data-transparent="widgetProps.transparent ? true : null" data-cy-mkw-photos class="mkw-photos">
-	<template #icon><i class="ti ti-camera"></i></template>
+	<template #icon><i class="ph-camera ph-bold ph-lg"></i></template>
 	<template #header>{{ i18n.ts._widgets.photos }}</template>
 
 	<div class="">
@@ -28,7 +28,7 @@ import { useWidgetPropsManager, WidgetComponentEmits, WidgetComponentExpose, Wid
 import { GetFormResultType } from '@/scripts/form.js';
 import { useStream } from '@/stream.js';
 import { getStaticImageUrl } from '@/scripts/media-proxy.js';
-import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import MkContainer from '@/components/MkContainer.vue';
 import { defaultStore } from '@/store.js';
 import { i18n } from '@/i18n.js';
@@ -74,7 +74,7 @@ const thumbnail = (image: any): string => {
 		: image.thumbnailUrl;
 };
 
-os.api('drive/stream', {
+misskeyApi('drive/stream', {
 	type: 'image/*',
 	limit: 9,
 }).then(res => {
@@ -102,7 +102,7 @@ defineExpose<WidgetComponentExpose>({
 
 	.img {
 		border: solid 4px transparent;
-		border-radius: 8px;
+		border-radius: var(--radius-sm);
 	}
 }
 
@@ -121,7 +121,7 @@ defineExpose<WidgetComponentExpose>({
 		background-size: cover;
 		background-clip: content-box;
 		border: solid 2px transparent;
-		border-radius: 4px;
+		border-radius: var(--radius-xs);
 	}
 }
 </style>

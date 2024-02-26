@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -16,6 +16,8 @@ import type { DbQueue, DeliverQueue, EndedPollNotificationQueue, InboxQueue, Obj
 import type { DbJobData, DeliverJobData, RelationshipJobData, ThinUser } from '../queue/types.js';
 import type httpSignature from '@peertube/http-signature';
 import type * as Bull from 'bullmq';
+import { MiNote } from '@/models/Note.js';
+import { ApRequestCreator } from '@/core/activitypub/ApRequestService.js';
 
 @Injectable()
 export class QueueService {
@@ -74,11 +76,15 @@ export class QueueService {
 		if (content == null) return null;
 		if (to == null) return null;
 
+		const contentBody = JSON.stringify(content);
+		const digest = ApRequestCreator.createDigest(contentBody);
+
 		const data: DeliverJobData = {
 			user: {
 				id: user.id,
 			},
-			content,
+			content: contentBody,
+			digest,
 			to,
 			isSharedInbox,
 		};
@@ -103,6 +109,8 @@ export class QueueService {
 	@bindThis
 	public async deliverMany(user: ThinUser, content: IActivity | null, inboxes: Map<string, boolean>) {
 		if (content == null) return null;
+		const contentBody = JSON.stringify(content);
+		const digest = ApRequestCreator.createDigest(contentBody);
 
 		const opts = {
 			attempts: this.config.deliverJobMaxAttempts ?? 12,
@@ -117,7 +125,8 @@ export class QueueService {
 			name: d[0],
 			data: {
 				user,
-				content,
+				content: contentBody,
+				digest,
 				to: d[0],
 				isSharedInbox: d[1],
 			} as DeliverJobData,
@@ -165,8 +174,28 @@ export class QueueService {
 	}
 
 	@bindThis
+	public createExportAccountDataJob(user: ThinUser) {
+		return this.dbQueue.add('exportAccountData', {
+			user: { id: user.id },
+		}, {
+			removeOnComplete: true,
+			removeOnFail: true,
+		});
+	}
+
+	@bindThis
 	public createExportNotesJob(user: ThinUser) {
 		return this.dbQueue.add('exportNotes', {
+			user: { id: user.id },
+		}, {
+			removeOnComplete: true,
+			removeOnFail: true,
+		});
+	}
+
+	@bindThis
+	public createExportClipsJob(user: ThinUser) {
+		return this.dbQueue.add('exportClips', {
 			user: { id: user.id },
 		}, {
 			removeOnComplete: true,
@@ -249,6 +278,54 @@ export class QueueService {
 	}
 
 	@bindThis
+	public createImportNotesJob(user: ThinUser, fileId: MiDriveFile['id'], type: string | null | undefined) {
+		return this.dbQueue.add('importNotes', {
+			user: { id: user.id },
+			fileId: fileId,
+			type: type,
+		}, {
+			removeOnComplete: true,
+			removeOnFail: true,
+		});
+	}
+
+	@bindThis
+	public createImportTweetsToDbJob(user: ThinUser, targets: string[], note: MiNote['id'] | null) {
+		const jobs = targets.map(rel => this.generateToDbJobData('importTweetsToDb', { user, target: rel, note }));
+		return this.dbQueue.addBulk(jobs);
+	}
+
+	@bindThis
+	public createImportMastoToDbJob(user: ThinUser, targets: string[], note: MiNote['id'] | null) {
+		const jobs = targets.map(rel => this.generateToDbJobData('importMastoToDb', { user, target: rel, note }));
+		return this.dbQueue.addBulk(jobs);
+	}
+
+	@bindThis
+	public createImportPleroToDbJob(user: ThinUser, targets: string[], note: MiNote['id'] | null) {
+		const jobs = targets.map(rel => this.generateToDbJobData('importPleroToDb', { user, target: rel, note }));
+		return this.dbQueue.addBulk(jobs);
+	}
+
+	@bindThis
+	public createImportKeyNotesToDbJob(user: ThinUser, targets: string[], note: MiNote['id'] | null) {
+		const jobs = targets.map(rel => this.generateToDbJobData('importKeyNotesToDb', { user, target: rel, note }));
+		return this.dbQueue.addBulk(jobs);
+	}
+
+	@bindThis
+	public createImportIGToDbJob(user: ThinUser, targets: string[]) {
+		const jobs = targets.map(rel => this.generateToDbJobData('importIGToDb', { user, target: rel }));
+		return this.dbQueue.addBulk(jobs);
+	}
+
+	@bindThis
+	public createImportFBToDbJob(user: ThinUser, targets: string[]) {
+		const jobs = targets.map(rel => this.generateToDbJobData('importFBToDb', { user, target: rel }));
+		return this.dbQueue.addBulk(jobs);
+	}
+
+	@bindThis
 	public createImportFollowingToDbJob(user: ThinUser, targets: string[], withReplies?: boolean) {
 		const jobs = targets.map(rel => this.generateToDbJobData('importFollowingToDb', { user, target: rel, withReplies }));
 		return this.dbQueue.addBulk(jobs);
@@ -283,7 +360,7 @@ export class QueueService {
 	}
 
 	@bindThis
-	private generateToDbJobData<T extends 'importFollowingToDb' | 'importBlockingToDb', D extends DbJobData<T>>(name: T, data: D): {
+	private generateToDbJobData<T extends 'importFollowingToDb' | 'importBlockingToDb' | 'importTweetsToDb' | 'importIGToDb' | 'importFBToDb' | 'importMastoToDb' | 'importPleroToDb' | 'importKeyNotesToDb', D extends DbJobData<T>>(name: T, data: D): {
 		name: string,
 		data: D,
 		opts: Bull.JobsOptions,

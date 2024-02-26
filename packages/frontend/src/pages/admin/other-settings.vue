@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -13,6 +13,20 @@ SPDX-License-Identifier: AGPL-3.0-only
 					<MkSwitch v-model="enableServerMachineStats">
 						<template #label>{{ i18n.ts.enableServerMachineStats }}</template>
 						<template #caption>{{ i18n.ts.turnOffToImprovePerformance }}</template>
+					</MkSwitch>
+				</div>
+
+				<div class="_panel" style="padding: 16px;">
+					<MkSwitch v-model="enableAchievements">
+						<template #label>{{ i18n.ts.enableAchievements }}</template>
+						<template #caption>{{ i18n.ts.turnOffAchievements}}</template>
+					</MkSwitch>
+				</div>
+
+				<div class="_panel" style="padding: 16px;">
+					<MkSwitch v-model="enableBotTrending">
+						<template #label>{{ i18n.ts.enableBotTrending }}</template>
+						<template #caption>{{ i18n.ts.turnOffBotTrending }}</template>
 					</MkSwitch>
 				</div>
 
@@ -47,19 +61,24 @@ import { ref, computed } from 'vue';
 import XHeader from './_header_.vue';
 import FormSuspense from '@/components/form/suspense.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { fetchInstance } from '@/instance.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import MkSwitch from '@/components/MkSwitch.vue';
 
 const enableServerMachineStats = ref<boolean>(false);
+const enableAchievements = ref<boolean>(false);
+const enableBotTrending = ref<boolean>(false);
 const enableIdenticonGeneration = ref<boolean>(false);
 const enableChartsForRemoteUser = ref<boolean>(false);
 const enableChartsForFederatedInstances = ref<boolean>(false);
 
 async function init() {
-	const meta = await os.api('admin/meta');
+	const meta = await misskeyApi('admin/meta');
 	enableServerMachineStats.value = meta.enableServerMachineStats;
+	enableAchievements.value = meta.enableAchievements;
+	enableBotTrending.value = meta.enableBotTrending;
 	enableIdenticonGeneration.value = meta.enableIdenticonGeneration;
 	enableChartsForRemoteUser.value = meta.enableChartsForRemoteUser;
 	enableChartsForFederatedInstances.value = meta.enableChartsForFederatedInstances;
@@ -68,25 +87,27 @@ async function init() {
 function save() {
 	os.apiWithDialog('admin/update-meta', {
 		enableServerMachineStats: enableServerMachineStats.value,
+		enableAchievements: enableAchievements.value,
+		enableBotTrending: enableBotTrending.value,
 		enableIdenticonGeneration: enableIdenticonGeneration.value,
 		enableChartsForRemoteUser: enableChartsForRemoteUser.value,
 		enableChartsForFederatedInstances: enableChartsForFederatedInstances.value,
 	}).then(() => {
-		fetchInstance();
+		fetchInstance(true);
 	});
 }
 
 const headerActions = computed(() => [{
 	asFullButton: true,
-	icon: 'ti ti-check',
+	icon: 'ph-check ph-bold ph-lg',
 	text: i18n.ts.save,
 	handler: save,
 }]);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.other,
-	icon: 'ti ti-adjustments',
-});
+	icon: 'ph-faders ph-bold ph-lg',
+}));
 </script>

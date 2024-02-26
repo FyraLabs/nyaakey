@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -31,6 +31,7 @@ import { WellKnownServerService } from './WellKnownServerService.js';
 import { FileServerService } from './FileServerService.js';
 import { ClientServerService } from './web/ClientServerService.js';
 import { OpenApiServerService } from './api/openapi/OpenApiServerService.js';
+import { MastodonApiServerService } from './api/mastodon/MastodonApiServerService.js';
 import { OAuth2ProviderService } from './oauth/OAuth2ProviderService.js';
 
 const _dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -57,6 +58,7 @@ export class ServerService implements OnApplicationShutdown {
 		private userEntityService: UserEntityService,
 		private apiServerService: ApiServerService,
 		private openApiServerService: OpenApiServerService,
+		private mastodonApiServerService: MastodonApiServerService,
 		private streamingApiServerService: StreamingApiServerService,
 		private activityPubServerService: ActivityPubServerService,
 		private wellKnownServerService: WellKnownServerService,
@@ -103,12 +105,12 @@ export class ServerService implements OnApplicationShutdown {
 
 		fastify.register(this.apiServerService.createServer, { prefix: '/api' });
 		fastify.register(this.openApiServerService.createServer);
+		fastify.register(this.mastodonApiServerService.createServer, { prefix: '/api' });
 		fastify.register(this.fileServerService.createServer);
 		fastify.register(this.activityPubServerService.createServer);
 		fastify.register(this.nodeinfoServerService.createServer);
 		fastify.register(this.wellKnownServerService.createServer);
 		fastify.register(this.oauth2ProviderService.createServer, { prefix: '/oauth' });
-		fastify.register(this.oauth2ProviderService.createTokenServer, { prefix: '/oauth/token' });
 
 		fastify.get<{ Params: { path: string }; Querystring: { static?: any; badge?: any; }; }>('/emoji/:path(.*)', async (request, reply) => {
 			const path = request.params.path;
@@ -204,7 +206,7 @@ export class ServerService implements OnApplicationShutdown {
 				});
 
 				this.globalEventService.publishMainStream(profile.userId, 'meUpdated', await this.userEntityService.pack(profile.userId, { id: profile.userId }, {
-					detail: true,
+					schema: 'MeDetailed',
 					includeSecrets: true,
 				}));
 

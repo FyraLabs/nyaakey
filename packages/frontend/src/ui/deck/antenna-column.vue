@@ -1,12 +1,12 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
 <XColumn :menu="menu" :column="column" :isStacked="isStacked" :refresher="() => timeline.reloadTimeline()">
 	<template #header>
-		<i class="ti ti-antenna"></i><span style="margin-left: 8px;">{{ column.name }}</span>
+		<i class="ph-flying-saucer ph-bold ph-lg"></i><span style="margin-left: 8px;">{{ column.name }}</span>
 	</template>
 
 	<MkTimeline v-if="column.antennaId" ref="timeline" src="antenna" :antenna="column.antennaId"/>
@@ -19,6 +19,7 @@ import XColumn from './column.vue';
 import { updateColumn, Column } from './deck-store.js';
 import MkTimeline from '@/components/MkTimeline.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 
 const props = defineProps<{
@@ -35,7 +36,7 @@ onMounted(() => {
 });
 
 async function setAntenna() {
-	const antennas = await os.api('antennas/list');
+	const antennas = await misskeyApi('antennas/list');
 	const { canceled, result: antenna } = await os.select({
 		title: i18n.ts.selectAntenna,
 		items: antennas.map(x => ({
@@ -55,12 +56,12 @@ function editAntenna() {
 
 const menu = [
 	{
-		icon: 'ti ti-pencil',
+		icon: 'ph-pencil-simple ph-bold ph-lg',
 		text: i18n.ts.selectAntenna,
 		action: setAntenna,
 	},
 	{
-		icon: 'ti ti-settings',
+		icon: 'ph-gear ph-bold ph-lg',
 		text: i18n.ts.editAntenna,
 		action: editAntenna,
 	},

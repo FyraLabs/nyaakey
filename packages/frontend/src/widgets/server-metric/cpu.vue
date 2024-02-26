@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <div class="vrvdvrys">
 	<XPie class="pie" :value="usage"/>
 	<div>
-		<p><i class="ti ti-cpu"></i>CPU</p>
+		<p><i class="ph-cpu ph-bold ph-lg"></i>CPU</p>
 		<p>{{ meta.cpu.cores }} Logical cores</p>
 		<p>{{ meta.cpu.model }}</p>
 	</div>
@@ -20,13 +20,13 @@ import * as Misskey from 'misskey-js';
 import XPie from './pie.vue';
 
 const props = defineProps<{
-	connection: any,
+	connection: Misskey.ChannelConnection<Misskey.Channels['serverStats']>,
 	meta: Misskey.entities.ServerInfoResponse
 }>();
 
 const usage = ref<number>(0);
 
-function onStats(stats) {
+function onStats(stats: Misskey.entities.ServerStats) {
 	usage.value = stats.cpu;
 }
 

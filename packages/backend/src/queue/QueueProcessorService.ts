@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -14,8 +14,10 @@ import { EndedPollNotificationProcessorService } from './processors/EndedPollNot
 import { DeliverProcessorService } from './processors/DeliverProcessorService.js';
 import { InboxProcessorService } from './processors/InboxProcessorService.js';
 import { DeleteDriveFilesProcessorService } from './processors/DeleteDriveFilesProcessorService.js';
+import { ExportAccountDataProcessorService } from './processors/ExportAccountDataProcessorService.js';
 import { ExportCustomEmojisProcessorService } from './processors/ExportCustomEmojisProcessorService.js';
 import { ExportNotesProcessorService } from './processors/ExportNotesProcessorService.js';
+import { ExportClipsProcessorService } from './processors/ExportClipsProcessorService.js';
 import { ExportFollowingProcessorService } from './processors/ExportFollowingProcessorService.js';
 import { ExportMutingProcessorService } from './processors/ExportMutingProcessorService.js';
 import { ExportBlockingProcessorService } from './processors/ExportBlockingProcessorService.js';
@@ -40,6 +42,7 @@ import { CleanProcessorService } from './processors/CleanProcessorService.js';
 import { AggregateRetentionProcessorService } from './processors/AggregateRetentionProcessorService.js';
 import { QueueLoggerService } from './QueueLoggerService.js';
 import { QUEUE, baseQueueOptions } from './const.js';
+import { ImportNotesProcessorService } from './processors/ImportNotesProcessorService.js';
 
 // ref. https://github.com/misskey-dev/misskey/pull/7635#issue-971097019
 function httpRelatedBackoff(attemptsMade: number) {
@@ -89,8 +92,10 @@ export class QueueProcessorService implements OnApplicationShutdown {
 		private deliverProcessorService: DeliverProcessorService,
 		private inboxProcessorService: InboxProcessorService,
 		private deleteDriveFilesProcessorService: DeleteDriveFilesProcessorService,
+		private exportAccountDataProcessorService: ExportAccountDataProcessorService,
 		private exportCustomEmojisProcessorService: ExportCustomEmojisProcessorService,
 		private exportNotesProcessorService: ExportNotesProcessorService,
+		private exportClipsProcessorService: ExportClipsProcessorService,
 		private exportFavoritesProcessorService: ExportFavoritesProcessorService,
 		private exportFollowingProcessorService: ExportFollowingProcessorService,
 		private exportMutingProcessorService: ExportMutingProcessorService,
@@ -98,6 +103,7 @@ export class QueueProcessorService implements OnApplicationShutdown {
 		private exportUserListsProcessorService: ExportUserListsProcessorService,
 		private exportAntennasProcessorService: ExportAntennasProcessorService,
 		private importFollowingProcessorService: ImportFollowingProcessorService,
+		private importNotesProcessorService: ImportNotesProcessorService,
 		private importMutingProcessorService: ImportMutingProcessorService,
 		private importBlockingProcessorService: ImportBlockingProcessorService,
 		private importUserListsProcessorService: ImportUserListsProcessorService,
@@ -162,8 +168,10 @@ export class QueueProcessorService implements OnApplicationShutdown {
 		this.dbQueueWorker = new Bull.Worker(QUEUE.DB, (job) => {
 			switch (job.name) {
 				case 'deleteDriveFiles': return this.deleteDriveFilesProcessorService.process(job);
+				case 'exportAccountData': return this.exportAccountDataProcessorService.process(job);
 				case 'exportCustomEmojis': return this.exportCustomEmojisProcessorService.process(job);
 				case 'exportNotes': return this.exportNotesProcessorService.process(job);
+				case 'exportClips': return this.exportClipsProcessorService.process(job);
 				case 'exportFavorites': return this.exportFavoritesProcessorService.process(job);
 				case 'exportFollowing': return this.exportFollowingProcessorService.process(job);
 				case 'exportMuting': return this.exportMutingProcessorService.process(job);
@@ -171,6 +179,13 @@ export class QueueProcessorService implements OnApplicationShutdown {
 				case 'exportUserLists': return this.exportUserListsProcessorService.process(job);
 				case 'exportAntennas': return this.exportAntennasProcessorService.process(job);
 				case 'importFollowing': return this.importFollowingProcessorService.process(job);
+				case 'importNotes': return this.importNotesProcessorService.process(job);
+				case 'importTweetsToDb': return this.importNotesProcessorService.processTwitterDb(job);
+				case 'importIGToDb': return this.importNotesProcessorService.processIGDb(job);
+				case 'importFBToDb': return this.importNotesProcessorService.processFBDb(job);
+				case 'importMastoToDb': return this.importNotesProcessorService.processMastoToDb(job);
+				case 'importPleroToDb': return this.importNotesProcessorService.processPleroToDb(job);
+				case 'importKeyNotesToDb': return this.importNotesProcessorService.processKeyNotesToDb(job);
 				case 'importFollowingToDb': return this.importFollowingProcessorService.processDb(job);
 				case 'importMuting': return this.importMutingProcessorService.process(job);
 				case 'importBlocking': return this.importBlockingProcessorService.process(job);
@@ -280,9 +295,9 @@ export class QueueProcessorService implements OnApplicationShutdown {
 		}, {
 			...baseQueueOptions(this.config, QUEUE.RELATIONSHIP),
 			autorun: false,
-			concurrency: this.config.relashionshipJobConcurrency ?? 16,
+			concurrency: this.config.relationshipJobConcurrency ?? 16,
 			limiter: {
-				max: this.config.relashionshipJobPerSec ?? 64,
+				max: this.config.relationshipJobPerSec ?? 64,
 				duration: 1000,
 			},
 		});

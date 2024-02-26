@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -7,6 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <component
 	:is="self ? 'MkA' : 'a'" ref="el" :class="$style.root" class="_link" :[attr]="self ? props.url.substring(local.length) : props.url" :rel="rel ?? 'nofollow noopener'" :target="target"
 	@contextmenu.stop="() => {}"
+	@click.stop
 >
 	<template v-if="!self">
 		<span :class="$style.schema">{{ schema }}//</span>
@@ -19,7 +20,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<span v-if="pathname != ''" :class="$style.pathname">{{ self ? pathname.substring(1) : pathname }}</span>
 	<span :class="$style.query">{{ query }}</span>
 	<span :class="$style.hash">{{ hash }}</span>
-	<i v-if="target === '_blank'" :class="$style.icon" class="ti ti-external-link"></i>
+	<i v-if="target === '_blank'" :class="$style.icon" class="ph-arrow-square-out ph-bold ph-lg"></i>
 </component>
 </template>
 

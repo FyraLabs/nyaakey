@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -28,7 +28,7 @@ export const meta = {
 	kind: 'read:account',
 
 	limit: {
-		duration: ms('1hour'),
+		duration: ms('1minute'),
 		max: 30,
 	},
 
@@ -148,7 +148,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 		if (user != null) {
 			return {
 				type: 'User',
-				object: await this.userEntityService.pack(user, me, { detail: true }),
+				object: await this.userEntityService.pack(user, me, { schema: 'UserDetailedNotMe' }),
 			};
 		} else if (note != null) {
 			try {

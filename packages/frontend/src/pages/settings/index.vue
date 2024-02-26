@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -23,30 +23,29 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</div>
 		</div>
 	</MkSpacer>
-	<MkFooterSpacer/>
-</mkstickycontainer>
+</MkStickyContainer>
 </template>
 
 <script setup lang="ts">
-import { ComputedRef, Ref, computed, onActivated, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { computed, onActivated, onMounted, onUnmounted, ref, shallowRef, watch } from 'vue';
 import { i18n } from '@/i18n.js';
 import MkInfo from '@/components/MkInfo.vue';
 import MkSuperMenu from '@/components/MkSuperMenu.vue';
 import { signout, $i } from '@/account.js';
 import { clearCache } from '@/scripts/clear-cache.js';
 import { instance } from '@/instance.js';
-import { useRouter } from '@/router.js';
-import { PageMetadata, definePageMetadata, provideMetadataReceiver } from '@/scripts/page-metadata.js';
+import { PageMetadata, definePageMetadata, provideMetadataReceiver, provideReactiveMetadata } from '@/scripts/page-metadata.js';
 import * as os from '@/os.js';
+import { useRouter } from '@/router/supplier.js';
 
 const indexInfo = {
 	title: i18n.ts.settings,
-	icon: 'ti ti-settings',
+	icon: 'ph-gear ph-bold ph-lg',
 	hideHeader: true,
 };
 const INFO = ref(indexInfo);
 const el = shallowRef<HTMLElement | null>(null);
-const childInfo: Ref<ComputedRef<PageMetadata> | null> = ref(null);
+const childInfo = ref<null | PageMetadata>(null);
 
 const router = useRouter();
 
@@ -63,37 +62,37 @@ const ro = new ResizeObserver((entries, observer) => {
 const menuDef = computed(() => [{
 	title: i18n.ts.basicSettings,
 	items: [{
-		icon: 'ti ti-user',
+		icon: 'ph-user ph-bold ph-lg',
 		text: i18n.ts.profile,
 		to: '/settings/profile',
 		active: currentPage.value?.route.name === 'profile',
 	}, {
-		icon: 'ti ti-lock-open',
+		icon: 'ph-lock ph-bold ph-lg-open',
 		text: i18n.ts.privacy,
 		to: '/settings/privacy',
 		active: currentPage.value?.route.name === 'privacy',
 	}, {
-		icon: 'ti ti-mood-happy',
+		icon: 'ph-smiley ph-bold ph-lg',
 		text: i18n.ts.emojiPicker,
 		to: '/settings/emoji-picker',
 		active: currentPage.value?.route.name === 'emojiPicker',
 	}, {
-		icon: 'ti ti-cloud',
+		icon: 'ph-cloud ph-bold ph-lg',
 		text: i18n.ts.drive,
 		to: '/settings/drive',
 		active: currentPage.value?.route.name === 'drive',
 	}, {
-		icon: 'ti ti-bell',
+		icon: 'ph-bell ph-bold ph-lg',
 		text: i18n.ts.notifications,
 		to: '/settings/notifications',
 		active: currentPage.value?.route.name === 'notifications',
 	}, {
-		icon: 'ti ti-mail',
+		icon: 'ph-envelope ph-bold ph-lg',
 		text: i18n.ts.email,
 		to: '/settings/email',
 		active: currentPage.value?.route.name === 'email',
 	}, {
-		icon: 'ti ti-lock',
+		icon: 'ph-lock ph-bold ph-lg',
 		text: i18n.ts.security,
 		to: '/settings/security',
 		active: currentPage.value?.route.name === 'security',
@@ -101,32 +100,32 @@ const menuDef = computed(() => [{
 }, {
 	title: i18n.ts.clientSettings,
 	items: [{
-		icon: 'ti ti-adjustments',
+		icon: 'ph-faders ph-bold ph-lg',
 		text: i18n.ts.general,
 		to: '/settings/general',
 		active: currentPage.value?.route.name === 'general',
 	}, {
-		icon: 'ti ti-palette',
+		icon: 'ph-palette ph-bold ph-lg',
 		text: i18n.ts.theme,
 		to: '/settings/theme',
 		active: currentPage.value?.route.name === 'theme',
 	}, {
-		icon: 'ti ti-menu-2',
+		icon: 'ph-list ph-bold ph-lg-2',
 		text: i18n.ts.navbar,
 		to: '/settings/navbar',
 		active: currentPage.value?.route.name === 'navbar',
 	}, {
-		icon: 'ti ti-equal-double',
+		icon: 'ph-equals ph-bold ph-lg',
 		text: i18n.ts.statusbar,
 		to: '/settings/statusbar',
 		active: currentPage.value?.route.name === 'statusbar',
 	}, {
-		icon: 'ti ti-music',
+		icon: 'ph-music-notes ph-bold ph-lg',
 		text: i18n.ts.sounds,
 		to: '/settings/sounds',
 		active: currentPage.value?.route.name === 'sounds',
 	}, {
-		icon: 'ti ti-plug',
+		icon: 'ph-plug ph-bold ph-lg',
 		text: i18n.ts.plugins,
 		to: '/settings/plugin',
 		active: currentPage.value?.route.name === 'plugin',
@@ -134,57 +133,57 @@ const menuDef = computed(() => [{
 }, {
 	title: i18n.ts.otherSettings,
 	items: [{
-		icon: 'ti ti-badges',
+		icon: 'ph-seal-check ph-bold ph-lg',
 		text: i18n.ts.roles,
 		to: '/settings/roles',
 		active: currentPage.value?.route.name === 'roles',
 	}, {
-		icon: 'ti ti-ban',
+		icon: 'ph-prohibit ph-bold ph-lg',
 		text: i18n.ts.muteAndBlock,
 		to: '/settings/mute-block',
 		active: currentPage.value?.route.name === 'mute-block',
 	}, {
-		icon: 'ti ti-api',
+		icon: 'ph-key ph-bold ph-lg',
 		text: 'API',
 		to: '/settings/api',
 		active: currentPage.value?.route.name === 'api',
 	}, {
-		icon: 'ti ti-webhook',
+		icon: 'ph-webhooks-logo ph-bold ph-lg',
 		text: 'Webhook',
 		to: '/settings/webhook',
 		active: currentPage.value?.route.name === 'webhook',
 	}, {
-		icon: 'ti ti-package',
+		icon: 'ph-package ph-bold ph-lg',
 		text: i18n.ts.importAndExport,
 		to: '/settings/import-export',
 		active: currentPage.value?.route.name === 'import-export',
 	}, {
-		icon: 'ti ti-plane',
+		icon: 'ph-airplane ph-bold ph-lg',
 		text: `${i18n.ts.accountMigration}`,
 		to: '/settings/migration',
 		active: currentPage.value?.route.name === 'migration',
 	}, {
-		icon: 'ti ti-dots',
+		icon: 'ph-dots-three ph-bold ph-lg',
 		text: i18n.ts.other,
 		to: '/settings/other',
 		active: currentPage.value?.route.name === 'other',
 	}],
 }, {
 	items: [{
-		icon: 'ti ti-device-floppy',
+		icon: 'ph-floppy-disk ph-bold ph-lg',
 		text: i18n.ts.preferencesBackups,
 		to: '/settings/preferences-backups',
 		active: currentPage.value?.route.name === 'preferences-backups',
 	}, {
 		type: 'button',
-		icon: 'ti ti-trash',
+		icon: 'ph-trash ph-bold ph-lg',
 		text: i18n.ts.clearCache,
 		action: async () => {
 			await clearCache();
 		},
 	}, {
 		type: 'button',
-		icon: 'ti ti-power',
+		icon: 'ph-power ph-bold ph-lg',
 		text: i18n.ts.logout,
 		action: async () => {
 			const { canceled } = await os.confirm({
@@ -231,20 +230,22 @@ watch(router.currentRef, (to) => {
 
 const emailNotConfigured = computed(() => instance.enableEmail && ($i.email == null || !$i.emailVerified));
 
-provideMetadataReceiver((info) => {
+provideMetadataReceiver((metadataGetter) => {
+	const info = metadataGetter();
 	if (info == null) {
 		childInfo.value = null;
 	} else {
 		childInfo.value = info;
-		INFO.value.needWideArea = info.value.needWideArea ?? undefined;
+		INFO.value.needWideArea = info.needWideArea ?? undefined;
 	}
 });
+provideReactiveMetadata(INFO);
 
 const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(INFO);
+definePageMetadata(() => INFO.value);
 // w 890
 // h 700
 </script>

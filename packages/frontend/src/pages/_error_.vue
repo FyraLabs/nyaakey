@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -9,7 +9,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<div v-show="loaded" :class="$style.root">
 		<img :src="serverErrorImageUrl" class="_ghost" :class="$style.img"/>
 		<div class="_gaps">
-			<div><b><i class="ti ti-alert-triangle"></i> {{ i18n.ts.pageLoadError }}</b></div>
+			<div><b><i class="ph-warning ph-bold ph-lg"></i> {{ i18n.ts.pageLoadError }}</b></div>
 			<div v-if="meta && (version === meta.version)">{{ i18n.ts.pageLoadErrorDescription }}</div>
 			<div v-else-if="serverIsDead">{{ i18n.ts.serverIsDead }}</div>
 			<template v-else>
@@ -17,7 +17,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<div>{{ i18n.ts.youShouldUpgradeClient }}</div>
 				<MkButton style="margin: 8px auto;" @click="reload">{{ i18n.ts.reload }}</MkButton>
 			</template>
-			<div><MkA to="/docs/general/troubleshooting" class="_link">{{ i18n.ts.troubleshooting }}</MkA></div>
+			<div><MkLink url="https://misskey-hub.net/docs/for-users/resources/troubleshooting/" target="_blank">{{ i18n.ts.troubleshooting }}</MkLink></div>
 			<div v-if="error" style="opacity: 0.7;">ERROR: {{ error }}</div>
 		</div>
 	</div>
@@ -28,8 +28,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 import { ref, computed } from 'vue';
 import * as Misskey from 'misskey-js';
 import MkButton from '@/components/MkButton.vue';
+import MkLink from '@/components/MkLink.vue';
 import { version } from '@/config.js';
-import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { unisonReload } from '@/scripts/unison-reload.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
@@ -46,7 +47,7 @@ const loaded = ref(false);
 const serverIsDead = ref(false);
 const meta = ref<Misskey.entities.MetaResponse | null>(null);
 
-os.api('meta', {
+misskeyApi('meta', {
 	detail: false,
 }).then(res => {
 	loaded.value = true;
@@ -66,10 +67,10 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.error,
-	icon: 'ti ti-alert-triangle',
-});
+	icon: 'ph-warning ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>
@@ -82,6 +83,6 @@ definePageMetadata({
 	vertical-align: bottom;
 	height: 128px;
 	margin-bottom: 24px;
-	border-radius: 16px;
+	border-radius: var(--radius-md);
 }
 </style>

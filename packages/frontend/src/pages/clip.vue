@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -12,8 +12,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<div v-if="clip.description" :class="$style.description">
 					<Mfm :text="clip.description" :isNote="false"/>
 				</div>
-				<MkButton v-if="favorited" v-tooltip="i18n.ts.unfavorite" asLike rounded primary @click="unfavorite()"><i class="ti ti-heart"></i><span v-if="clip.favoritedCount > 0" style="margin-left: 6px;">{{ clip.favoritedCount }}</span></MkButton>
-				<MkButton v-else v-tooltip="i18n.ts.favorite" asLike rounded @click="favorite()"><i class="ti ti-heart"></i><span v-if="clip.favoritedCount > 0" style="margin-left: 6px;">{{ clip.favoritedCount }}</span></MkButton>
+				<MkButton v-if="favorited" v-tooltip="i18n.ts.unfavorite" asLike rounded primary @click="unfavorite()"><i class="ph-heart ph-bold ph-lg"></i><span v-if="clip.favoritedCount > 0" style="margin-left: 6px;">{{ clip.favoritedCount }}</span></MkButton>
+				<MkButton v-else v-tooltip="i18n.ts.favorite" asLike rounded @click="favorite()"><i class="ph-heart ph-bold ph-lg"></i><span v-if="clip.favoritedCount > 0" style="margin-left: 6px;">{{ clip.favoritedCount }}</span></MkButton>
 				<div :class="$style.user">
 					<MkAvatar :user="clip.user" :class="$style.avatar" indicator link preview/> <MkUserName :user="clip.user" :nowrap="false"/>
 				</div>
@@ -32,6 +32,7 @@ import MkNotes from '@/components/MkNotes.vue';
 import { $i } from '@/account.js';
 import { i18n } from '@/i18n.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { url } from '@/config.js';
 import MkButton from '@/components/MkButton.vue';
@@ -56,7 +57,7 @@ const pagination = {
 const isOwned = computed<boolean | null>(() => $i && clip.value && ($i.id === clip.value.userId));
 
 watch(() => props.clipId, async () => {
-	clip.value = await os.api('clips/show', {
+	clip.value = await misskeyApi('clips/show', {
 		clipId: props.clipId,
 	});
 	favorited.value = clip.value.isFavorited;
@@ -88,7 +89,7 @@ async function unfavorite() {
 }
 
 const headerActions = computed(() => clip.value && isOwned.value ? [{
-	icon: 'ti ti-pencil',
+	icon: 'ph-pencil-simple ph-bold ph-lg',
 	text: i18n.ts.edit,
 	handler: async (): Promise<void> => {
 		const { canceled, result } = await os.form(clip.value.name, {
@@ -121,14 +122,14 @@ const headerActions = computed(() => clip.value && isOwned.value ? [{
 		clipsCache.delete();
 	},
 }, ...(clip.value.isPublic ? [{
-	icon: 'ti ti-link',
+	icon: 'ph-share-network ph-bold ph-lg',
 	text: i18n.ts.copyUrl,
 	handler: async (): Promise<void> => {
 		copyToClipboard(`${url}/clips/${clip.value.id}`);
 		os.success();
 	},
 }] : []), ...(clip.value.isPublic && isSupportShare() ? [{
-	icon: 'ti ti-share',
+	icon: 'ph-share-network ph-bold ph-lg',
 	text: i18n.ts.share,
 	handler: async (): Promise<void> => {
 		navigator.share({
@@ -138,13 +139,13 @@ const headerActions = computed(() => clip.value && isOwned.value ? [{
 		});
 	},
 }] : []), {
-	icon: 'ti ti-trash',
+	icon: 'ph-trash ph-bold ph-lg',
 	text: i18n.ts.delete,
 	danger: true,
 	handler: async (): Promise<void> => {
 		const { canceled } = await os.confirm({
 			type: 'warning',
-			text: i18n.t('deleteAreYouSure', { x: clip.value.name }),
+			text: i18n.tsx.deleteAreYouSure({ x: clip.value.name }),
 		});
 		if (canceled) return;
 
@@ -156,10 +157,10 @@ const headerActions = computed(() => clip.value && isOwned.value ? [{
 	},
 }] : null);
 
-definePageMetadata(computed(() => clip.value ? {
-	title: clip.value.name,
-	icon: 'ti ti-paperclip',
-} : null));
+definePageMetadata(() => ({
+	title: clip.value ? clip.value.name : i18n.ts.clip,
+	icon: 'ph-paperclip ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>

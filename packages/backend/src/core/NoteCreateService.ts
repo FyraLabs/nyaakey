@@ -1,10 +1,10 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
 import { setImmediate } from 'node:timers/promises';
-import * as mfm from 'mfm-js';
+import * as mfm from '@transfem-org/sfm-js';
 import { In, DataSource, IsNull, LessThan } from 'typeorm';
 import * as Redis from 'ioredis';
 import { Inject, Injectable, OnApplicationShutdown } from '@nestjs/common';
@@ -57,7 +57,12 @@ import { FeaturedService } from '@/core/FeaturedService.js';
 import { FanoutTimelineService } from '@/core/FanoutTimelineService.js';
 import { UtilityService } from '@/core/UtilityService.js';
 import { UserBlockingService } from '@/core/UserBlockingService.js';
+import { CacheService } from '@/core/CacheService.js';
 import { isReply } from '@/misc/is-reply.js';
+import { trackPromise } from '@/misc/promise-tracker.js';
+import { isUserRelated } from '@/misc/is-user-related.js';
+import { isNotNull } from '@/misc/is-not-null.js';
+import { IdentifiableError } from '@/misc/identifiable-error.js';
 
 type NotificationType = 'reply' | 'renote' | 'quote' | 'mention';
 
@@ -216,6 +221,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 		private instanceChart: InstanceChart,
 		private utilityService: UtilityService,
 		private userBlockingService: UserBlockingService,
+		private cacheService: CacheService,
 	) { }
 
 	@bindThis
@@ -224,7 +230,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 		username: MiUser['username'];
 		host: MiUser['host'];
 		isBot: MiUser['isBot'];
-		isCat: MiUser['isCat'];
+		noindex: MiUser['noindex'];
 	}, data: Option, silent = false): Promise<MiNote> {
 		// チャンネル外にリプライしたら対象のスコープに合わせる
 		// (クライアントサイドでやっても良い処理だと思うけどとりあえずサーバーサイドで)
@@ -253,11 +259,187 @@ export class NoteCreateService implements OnApplicationShutdown {
 
 		if (data.visibility === 'public' && data.channel == null) {
 			const sensitiveWords = meta.sensitiveWords;
-			if (this.utilityService.isSensitiveWordIncluded(data.cw ?? data.text ?? '', sensitiveWords)) {
+			if (this.utilityService.isKeyWordIncluded(data.cw ?? data.text ?? '', sensitiveWords)) {
 				data.visibility = 'home';
 			} else if ((await this.roleService.getUserPolicies(user.id)).canPublicNote === false) {
 				data.visibility = 'home';
 			}
+		}
+
+		const inSilencedInstance = this.utilityService.isSilencedHost(meta.silencedHosts, user.host);
+
+		if (data.visibility === 'public' && inSilencedInstance && user.host !== null) {
+			data.visibility = 'home';
+		}
+
+		if (data.renote) {
+			switch (data.renote.visibility) {
+				case 'public':
+					// public noteは無条件にrenote可能
+					break;
+				case 'home':
+					// home noteはhome以下にrenote可能
+					if (data.visibility === 'public') {
+						data.visibility = 'home';
+					}
+					break;
+				case 'followers':
+					// 他人のfollowers noteはreject
+					if (data.renote.userId !== user.id) {
+						throw new Error('Renote target is not public or home');
+					}
+
+					// Renote対象がfollowersならfollowersにする
+					data.visibility = 'followers';
+					break;
+				case 'specified':
+					// specified / direct noteはreject
+					throw new Error('Renote target is not public or home');
+			}
+		}
+
+		// Check blocking
+		if (data.renote && data.text == null && data.poll == null && (data.files == null || data.files.length === 0)) {
+			if (data.renote.userHost === null) {
+				if (data.renote.userId !== user.id) {
+					const blocked = await this.userBlockingService.checkBlocked(data.renote.userId, user.id);
+					if (blocked) {
+						throw new Error('blocked');
+					}
+				}
+			}
+		}
+
+		// 返信対象がpublicではないならhomeにする
+		if (data.reply && data.reply.visibility !== 'public' && data.visibility === 'public') {
+			data.visibility = 'home';
+		}
+
+		// ローカルのみをRenoteしたらローカルのみにする
+		if (data.renote && data.renote.localOnly && data.channel == null) {
+			data.localOnly = true;
+		}
+
+		// ローカルのみにリプライしたらローカルのみにする
+		if (data.reply && data.reply.localOnly && data.channel == null) {
+			data.localOnly = true;
+		}
+
+		if (data.text) {
+			if (data.text.length > DB_MAX_NOTE_TEXT_LENGTH) {
+				data.text = data.text.slice(0, DB_MAX_NOTE_TEXT_LENGTH);
+			}
+			data.text = data.text.trim();
+			if (data.text === '') {
+				data.text = null;
+			}
+		} else {
+			data.text = null;
+		}
+
+		let tags = data.apHashtags;
+		let emojis = data.apEmojis;
+		let mentionedUsers = data.apMentions;
+
+		// Parse MFM if needed
+		if (!tags || !emojis || !mentionedUsers) {
+			const tokens = (data.text ? mfm.parse(data.text)! : []);
+			const cwTokens = data.cw ? mfm.parse(data.cw)! : [];
+			const choiceTokens = data.poll && data.poll.choices
+				? concat(data.poll.choices.map(choice => mfm.parse(choice)!))
+				: [];
+
+			const combinedTokens = tokens.concat(cwTokens).concat(choiceTokens);
+
+			tags = data.apHashtags ?? extractHashtags(combinedTokens);
+
+			emojis = data.apEmojis ?? extractCustomEmojisFromMfm(combinedTokens);
+
+			mentionedUsers = data.apMentions ?? await this.extractMentionedUsers(user, combinedTokens);
+		}
+
+		tags = tags.filter(tag => Array.from(tag).length <= 128).splice(0, 32);
+
+		if (data.reply && (user.id !== data.reply.userId) && !mentionedUsers.some(u => u.id === data.reply!.userId)) {
+			mentionedUsers.push(await this.usersRepository.findOneByOrFail({ id: data.reply!.userId }));
+		}
+
+		if (data.visibility === 'specified') {
+			if (data.visibleUsers == null) throw new Error('invalid param');
+
+			for (const u of data.visibleUsers) {
+				if (!mentionedUsers.some(x => x.id === u.id)) {
+					mentionedUsers.push(u);
+				}
+			}
+
+			if (data.reply && !data.visibleUsers.some(x => x.id === data.reply!.userId)) {
+				data.visibleUsers.push(await this.usersRepository.findOneByOrFail({ id: data.reply!.userId }));
+			}
+		}
+
+		if (user.host && !data.cw) {
+			await this.federatedInstanceService.fetch(user.host).then(async i => {
+				if (i.isNSFW) {
+					data.cw = 'Instance is marked as NSFW';
+				}
+			});
+		}
+
+		const note = await this.insertNote(user, data, tags, emojis, mentionedUsers);
+
+		setImmediate('post created', { signal: this.#shutdownController.signal }).then(
+			() => this.postNoteCreated(note, user, data, silent, tags!, mentionedUsers!),
+			() => { /* aborted, ignore this */ },
+		);
+
+		return note;
+	}
+
+	@bindThis
+	public async import(user: {
+		id: MiUser['id'];
+		username: MiUser['username'];
+		host: MiUser['host'];
+		isBot: MiUser['isBot'];
+		noindex: MiUser['noindex'];
+	}, data: Option, silent = false): Promise<MiNote> {
+		// チャンネル外にリプライしたら対象のスコープに合わせる
+		// (クライアントサイドでやっても良い処理だと思うけどとりあえずサーバーサイドで)
+		if (data.reply && data.channel && data.reply.channelId !== data.channel.id) {
+			if (data.reply.channelId) {
+				data.channel = await this.channelsRepository.findOneBy({ id: data.reply.channelId });
+			} else {
+				data.channel = null;
+			}
+		}
+
+		// チャンネル内にリプライしたら対象のスコープに合わせる
+		// (クライアントサイドでやっても良い処理だと思うけどとりあえずサーバーサイドで)
+		if (data.reply && (data.channel == null) && data.reply.channelId) {
+			data.channel = await this.channelsRepository.findOneBy({ id: data.reply.channelId });
+		}
+
+		if (data.createdAt == null) data.createdAt = new Date();
+		if (data.visibility == null) data.visibility = 'public';
+		if (data.localOnly == null) data.localOnly = false;
+		if (data.channel != null) data.visibility = 'public';
+		if (data.channel != null) data.visibleUsers = [];
+		if (data.channel != null) data.localOnly = true;
+
+		const meta = await this.metaService.fetch();
+
+		if (data.visibility === 'public' && data.channel == null) {
+			const sensitiveWords = meta.sensitiveWords;
+			if (this.utilityService.isKeyWordIncluded(data.cw ?? data.text ?? '', sensitiveWords)) {
+				data.visibility = 'home';
+			} else if ((await this.roleService.getUserPolicies(user.id)).canPublicNote === false) {
+				data.visibility = 'home';
+			}
+		}
+
+		if (this.utilityService.isKeyWordIncluded(data.cw ?? data.text ?? '', meta.prohibitedWords)) {
+			throw new IdentifiableError('689ee33f-f97c-479a-ac49-1b9f8140af99', 'Note contains prohibited words');
 		}
 
 		const inSilencedInstance = this.utilityService.isSilencedHost(meta.silencedHosts, user.host);
@@ -324,6 +506,9 @@ export class NoteCreateService implements OnApplicationShutdown {
 				data.text = data.text.slice(0, DB_MAX_NOTE_TEXT_LENGTH);
 			}
 			data.text = data.text.trim();
+			if (data.text === '') {
+				data.text = null;
+			}
 		} else {
 			data.text = null;
 		}
@@ -372,7 +557,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 		const note = await this.insertNote(user, data, tags, emojis, mentionedUsers);
 
 		setImmediate('post created', { signal: this.#shutdownController.signal }).then(
-			() => this.postNoteCreated(note, user, data, silent, tags!, mentionedUsers!),
+			() => this.postNoteImported(note, user, data, silent, tags!, mentionedUsers!),
 			() => { /* aborted, ignore this */ },
 		);
 
@@ -482,6 +667,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 		username: MiUser['username'];
 		host: MiUser['host'];
 		isBot: MiUser['isBot'];
+		noindex: MiUser['noindex'];
 	}, data: Option, silent: boolean, tags: string[], mentionedUsers: MinimumUser[]) {
 		const meta = await this.metaService.fetch();
 
@@ -493,7 +679,11 @@ export class NoteCreateService implements OnApplicationShutdown {
 		// Register host
 		if (this.userEntityService.isRemoteUser(user)) {
 			this.federatedInstanceService.fetch(user.host).then(async i => {
-				this.instancesRepository.increment({ id: i.id }, 'notesCount', 1);
+				if (note.renote && note.text) {
+					this.instancesRepository.increment({ id: i.id }, 'notesCount', 1);
+				} else if (!note.renote) {
+					this.instancesRepository.increment({ id: i.id }, 'notesCount', 1);
+				}
 				if ((await this.metaService.fetch()).enableChartsForFederatedInstances) {
 					this.instanceChart.updateNote(i.host, note, true);
 				}
@@ -502,11 +692,20 @@ export class NoteCreateService implements OnApplicationShutdown {
 
 		// ハッシュタグ更新
 		if (data.visibility === 'public' || data.visibility === 'home') {
-			this.hashtagService.updateHashtags(user, tags);
+			if (user.isBot && meta.enableBotTrending) {
+				this.hashtagService.updateHashtags(user, tags);
+			} else if (!user.isBot) {
+				this.hashtagService.updateHashtags(user, tags);
+			}
 		}
 
-		// Increment notes count (user)
-		this.incNotesCountOfUser(user);
+		if (data.renote && data.text) {
+			// Increment notes count (user)
+			this.incNotesCountOfUser(user);
+		} else if (!data.renote) {
+			// Increment notes count (user)
+			this.incNotesCountOfUser(user);
+		}
 
 		this.pushToTl(note, user);
 
@@ -533,7 +732,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 			});
 		}
 
-		if (data.renote && data.renote.userId !== user.id && !user.isBot) {
+		if (data.renote && data.text == null && data.renote.userId !== user.id && !user.isBot) {
 			this.incRenoteCount(data.renote);
 		}
 
@@ -597,16 +796,27 @@ export class NoteCreateService implements OnApplicationShutdown {
 
 			// If has in reply to note
 			if (data.reply) {
+				this.globalEventService.publishNoteStream(data.reply.id, 'replied', {
+					id: note.id,
+				});
 				// 通知
 				if (data.reply.userHost === null) {
-					const isThreadMuted = await this.noteThreadMutingsRepository.exist({
+					const isThreadMuted = await this.noteThreadMutingsRepository.exists({
 						where: {
 							userId: data.reply.userId,
 							threadId: data.reply.threadId ?? data.reply.id,
 						},
 					});
 
-					if (!isThreadMuted) {
+					const [
+						userIdsWhoMeMuting,
+					] = data.reply.userId ? await Promise.all([
+						this.cacheService.userMutingsCache.fetch(data.reply.userId),
+					]) : [new Set<string>()];
+
+					const muted = isUserRelated(note, userIdsWhoMeMuting);
+
+					if (!isThreadMuted && !muted) {
 						nm.push(data.reply.userId, 'reply');
 						this.globalEventService.publishMainStream(data.reply.userId, 'reply', noteObj);
 
@@ -626,7 +836,24 @@ export class NoteCreateService implements OnApplicationShutdown {
 
 				// Notify
 				if (data.renote.userHost === null) {
-					nm.push(data.renote.userId, type);
+					const isThreadMuted = await this.noteThreadMutingsRepository.exists({
+						where: {
+							userId: data.renote.userId,
+							threadId: data.renote.threadId ?? data.renote.id,
+						},
+					});
+
+					const [
+						userIdsWhoMeMuting,
+					] = data.renote.userId ? await Promise.all([
+						this.cacheService.userMutingsCache.fetch(data.renote.userId),
+					]) : [new Set<string>()];
+
+					const muted = isUserRelated(note, userIdsWhoMeMuting);
+
+					if (!isThreadMuted && !muted) {
+						nm.push(data.renote.userId, type);
+					}
 				}
 
 				// Publish event
@@ -676,7 +903,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 						this.relayService.deliverToRelays(user, noteActivity);
 					}
 
-					dm.execute();
+					trackPromise(dm.execute());
 				})();
 			}
 			//#endregion
@@ -701,7 +928,106 @@ export class NoteCreateService implements OnApplicationShutdown {
 		}
 
 		// Register to search database
-		this.index(note);
+		if (!user.noindex) this.index(note);
+	}
+
+	@bindThis
+	private async postNoteImported(note: MiNote, user: {
+		id: MiUser['id'];
+		username: MiUser['username'];
+		host: MiUser['host'];
+		isBot: MiUser['isBot'];
+		noindex: MiUser['noindex'];
+	}, data: Option, silent: boolean, tags: string[], mentionedUsers: MinimumUser[]) {
+		const meta = await this.metaService.fetch();
+
+		this.notesChart.update(note, true);
+		if (meta.enableChartsForRemoteUser || (user.host == null)) {
+			this.perUserNotesChart.update(user, note, true);
+		}
+
+		// Register host
+		if (this.userEntityService.isRemoteUser(user)) {
+			this.federatedInstanceService.fetch(user.host).then(async i => {
+				if (note.renote && note.text) {
+					this.instancesRepository.increment({ id: i.id }, 'notesCount', 1);
+				} else if (!note.renote) {
+					this.instancesRepository.increment({ id: i.id }, 'notesCount', 1);
+				}
+				if ((await this.metaService.fetch()).enableChartsForFederatedInstances) {
+					this.instanceChart.updateNote(i.host, note, true);
+				}
+			});
+		}
+
+		if (data.renote && data.text) {
+			// Increment notes count (user)
+			this.incNotesCountOfUser(user);
+		} else if (!data.renote) {
+			// Increment notes count (user)
+			this.incNotesCountOfUser(user);
+		}
+
+		this.pushToTl(note, user);
+
+		this.antennaService.addNoteToAntennas(note, user);
+
+		if (data.reply) {
+			this.saveReply(data.reply, note);
+		}
+
+		if (data.reply == null) {
+			// TODO: キャッシュ
+			this.followingsRepository.findBy({
+				followeeId: user.id,
+				notify: 'normal',
+			}).then(followings => {
+				for (const following of followings) {
+					// TODO: ワードミュート考慮
+					this.notificationService.createNotification(following.followerId, 'note', {
+						noteId: note.id,
+					}, user.id);
+				}
+			});
+		}
+
+		if (data.renote && data.text == null && data.renote.userId !== user.id && !user.isBot) {
+			this.incRenoteCount(data.renote);
+		}
+
+		if (data.poll && data.poll.expiresAt) {
+			const delay = data.poll.expiresAt.getTime() - Date.now();
+			this.queueService.endedPollNotificationQueue.add(note.id, {
+				noteId: note.id,
+			}, {
+				delay,
+				removeOnComplete: true,
+			});
+		}
+		
+		// Pack the note
+		const noteObj = await this.noteEntityService.pack(note, null, { skipHide: true, withReactionAndUserPairCache: true });
+
+		if (data.channel) {
+			this.channelsRepository.increment({ id: data.channel.id }, 'notesCount', 1);
+			this.channelsRepository.update(data.channel.id, {
+				lastNotedAt: new Date(),
+			});
+
+			this.notesRepository.countBy({
+				userId: user.id,
+				channelId: data.channel.id,
+			}).then(count => {
+				// この処理が行われるのはノート作成後なので、ノートが一つしかなかったら最初の投稿だと判断できる
+				// TODO: とはいえノートを削除して何回も投稿すればその分だけインクリメントされる雑さもあるのでどうにかしたい
+				if (count === 1) {
+					this.channelsRepository.increment({ id: data.channel!.id }, 'usersCount', 1);
+				}
+			});
+		}
+
+		// Register to search database
+		if (!user.noindex) this.index(note);
 	}
 
 	@bindThis
@@ -737,14 +1063,22 @@ export class NoteCreateService implements OnApplicationShutdown {
 	@bindThis
 	private async createMentionedEvents(mentionedUsers: MinimumUser[], note: MiNote, nm: NotificationManager) {
 		for (const u of mentionedUsers.filter(u => this.userEntityService.isLocalUser(u))) {
-			const isThreadMuted = await this.noteThreadMutingsRepository.exist({
+			const isThreadMuted = await this.noteThreadMutingsRepository.exists({
 				where: {
 					userId: u.id,
 					threadId: note.threadId ?? note.id,
 				},
 			});
 
-			if (isThreadMuted) {
+			const [
+				userIdsWhoMeMuting,
+			] = u.id ? await Promise.all([
+				this.cacheService.userMutingsCache.fetch(u.id),
+			]) : [new Set<string>()];
+
+			const muted = isUserRelated(note, userIdsWhoMeMuting);
+
+			if (isThreadMuted || muted) {
 				continue;
 			}
 
@@ -807,7 +1141,7 @@ export class NoteCreateService implements OnApplicationShutdown {
 		const mentions = extractMentions(tokens);
 		let mentionedUsers = (await Promise.all(mentions.map(m =>
 			this.remoteUserResolveService.resolveUser(m.username, m.host ?? user.host).catch(() => null),
-		))).filter(x => x != null) as MiUser[];
+		))).filter(isNotNull);
 
 		// Drop duplicate users
 		mentionedUsers = mentionedUsers.filter((u, i, self) =>

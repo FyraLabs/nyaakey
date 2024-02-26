@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -8,8 +8,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<FormSuspense :p="init">
 		<div class="_gaps">
 			<div class="_buttons">
-				<MkButton primary @click="addAccount"><i class="ti ti-plus"></i> {{ i18n.ts.addAccount }}</MkButton>
-				<MkButton @click="init"><i class="ti ti-refresh"></i> {{ i18n.ts.reloadAccountsList }}</MkButton>
+				<MkButton primary @click="addAccount"><i class="ph-plus ph-bold ph-lg"></i> {{ i18n.ts.addAccount }}</MkButton>
+				<MkButton @click="init"><i class="ph-arrows-counter-clockwise ph-bold ph-lg"></i> {{ i18n.ts.reloadAccountsList }}</MkButton>
 			</div>
 
 			<MkUserCardMini v-for="user in accounts" :key="user.id" :user="user" :class="$style.user" @click.prevent="menu(user, $event)"/>
@@ -24,6 +24,7 @@ import type * as Misskey from 'misskey-js';
 import FormSuspense from '@/components/form/suspense.vue';
 import MkButton from '@/components/MkButton.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { getAccounts, addAccount as addAccounts, removeAccount as _removeAccount, login, $i } from '@/account.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
@@ -36,7 +37,7 @@ const init = async () => {
 	getAccounts().then(accounts => {
 		storedAccounts.value = accounts.filter(x => x.id !== $i!.id);
 
-		return os.api('users/show', {
+		return misskeyApi('users/show', {
 			userIds: storedAccounts.value.map(x => x.id),
 		});
 	}).then(response => {
@@ -47,11 +48,11 @@ const init = async () => {
 function menu(account, ev) {
 	os.popupMenu([{
 		text: i18n.ts.switch,
-		icon: 'ti ti-switch-horizontal',
+		icon: 'ph-arrows-left-right ph-bold ph-lg',
 		action: () => switchAccount(account),
 	}, {
 		text: i18n.ts.logout,
-		icon: 'ti ti-trash',
+		icon: 'ph-trash ph-bold ph-lg',
 		danger: true,
 		action: () => removeAccount(account),
 	}], ev.currentTarget ?? ev.target);
@@ -105,10 +106,10 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.accounts,
-	icon: 'ti ti-users',
-});
+	icon: 'ph-users ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>

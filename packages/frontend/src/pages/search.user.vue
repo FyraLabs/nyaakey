@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <div class="_gaps">
 	<div class="_gaps">
 		<MkInput v-model="searchQuery" :large="true" :autofocus="true" type="search" @enter="search">
-			<template #prefix><i class="ti ti-search"></i></template>
+			<template #prefix><i class="ph-magnifying-glass ph-bold ph-lg"></i></template>
 		</MkInput>
 		<MkRadios v-model="searchOrigin" @update:modelValue="search()">
 			<option value="combined">{{ i18n.ts.all }}</option>
@@ -33,7 +33,8 @@ import MkButton from '@/components/MkButton.vue';
 import { i18n } from '@/i18n.js';
 import * as os from '@/os.js';
 import MkFoldableSection from '@/components/MkFoldableSection.vue';
-import { useRouter } from '@/router.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
+import { useRouter } from '@/router/supplier.js';
 
 const router = useRouter();
 
@@ -48,7 +49,7 @@ async function search() {
 	if (query == null || query === '') return;
 
 	if (query.startsWith('https://')) {
-		const promise = os.api('ap/show', {
+		const promise = misskeyApi('ap/show', {
 			uri: query,
 		});
 
@@ -62,6 +63,11 @@ async function search() {
 			router.push(`/notes/${res.object.id}`);
 		}
 
+		return;
+	}
+
+	if (query.match(/^@[a-z0-9_.-]+@[a-z0-9_.-]+$/i)) {
+		router.push(`/${query}`);
 		return;
 	}
 

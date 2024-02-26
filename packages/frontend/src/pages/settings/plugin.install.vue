@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -12,7 +12,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	</MkCodeEditor>
 
 	<div>
-		<MkButton :disabled="code == null" primary inline @click="install"><i class="ti ti-check"></i> {{ i18n.ts.install }}</MkButton>
+		<MkButton :disabled="code == null" primary inline @click="install"><i class="ph-check ph-bold ph-lg"></i> {{ i18n.ts.install }}</MkButton>
 	</div>
 </div>
 </template>
@@ -53,8 +53,8 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts._plugin.install,
-	icon: 'ti ti-download',
-});
+	icon: 'ph-download ph-bold ph-lg',
+}));
 </script>

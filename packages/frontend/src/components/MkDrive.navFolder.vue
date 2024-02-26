@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -12,7 +12,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	@dragleave="onDragleave"
 	@drop.stop="onDrop"
 >
-	<i v-if="folder == null" class="ti ti-cloud" style="margin-right: 4px;"></i>
+	<i v-if="folder == null" class="ph-cloud ph-bold ph-lg" style="margin-right: 4px;"></i>
 	<span>{{ folder == null ? i18n.ts.drive : folder.name }}</span>
 </div>
 </template>
@@ -20,7 +20,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script lang="ts" setup>
 import { ref } from 'vue';
 import * as Misskey from 'misskey-js';
-import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 
 const props = defineProps<{
@@ -112,7 +112,7 @@ function onDrop(ev: DragEvent) {
 	if (driveFile != null && driveFile !== '') {
 		const file = JSON.parse(driveFile);
 		emit('removeFile', file.id);
-		os.api('drive/files/update', {
+		misskeyApi('drive/files/update', {
 			fileId: file.id,
 			folderId: props.folder ? props.folder.id : null,
 		});
@@ -126,7 +126,7 @@ function onDrop(ev: DragEvent) {
 		// 移動先が自分自身ならreject
 		if (props.folder && folder.id === props.folder.id) return;
 		emit('removeFolder', folder.id);
-		os.api('drive/folders/update', {
+		misskeyApi('drive/folders/update', {
 			folderId: folder.id,
 			parentId: props.folder ? props.folder.id : null,
 		});

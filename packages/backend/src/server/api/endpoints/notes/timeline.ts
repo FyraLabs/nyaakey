@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -49,6 +49,7 @@ export const paramDef = {
 		includeLocalRenotes: { type: 'boolean', default: true },
 		withFiles: { type: 'boolean', default: false },
 		withRenotes: { type: 'boolean', default: true },
+		withBots: { type: 'boolean', default: true },
 	},
 	required: [],
 } as const;
@@ -87,6 +88,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 					includeLocalRenotes: ps.includeLocalRenotes,
 					withFiles: ps.withFiles,
 					withRenotes: ps.withRenotes,
+					withBots: ps.withBots,
 				}, me);
 
 				process.nextTick(() => {
@@ -116,6 +118,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 					if (note.reply && note.reply.visibility === 'followers') {
 						if (!Object.hasOwn(followings, note.reply.userId)) return false;
 					}
+					if (!ps.withBots && note.user?.isBot) return false;
 
 					return true;
 				},
@@ -128,6 +131,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 					includeLocalRenotes: ps.includeLocalRenotes,
 					withFiles: ps.withFiles,
 					withRenotes: ps.withRenotes,
+					withBots: ps.withBots,
 				}, me),
 			});
 
@@ -139,7 +143,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 		});
 	}
 
-	private async getFromDb(ps: { untilId: string | null; sinceId: string | null; limit: number; includeMyRenotes: boolean; includeRenotedMyNotes: boolean; includeLocalRenotes: boolean; withFiles: boolean; withRenotes: boolean; }, me: MiLocalUser) {
+	private async getFromDb(ps: { untilId: string | null; sinceId: string | null; limit: number; includeMyRenotes: boolean; includeRenotedMyNotes: boolean; includeLocalRenotes: boolean; withFiles: boolean; withRenotes: boolean; withBots: boolean; }, me: MiLocalUser) {
 		const followees = await this.userFollowingService.getFollowees(me.id);
 		const followingChannels = await this.channelFollowingsRepository.find({
 			where: {
@@ -241,6 +245,8 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 		if (ps.withRenotes === false) {
 			query.andWhere('note.renoteId IS NULL');
 		}
+
+		if (!ps.withBots) query.andWhere('user.isBot = FALSE');
 		//#endregion
 
 		return await query.limit(ps.limit).getMany();

@@ -1,10 +1,10 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
 import RE2 from 're2';
-import * as mfm from 'mfm-js';
+import * as mfm from '@transfem-org/sfm-js';
 import { Inject, Injectable } from '@nestjs/common';
 import ms from 'ms';
 import { JSDOM } from 'jsdom';
@@ -13,7 +13,7 @@ import { extractHashtags } from '@/misc/extract-hashtags.js';
 import * as Acct from '@/misc/acct.js';
 import type { UsersRepository, DriveFilesRepository, UserProfilesRepository, PagesRepository } from '@/models/_.js';
 import type { MiLocalUser, MiUser } from '@/models/User.js';
-import { birthdaySchema, descriptionSchema, locationSchema, nameSchema } from '@/models/User.js';
+import { birthdaySchema, listenbrainzSchema, descriptionSchema, locationSchema, nameSchema } from '@/models/User.js';
 import type { MiUserProfile } from '@/models/UserProfile.js';
 import { notificationTypes } from '@/types.js';
 import { normalizeForSearch } from '@/misc/normalize-for-search.js';
@@ -33,6 +33,7 @@ import { HttpRequestService } from '@/core/HttpRequestService.js';
 import type { Config } from '@/config.js';
 import { safeForSql } from '@/misc/safe-for-sql.js';
 import { AvatarDecorationService } from '@/core/AvatarDecorationService.js';
+import { notificationRecieveConfig } from '@/models/json-schema/user.js';
 import { ApiLoggerService } from '../../ApiLoggerService.js';
 import { ApiError } from '../../error.js';
 
@@ -61,6 +62,12 @@ export const meta = {
 			id: '0d8f5629-f210-41c2-9433-735831a58595',
 		},
 
+		noSuchBackground: {
+			message: 'No such background file.',
+			code: 'NO_SUCH_BACKGROUND',
+			id: '0d8f5629-f210-41c2-9433-735831a58582',
+		},
+
 		avatarNotAnImage: {
 			message: 'The file specified as an avatar is not an image.',
 			code: 'AVATAR_NOT_AN_IMAGE',
@@ -71,6 +78,12 @@ export const meta = {
 			message: 'The file specified as a banner is not an image.',
 			code: 'BANNER_NOT_AN_IMAGE',
 			id: '75aedb19-2afd-4e6d-87fc-67941256fa60',
+		},
+
+		backgroundNotAnImage: {
+			message: 'The file specified as a background is not an image.',
+			code: 'BACKGROUND_NOT_AN_IMAGE',
+			id: '75aedb19-2afd-4e6d-87fc-67941256fa40',
 		},
 
 		noSuchPage: {
@@ -135,6 +148,7 @@ export const paramDef = {
 		description: { ...descriptionSchema, nullable: true },
 		location: { ...locationSchema, nullable: true },
 		birthday: { ...birthdaySchema, nullable: true },
+		listenbrainz: { ...listenbrainzSchema, nullable: true },
 		lang: { type: 'string', enum: [null, ...Object.keys(langmap)] as string[], nullable: true },
 		avatarId: { type: 'string', format: 'misskey:id', nullable: true },
 		avatarDecorations: { type: 'array', maxItems: 16, items: {
@@ -149,6 +163,7 @@ export const paramDef = {
 			required: ['id'],
 		} },
 		bannerId: { type: 'string', format: 'misskey:id', nullable: true },
+		backgroundId: { type: 'string', format: 'misskey:id', nullable: true },
 		fields: {
 			type: 'array',
 			minItems: 0,
@@ -170,8 +185,10 @@ export const paramDef = {
 		autoAcceptFollowed: { type: 'boolean' },
 		noCrawle: { type: 'boolean' },
 		preventAiLearning: { type: 'boolean' },
+		noindex: { type: 'boolean' },
 		isBot: { type: 'boolean' },
 		isCat: { type: 'boolean' },
+		speakAsCat: { type: 'boolean' },
 		injectFeaturedNote: { type: 'boolean' },
 		receiveAnnouncementEmail: { type: 'boolean' },
 		alwaysMarkNsfw: { type: 'boolean' },
@@ -184,7 +201,26 @@ export const paramDef = {
 		mutedInstances: { type: 'array', items: {
 			type: 'string',
 		} },
-		notificationRecieveConfig: { type: 'object' },
+		notificationRecieveConfig: {
+			type: 'object',
+			nullable: false,
+			properties: {
+				note: notificationRecieveConfig,
+				follow: notificationRecieveConfig,
+				mention: notificationRecieveConfig,
+				reply: notificationRecieveConfig,
+				renote: notificationRecieveConfig,
+				quote: notificationRecieveConfig,
+				reaction: notificationRecieveConfig,
+				pollEnded: notificationRecieveConfig,
+				receiveFollowRequest: notificationRecieveConfig,
+				followRequestAccepted: notificationRecieveConfig,
+				roleAssigned: notificationRecieveConfig,
+				achievementEarned: notificationRecieveConfig,
+				app: notificationRecieveConfig,
+				test: notificationRecieveConfig,
+			},
+		},
 		emailNotificationTypes: { type: 'array', items: {
 			type: 'string',
 		} },
@@ -242,6 +278,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 			if (ps.lang !== undefined) profileUpdates.lang = ps.lang;
 			if (ps.location !== undefined) profileUpdates.location = ps.location;
 			if (ps.birthday !== undefined) profileUpdates.birthday = ps.birthday;
+			if (ps.listenbrainz !== undefined) profileUpdates.listenbrainz = ps.listenbrainz;
 			if (ps.followingVisibility !== undefined) profileUpdates.followingVisibility = ps.followingVisibility;
 			if (ps.followersVisibility !== undefined) profileUpdates.followersVisibility = ps.followersVisibility;
 
@@ -286,19 +323,19 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 			if (typeof ps.isExplorable === 'boolean') updates.isExplorable = ps.isExplorable;
 			if (typeof ps.hideOnlineStatus === 'boolean') updates.hideOnlineStatus = ps.hideOnlineStatus;
 			if (typeof ps.publicReactions === 'boolean') profileUpdates.publicReactions = ps.publicReactions;
+			if (typeof ps.noindex === 'boolean') updates.noindex = ps.noindex;
 			if (typeof ps.isBot === 'boolean') updates.isBot = ps.isBot;
 			if (typeof ps.carefulBot === 'boolean') profileUpdates.carefulBot = ps.carefulBot;
 			if (typeof ps.autoAcceptFollowed === 'boolean') profileUpdates.autoAcceptFollowed = ps.autoAcceptFollowed;
 			if (typeof ps.noCrawle === 'boolean') profileUpdates.noCrawle = ps.noCrawle;
-			if (typeof ps.preventAiLearning === 'boolean') profileUpdates.preventAiLearning = ps.preventAiLearning;
 			if (typeof ps.isCat === 'boolean') updates.isCat = ps.isCat;
+			if (typeof ps.speakAsCat === 'boolean') updates.speakAsCat = ps.speakAsCat;
 			if (typeof ps.injectFeaturedNote === 'boolean') profileUpdates.injectFeaturedNote = ps.injectFeaturedNote;
 			if (typeof ps.receiveAnnouncementEmail === 'boolean') profileUpdates.receiveAnnouncementEmail = ps.receiveAnnouncementEmail;
 			if (typeof ps.alwaysMarkNsfw === 'boolean') {
 				if ((await roleService.getUserPolicies(user.id)).alwaysMarkNsfw) throw new ApiError(meta.errors.restrictedByRole);
 				profileUpdates.alwaysMarkNsfw = ps.alwaysMarkNsfw;
 			}
-			if (typeof ps.autoSensitive === 'boolean') profileUpdates.autoSensitive = ps.autoSensitive;
 			if (ps.emailNotificationTypes !== undefined) profileUpdates.emailNotificationTypes = ps.emailNotificationTypes;
 
 			if (ps.avatarId) {
@@ -331,6 +368,21 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				updates.bannerBlurhash = null;
 			}
 
+			if (ps.backgroundId) {
+				const background = await this.driveFilesRepository.findOneBy({ id: ps.backgroundId });
+
+				if (background == null || background.userId !== user.id) throw new ApiError(meta.errors.noSuchBackground);
+				if (!background.type.startsWith('image/')) throw new ApiError(meta.errors.backgroundNotAnImage);
+
+				updates.backgroundId = background.id;
+				updates.backgroundUrl = this.driveFileEntityService.getPublicUrl(background);
+				updates.backgroundBlurhash = background.blurhash;
+			} else if (ps.backgroundId === null) {
+				updates.backgroundId = null;
+				updates.backgroundUrl = null;
+				updates.backgroundBlurhash = null;
+			}
+			
 			if (ps.avatarDecorations) {
 				const decorations = await this.avatarDecorationService.getAll(true);
 				const [myRoles, myPolicies] = await Promise.all([this.roleService.getUserRoles(user.id), this.roleService.getUserPolicies(user.id)]);
@@ -446,8 +498,8 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				verifiedLinks: [],
 			});
 
-			const iObj = await this.userEntityService.pack<true, true>(user.id, user, {
-				detail: true,
+			const iObj = await this.userEntityService.pack(user.id, user, {
+				schema: 'MeDetailed',
 				includeSecrets: isSecure,
 			});
 

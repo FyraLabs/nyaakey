@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div :class="$style.root">
 			<img :class="$style.img" :src="serverErrorImageUrl" class="_ghost"/>
 			<p :class="$style.text">
-				<i class="ti ti-alert-triangle"></i>
+				<i class="ph-warning ph-bold ph-lg"></i>
 				{{ i18n.ts.nothing }}
 			</p>
 		</div>
@@ -26,9 +26,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 			</div>
 		</div>
-		<MkButton v-if="list.isLiked" v-tooltip="i18n.ts.unlike" inline :class="$style.button" asLike primary @click="unlike()"><i class="ti ti-heart-off"></i><span v-if="list.likedCount > 0" class="count">{{ list.likedCount }}</span></MkButton>
-		<MkButton v-if="!list.isLiked" v-tooltip="i18n.ts.like" inline :class="$style.button" asLike @click="like()"><i class="ti ti-heart"></i><span v-if="1 > 0" class="count">{{ list.likedCount }}</span></MkButton>
-		<MkButton inline @click="create()"><i class="ti ti-download" :class="$style.import"></i>{{ i18n.ts.import }}</MkButton>
+		<MkButton v-if="list.isLiked" v-tooltip="i18n.ts.unlike" inline :class="$style.button" asLike primary @click="unlike()"><i class="ph-heart-break ph-bold ph-lg"></i><span v-if="list.likedCount > 0" class="count">{{ list.likedCount }}</span></MkButton>
+		<MkButton v-if="!list.isLiked" v-tooltip="i18n.ts.like" inline :class="$style.button" asLike @click="like()"><i class="ph-heart ph-bold ph-lg"></i><span v-if="1 > 0" class="count">{{ list.likedCount }}</span></MkButton>
+		<MkButton inline @click="create()"><i class="ph-download ph-bold ph-lg" :class="$style.import"></i>{{ i18n.ts.import }}</MkButton>
 	</MkSpacer>
 </MkStickyContainer>
 </template>
@@ -37,6 +37,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import { watch, computed, ref } from 'vue';
 import * as Misskey from 'misskey-js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { userPage } from '@/filters/user.js';
 import { i18n } from '@/i18n.js';
 import MkUserCardMini from '@/components/MkUserCardMini.vue';
@@ -53,12 +54,12 @@ const error = ref();
 const users = ref<Misskey.entities.UserDetailed[]>([]);
 
 function fetchList(): void {
-	os.api('users/lists/show', {
+	misskeyApi('users/lists/show', {
 		listId: props.listId,
 		forPublic: true,
 	}).then(_list => {
 		list.value = _list;
-		os.api('users/show', {
+		misskeyApi('users/show', {
 			userIds: list.value.userIds,
 		}).then(_users => {
 			users.value = _users;
@@ -100,10 +101,10 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(computed(() => list.value ? {
-	title: list.value.name,
-	icon: 'ti ti-list',
-} : null));
+definePageMetadata(() => ({
+	title: list.value ? list.value.name : i18n.ts.lists,
+	icon: 'ph-list ph-bold ph-lg',
+}));
 </script>
 <style lang="scss" module>
 .main {
@@ -142,7 +143,7 @@ definePageMetadata(computed(() => list.value ? {
   width: 128px;
 	height: 128px;
 	margin-bottom: 16px;
-	border-radius: 16px;
+	border-radius: var(--radius-md);
 }
 
 .button {

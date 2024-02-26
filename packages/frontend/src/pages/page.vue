@@ -1,11 +1,11 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
 <MkStickyContainer>
-	<template #header><MkPageHeader :actions="headerActions" :tabs="headerTabs"/></template>
+	<template #header><MkPageHeader :actions="headerActions" :displayBackButton="true" :tabs="headerTabs"/></template>
 	<MkSpacer :contentMax="700">
 		<Transition :name="defaultStore.state.animation ? 'fade' : ''" mode="out-in">
 			<div v-if="page" :key="page.id" class="xcukqgmh">
@@ -29,13 +29,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 					</div>
 					<div class="actions">
 						<div class="like">
-							<MkButton v-if="page.isLiked" v-tooltip="i18n.ts._pages.unlike" class="button" asLike primary @click="unlike()"><i class="ti ti-heart-off"></i><span v-if="page.likedCount > 0" class="count">{{ page.likedCount }}</span></MkButton>
-							<MkButton v-else v-tooltip="i18n.ts._pages.like" class="button" asLike @click="like()"><i class="ti ti-heart"></i><span v-if="page.likedCount > 0" class="count">{{ page.likedCount }}</span></MkButton>
+							<MkButton v-if="page.isLiked" v-tooltip="i18n.ts._pages.unlike" class="button" asLike primary @click="unlike()"><i class="ph-heart-break ph-bold ph-lg"></i><span v-if="page.likedCount > 0" class="count">{{ page.likedCount }}</span></MkButton>
+							<MkButton v-else v-tooltip="i18n.ts._pages.like" class="button" asLike @click="like()"><i class="ph-heart ph-bold ph-lg"></i><span v-if="page.likedCount > 0" class="count">{{ page.likedCount }}</span></MkButton>
 						</div>
 						<div class="other">
-							<button v-tooltip="i18n.ts.shareWithNote" v-click-anime class="_button" @click="shareWithNote"><i class="ti ti-repeat ti-fw"></i></button>
-							<button v-tooltip="i18n.ts.copyLink" v-click-anime class="_button" @click="copyLink"><i class="ti ti-link ti-fw"></i></button>
-							<button v-if="isSupportShare()" v-tooltip="i18n.ts.share" v-click-anime class="_button" @click="share"><i class="ti ti-share ti-fw"></i></button>
+							<button v-tooltip="i18n.ts.shareWithNote" v-click-anime class="_button" @click="shareWithNote"><i class="ph-rocket-launch ph-bold ph-lg ti-fw"></i></button>
+							<button v-tooltip="i18n.ts.copyLink" v-click-anime class="_button" @click="copyLink"><i class="ph-share-network ph-bold ph-lg ti-fw"></i></button>
+							<button v-if="isSupportShare()" v-tooltip="i18n.ts.share" v-click-anime class="_button" @click="share"><i class="ph-share-network ph-bold ph-lg ti-fw"></i></button>
 						</div>
 					</div>
 					<div class="user">
@@ -56,12 +56,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 					</div>
 				</div>
 				<div class="footer">
-					<div><i class="ti ti-clock"></i> {{ i18n.ts.createdAt }}: <MkTime :time="page.createdAt" mode="detail"/></div>
-					<div v-if="page.createdAt != page.updatedAt"><i class="ti ti-clock"></i> {{ i18n.ts.updatedAt }}: <MkTime :time="page.updatedAt" mode="detail"/></div>
+					<div><i class="ph-clock ph-bold ph-lg"></i> {{ i18n.ts.createdAt }}: <MkTime :time="page.createdAt" mode="detail"/></div>
+					<div v-if="page.createdAt != page.updatedAt"><i class="ph-clock ph-bold ph-lg"></i> {{ i18n.ts.updatedAt }}: <MkTime :time="page.updatedAt" mode="detail"/></div>
 				</div>
 				<MkAd :prefer="['horizontal', 'horizontal-big']"/>
 				<MkContainer :max-height="300" :foldable="true" class="other">
-					<template #icon><i class="ti ti-clock"></i></template>
+					<template #icon><i class="ph-clock ph-bold ph-lg"></i></template>
 					<template #header>{{ i18n.ts.recentPosts }}</template>
 					<MkPagination v-slot="{items}" :pagination="otherPostsPagination" :class="$style.relatedPagesRoot" class="_gaps">
 						<MkPagePreview v-for="page in items" :key="page.id" :page="page" :class="$style.relatedPagesItem"/>
@@ -81,6 +81,7 @@ import * as Misskey from 'misskey-js';
 import XPage from '@/components/page/page.vue';
 import MkButton from '@/components/MkButton.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { url } from '@/config.js';
 import MkMediaImage from '@/components/MkMediaImage.vue';
 import MkFollowButton from '@/components/MkFollowButton.vue';
@@ -113,7 +114,7 @@ const path = computed(() => props.username + '/' + props.pageName);
 
 function fetchPage() {
 	page.value = null;
-	os.api('pages/show', {
+	misskeyApi('pages/show', {
 		name: props.pageName,
 		username: props.username,
 	}).then(async _page => {
@@ -186,15 +187,17 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(computed(() => page.value ? {
-	title: page.value.title || page.value.name,
-	avatar: page.value.user,
-	path: `/@${page.value.user.username}/pages/${page.value.name}`,
-	share: {
-		title: page.value.title || page.value.name,
-		text: page.value.summary,
-	},
-} : null));
+definePageMetadata(() => ({
+	title: page.value ? page.value.title || page.value.name : i18n.ts.pages,
+	...page.value ? {
+		avatar: page.value.user,
+		path: `/@${page.value.user.username}/pages/${page.value.name}`,
+		share: {
+			title: page.value.title || page.value.name,
+			text: page.value.summary,
+		},
+	} : {},
+}));
 </script>
 
 <style lang="scss" scoped>

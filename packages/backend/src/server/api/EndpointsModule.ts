@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -68,7 +68,12 @@ import * as ep___admin_serverInfo from './endpoints/admin/server-info.js';
 import * as ep___admin_showModerationLogs from './endpoints/admin/show-moderation-logs.js';
 import * as ep___admin_showUser from './endpoints/admin/show-user.js';
 import * as ep___admin_showUsers from './endpoints/admin/show-users.js';
+import * as ep___admin_nsfwUser from './endpoints/admin/nsfw-user.js';
+import * as ep___admin_unnsfwUser from './endpoints/admin/unnsfw-user.js';
+import * as ep___admin_silenceUser from './endpoints/admin/silence-user.js';
+import * as ep___admin_unsilenceUser from './endpoints/admin/unsilence-user.js';
 import * as ep___admin_suspendUser from './endpoints/admin/suspend-user.js';
+import * as ep___admin_approveUser from './endpoints/admin/approve-user.js';
 import * as ep___admin_unsuspendUser from './endpoints/admin/unsuspend-user.js';
 import * as ep___admin_updateMeta from './endpoints/admin/update-meta.js';
 import * as ep___admin_deleteAccount from './endpoints/admin/delete-account.js';
@@ -204,10 +209,12 @@ import * as ep___i_authorizedApps from './endpoints/i/authorized-apps.js';
 import * as ep___i_claimAchievement from './endpoints/i/claim-achievement.js';
 import * as ep___i_changePassword from './endpoints/i/change-password.js';
 import * as ep___i_deleteAccount from './endpoints/i/delete-account.js';
+import * as ep___i_exportData from './endpoints/i/export-data.js';
 import * as ep___i_exportBlocking from './endpoints/i/export-blocking.js';
 import * as ep___i_exportFollowing from './endpoints/i/export-following.js';
 import * as ep___i_exportMute from './endpoints/i/export-mute.js';
 import * as ep___i_exportNotes from './endpoints/i/export-notes.js';
+import * as ep___i_exportClips from './endpoints/i/export-clips.js';
 import * as ep___i_exportFavorites from './endpoints/i/export-favorites.js';
 import * as ep___i_exportUserLists from './endpoints/i/export-user-lists.js';
 import * as ep___i_exportAntennas from './endpoints/i/export-antennas.js';
@@ -216,6 +223,7 @@ import * as ep___i_gallery_likes from './endpoints/i/gallery/likes.js';
 import * as ep___i_gallery_posts from './endpoints/i/gallery/posts.js';
 import * as ep___i_importBlocking from './endpoints/i/import-blocking.js';
 import * as ep___i_importFollowing from './endpoints/i/import-following.js';
+import * as ep___i_importNotes from './endpoints/i/import-notes.js';
 import * as ep___i_importMuting from './endpoints/i/import-muting.js';
 import * as ep___i_importUserLists from './endpoints/i/import-user-lists.js';
 import * as ep___i_importAntennas from './endpoints/i/import-antennas.js';
@@ -228,6 +236,7 @@ import * as ep___i_readAllUnreadNotes from './endpoints/i/read-all-unread-notes.
 import * as ep___i_readAnnouncement from './endpoints/i/read-announcement.js';
 import * as ep___i_regenerateToken from './endpoints/i/regenerate-token.js';
 import * as ep___i_registry_getAll from './endpoints/i/registry/get-all.js';
+import * as ep___i_registry_getUnsecure from './endpoints/i/registry/get-unsecure.js';
 import * as ep___i_registry_getDetail from './endpoints/i/registry/get-detail.js';
 import * as ep___i_registry_get from './endpoints/i/registry/get.js';
 import * as ep___i_registry_keysWithType from './endpoints/i/registry/keys-with-type.js';
@@ -271,6 +280,7 @@ import * as ep___notes_favorites_create from './endpoints/notes/favorites/create
 import * as ep___notes_favorites_delete from './endpoints/notes/favorites/delete.js';
 import * as ep___notes_featured from './endpoints/notes/featured.js';
 import * as ep___notes_globalTimeline from './endpoints/notes/global-timeline.js';
+import * as ep___notes_bubbleTimeline from './endpoints/notes/bubble-timeline.js';
 import * as ep___notes_hybridTimeline from './endpoints/notes/hybrid-timeline.js';
 import * as ep___notes_localTimeline from './endpoints/notes/local-timeline.js';
 import * as ep___notes_mentions from './endpoints/notes/mentions.js';
@@ -279,8 +289,11 @@ import * as ep___notes_polls_vote from './endpoints/notes/polls/vote.js';
 import * as ep___notes_reactions from './endpoints/notes/reactions.js';
 import * as ep___notes_reactions_create from './endpoints/notes/reactions/create.js';
 import * as ep___notes_reactions_delete from './endpoints/notes/reactions/delete.js';
+import * as ep___notes_like from './endpoints/notes/like.js';
 import * as ep___notes_renotes from './endpoints/notes/renotes.js';
 import * as ep___notes_replies from './endpoints/notes/replies.js';
+import * as ep___notes_edit from './endpoints/notes/edit.js';
+import * as ep___notes_versions from './endpoints/notes/versions.js';
 import * as ep___notes_searchByTag from './endpoints/notes/search-by-tag.js';
 import * as ep___notes_search from './endpoints/notes/search.js';
 import * as ep___notes_show from './endpoints/notes/show.js';
@@ -363,6 +376,16 @@ import * as ep___users_updateMemo from './endpoints/users/update-memo.js';
 import * as ep___fetchRss from './endpoints/fetch-rss.js';
 import * as ep___fetchExternalResources from './endpoints/fetch-external-resources.js';
 import * as ep___retention from './endpoints/retention.js';
+import * as ep___sponsors from './endpoints/sponsors.js';
+import * as ep___bubbleGame_register from './endpoints/bubble-game/register.js';
+import * as ep___bubbleGame_ranking from './endpoints/bubble-game/ranking.js';
+import * as ep___reversi_cancelMatch from './endpoints/reversi/cancel-match.js';
+import * as ep___reversi_games from './endpoints/reversi/games.js';
+import * as ep___reversi_match from './endpoints/reversi/match.js';
+import * as ep___reversi_invitations from './endpoints/reversi/invitations.js';
+import * as ep___reversi_showGame from './endpoints/reversi/show-game.js';
+import * as ep___reversi_surrender from './endpoints/reversi/surrender.js';
+import * as ep___reversi_verify from './endpoints/reversi/verify.js';
 import { GetterService } from './GetterService.js';
 import { ApiLoggerService } from './ApiLoggerService.js';
 import type { Provider } from '@nestjs/common';
@@ -429,7 +452,12 @@ const $admin_serverInfo: Provider = { provide: 'ep:admin/server-info', useClass:
 const $admin_showModerationLogs: Provider = { provide: 'ep:admin/show-moderation-logs', useClass: ep___admin_showModerationLogs.default };
 const $admin_showUser: Provider = { provide: 'ep:admin/show-user', useClass: ep___admin_showUser.default };
 const $admin_showUsers: Provider = { provide: 'ep:admin/show-users', useClass: ep___admin_showUsers.default };
+const $admin_nsfwUser: Provider = { provide: 'ep:admin/nsfw-user', useClass: ep___admin_nsfwUser.default };
+const $admin_unnsfwUser: Provider = { provide: 'ep:admin/unnsfw-user', useClass: ep___admin_unnsfwUser.default };
+const $admin_silenceUser: Provider = { provide: 'ep:admin/silence-user', useClass: ep___admin_silenceUser.default };
+const $admin_unsilenceUser: Provider = { provide: 'ep:admin/unsilence-user', useClass: ep___admin_unsilenceUser.default };
 const $admin_suspendUser: Provider = { provide: 'ep:admin/suspend-user', useClass: ep___admin_suspendUser.default };
+const $admin_approveUser: Provider = { provide: 'ep:admin/approve-user', useClass: ep___admin_approveUser.default };
 const $admin_unsuspendUser: Provider = { provide: 'ep:admin/unsuspend-user', useClass: ep___admin_unsuspendUser.default };
 const $admin_updateMeta: Provider = { provide: 'ep:admin/update-meta', useClass: ep___admin_updateMeta.default };
 const $admin_deleteAccount: Provider = { provide: 'ep:admin/delete-account', useClass: ep___admin_deleteAccount.default };
@@ -565,10 +593,12 @@ const $i_authorizedApps: Provider = { provide: 'ep:i/authorized-apps', useClass:
 const $i_claimAchievement: Provider = { provide: 'ep:i/claim-achievement', useClass: ep___i_claimAchievement.default };
 const $i_changePassword: Provider = { provide: 'ep:i/change-password', useClass: ep___i_changePassword.default };
 const $i_deleteAccount: Provider = { provide: 'ep:i/delete-account', useClass: ep___i_deleteAccount.default };
+const $i_exportData: Provider = { provide: 'ep:i/export-data', useClass: ep___i_exportData.default };
 const $i_exportBlocking: Provider = { provide: 'ep:i/export-blocking', useClass: ep___i_exportBlocking.default };
 const $i_exportFollowing: Provider = { provide: 'ep:i/export-following', useClass: ep___i_exportFollowing.default };
 const $i_exportMute: Provider = { provide: 'ep:i/export-mute', useClass: ep___i_exportMute.default };
 const $i_exportNotes: Provider = { provide: 'ep:i/export-notes', useClass: ep___i_exportNotes.default };
+const $i_exportClips: Provider = { provide: 'ep:i/export-clips', useClass: ep___i_exportClips.default };
 const $i_exportFavorites: Provider = { provide: 'ep:i/export-favorites', useClass: ep___i_exportFavorites.default };
 const $i_exportUserLists: Provider = { provide: 'ep:i/export-user-lists', useClass: ep___i_exportUserLists.default };
 const $i_exportAntennas: Provider = { provide: 'ep:i/export-antennas', useClass: ep___i_exportAntennas.default };
@@ -577,6 +607,7 @@ const $i_gallery_likes: Provider = { provide: 'ep:i/gallery/likes', useClass: ep
 const $i_gallery_posts: Provider = { provide: 'ep:i/gallery/posts', useClass: ep___i_gallery_posts.default };
 const $i_importBlocking: Provider = { provide: 'ep:i/import-blocking', useClass: ep___i_importBlocking.default };
 const $i_importFollowing: Provider = { provide: 'ep:i/import-following', useClass: ep___i_importFollowing.default };
+const $i_importNotes: Provider = { provide: 'ep:i/import-notes', useClass: ep___i_importNotes.default };
 const $i_importMuting: Provider = { provide: 'ep:i/import-muting', useClass: ep___i_importMuting.default };
 const $i_importUserLists: Provider = { provide: 'ep:i/import-user-lists', useClass: ep___i_importUserLists.default };
 const $i_importAntennas: Provider = { provide: 'ep:i/import-antennas', useClass: ep___i_importAntennas.default };
@@ -589,6 +620,7 @@ const $i_readAllUnreadNotes: Provider = { provide: 'ep:i/read-all-unread-notes',
 const $i_readAnnouncement: Provider = { provide: 'ep:i/read-announcement', useClass: ep___i_readAnnouncement.default };
 const $i_regenerateToken: Provider = { provide: 'ep:i/regenerate-token', useClass: ep___i_regenerateToken.default };
 const $i_registry_getAll: Provider = { provide: 'ep:i/registry/get-all', useClass: ep___i_registry_getAll.default };
+const $i_registry_getUnsecure: Provider = { provide: 'ep:i/registry/get-unsecure', useClass: ep___i_registry_getUnsecure.default };
 const $i_registry_getDetail: Provider = { provide: 'ep:i/registry/get-detail', useClass: ep___i_registry_getDetail.default };
 const $i_registry_get: Provider = { provide: 'ep:i/registry/get', useClass: ep___i_registry_get.default };
 const $i_registry_keysWithType: Provider = { provide: 'ep:i/registry/keys-with-type', useClass: ep___i_registry_keysWithType.default };
@@ -632,6 +664,7 @@ const $notes_favorites_create: Provider = { provide: 'ep:notes/favorites/create'
 const $notes_favorites_delete: Provider = { provide: 'ep:notes/favorites/delete', useClass: ep___notes_favorites_delete.default };
 const $notes_featured: Provider = { provide: 'ep:notes/featured', useClass: ep___notes_featured.default };
 const $notes_globalTimeline: Provider = { provide: 'ep:notes/global-timeline', useClass: ep___notes_globalTimeline.default };
+const $notes_bubbleTimeline: Provider = { provide: 'ep:notes/bubble-timeline', useClass: ep___notes_bubbleTimeline.default };
 const $notes_hybridTimeline: Provider = { provide: 'ep:notes/hybrid-timeline', useClass: ep___notes_hybridTimeline.default };
 const $notes_localTimeline: Provider = { provide: 'ep:notes/local-timeline', useClass: ep___notes_localTimeline.default };
 const $notes_mentions: Provider = { provide: 'ep:notes/mentions', useClass: ep___notes_mentions.default };
@@ -640,6 +673,7 @@ const $notes_polls_vote: Provider = { provide: 'ep:notes/polls/vote', useClass: 
 const $notes_reactions: Provider = { provide: 'ep:notes/reactions', useClass: ep___notes_reactions.default };
 const $notes_reactions_create: Provider = { provide: 'ep:notes/reactions/create', useClass: ep___notes_reactions_create.default };
 const $notes_reactions_delete: Provider = { provide: 'ep:notes/reactions/delete', useClass: ep___notes_reactions_delete.default };
+const $notes_like: Provider = { provide: 'ep:notes/like', useClass: ep___notes_like.default };
 const $notes_renotes: Provider = { provide: 'ep:notes/renotes', useClass: ep___notes_renotes.default };
 const $notes_replies: Provider = { provide: 'ep:notes/replies', useClass: ep___notes_replies.default };
 const $notes_searchByTag: Provider = { provide: 'ep:notes/search-by-tag', useClass: ep___notes_searchByTag.default };
@@ -652,6 +686,8 @@ const $notes_timeline: Provider = { provide: 'ep:notes/timeline', useClass: ep__
 const $notes_translate: Provider = { provide: 'ep:notes/translate', useClass: ep___notes_translate.default };
 const $notes_unrenote: Provider = { provide: 'ep:notes/unrenote', useClass: ep___notes_unrenote.default };
 const $notes_userListTimeline: Provider = { provide: 'ep:notes/user-list-timeline', useClass: ep___notes_userListTimeline.default };
+const $notes_edit: Provider = { provide: 'ep:notes/edit', useClass: ep___notes_edit.default };
+const $notes_versions: Provider = { provide: 'ep:notes/versions', useClass: ep___notes_versions.default };
 const $notifications_create: Provider = { provide: 'ep:notifications/create', useClass: ep___notifications_create.default };
 const $notifications_markAllAsRead: Provider = { provide: 'ep:notifications/mark-all-as-read', useClass: ep___notifications_markAllAsRead.default };
 const $notifications_testNotification: Provider = { provide: 'ep:notifications/test-notification', useClass: ep___notifications_testNotification.default };
@@ -724,6 +760,16 @@ const $users_updateMemo: Provider = { provide: 'ep:users/update-memo', useClass:
 const $fetchRss: Provider = { provide: 'ep:fetch-rss', useClass: ep___fetchRss.default };
 const $fetchExternalResources: Provider = { provide: 'ep:fetch-external-resources', useClass: ep___fetchExternalResources.default };
 const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention.default };
+const $sponsors: Provider = { provide: 'ep:sponsors', useClass: ep___sponsors.default };
+const $bubbleGame_register: Provider = { provide: 'ep:bubble-game/register', useClass: ep___bubbleGame_register.default };
+const $bubbleGame_ranking: Provider = { provide: 'ep:bubble-game/ranking', useClass: ep___bubbleGame_ranking.default };
+const $reversi_cancelMatch: Provider = { provide: 'ep:reversi/cancel-match', useClass: ep___reversi_cancelMatch.default };
+const $reversi_games: Provider = { provide: 'ep:reversi/games', useClass: ep___reversi_games.default };
+const $reversi_match: Provider = { provide: 'ep:reversi/match', useClass: ep___reversi_match.default };
+const $reversi_invitations: Provider = { provide: 'ep:reversi/invitations', useClass: ep___reversi_invitations.default };
+const $reversi_showGame: Provider = { provide: 'ep:reversi/show-game', useClass: ep___reversi_showGame.default };
+const $reversi_surrender: Provider = { provide: 'ep:reversi/surrender', useClass: ep___reversi_surrender.default };
+const $reversi_verify: Provider = { provide: 'ep:reversi/verify', useClass: ep___reversi_verify.default };
 
 @Module({
 	imports: [
@@ -794,7 +840,12 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$admin_showModerationLogs,
 		$admin_showUser,
 		$admin_showUsers,
+		$admin_nsfwUser,
+		$admin_unnsfwUser,
+		$admin_silenceUser,
+		$admin_unsilenceUser,
 		$admin_suspendUser,
+		$admin_approveUser,
 		$admin_unsuspendUser,
 		$admin_updateMeta,
 		$admin_deleteAccount,
@@ -930,10 +981,12 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$i_claimAchievement,
 		$i_changePassword,
 		$i_deleteAccount,
+		$i_exportData,
 		$i_exportBlocking,
 		$i_exportFollowing,
 		$i_exportMute,
 		$i_exportNotes,
+		$i_exportClips,
 		$i_exportFavorites,
 		$i_exportUserLists,
 		$i_exportAntennas,
@@ -942,6 +995,7 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$i_gallery_posts,
 		$i_importBlocking,
 		$i_importFollowing,
+		$i_importNotes,
 		$i_importMuting,
 		$i_importUserLists,
 		$i_importAntennas,
@@ -954,6 +1008,7 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$i_readAnnouncement,
 		$i_regenerateToken,
 		$i_registry_getAll,
+		$i_registry_getUnsecure,
 		$i_registry_getDetail,
 		$i_registry_get,
 		$i_registry_keysWithType,
@@ -997,6 +1052,7 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$notes_favorites_delete,
 		$notes_featured,
 		$notes_globalTimeline,
+		$notes_bubbleTimeline,
 		$notes_hybridTimeline,
 		$notes_localTimeline,
 		$notes_mentions,
@@ -1005,6 +1061,7 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$notes_reactions,
 		$notes_reactions_create,
 		$notes_reactions_delete,
+		$notes_like,
 		$notes_renotes,
 		$notes_replies,
 		$notes_searchByTag,
@@ -1017,6 +1074,8 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$notes_translate,
 		$notes_unrenote,
 		$notes_userListTimeline,
+		$notes_edit,
+		$notes_versions,
 		$notifications_create,
 		$notifications_markAllAsRead,
 		$notifications_testNotification,
@@ -1089,6 +1148,16 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$fetchRss,
 		$fetchExternalResources,
 		$retention,
+		$sponsors,
+		$bubbleGame_register,
+		$bubbleGame_ranking,
+		$reversi_cancelMatch,
+		$reversi_games,
+		$reversi_match,
+		$reversi_invitations,
+		$reversi_showGame,
+		$reversi_surrender,
+		$reversi_verify,
 	],
 	exports: [
 		$admin_meta,
@@ -1153,7 +1222,12 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$admin_showModerationLogs,
 		$admin_showUser,
 		$admin_showUsers,
+		$admin_nsfwUser,
+		$admin_unnsfwUser,
+		$admin_silenceUser,
+		$admin_unsilenceUser,
 		$admin_suspendUser,
+		$admin_approveUser,
 		$admin_unsuspendUser,
 		$admin_updateMeta,
 		$admin_deleteAccount,
@@ -1289,10 +1363,12 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$i_claimAchievement,
 		$i_changePassword,
 		$i_deleteAccount,
+		$i_exportData,
 		$i_exportBlocking,
 		$i_exportFollowing,
 		$i_exportMute,
 		$i_exportNotes,
+		$i_exportClips,
 		$i_exportFavorites,
 		$i_exportUserLists,
 		$i_exportAntennas,
@@ -1301,6 +1377,7 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$i_gallery_posts,
 		$i_importBlocking,
 		$i_importFollowing,
+		$i_importNotes,
 		$i_importMuting,
 		$i_importUserLists,
 		$i_importAntennas,
@@ -1313,6 +1390,7 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$i_readAnnouncement,
 		$i_regenerateToken,
 		$i_registry_getAll,
+		$i_registry_getUnsecure,
 		$i_registry_getDetail,
 		$i_registry_get,
 		$i_registry_keysWithType,
@@ -1356,6 +1434,7 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$notes_favorites_delete,
 		$notes_featured,
 		$notes_globalTimeline,
+		$notes_bubbleTimeline,
 		$notes_hybridTimeline,
 		$notes_localTimeline,
 		$notes_mentions,
@@ -1364,6 +1443,7 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$notes_reactions,
 		$notes_reactions_create,
 		$notes_reactions_delete,
+		$notes_like,
 		$notes_renotes,
 		$notes_replies,
 		$notes_searchByTag,
@@ -1376,6 +1456,8 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$notes_translate,
 		$notes_unrenote,
 		$notes_userListTimeline,
+		$notes_edit,
+		$notes_versions,
 		$notifications_create,
 		$notifications_markAllAsRead,
 		$pagePush,
@@ -1445,6 +1527,16 @@ const $retention: Provider = { provide: 'ep:retention', useClass: ep___retention
 		$fetchRss,
 		$fetchExternalResources,
 		$retention,
+		$sponsors,
+		$bubbleGame_register,
+		$bubbleGame_ranking,
+		$reversi_cancelMatch,
+		$reversi_games,
+		$reversi_match,
+		$reversi_invitations,
+		$reversi_showGame,
+		$reversi_surrender,
+		$reversi_verify,
 	],
 })
 export class EndpointsModule {}

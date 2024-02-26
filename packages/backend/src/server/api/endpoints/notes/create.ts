@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -11,12 +11,15 @@ import type { UsersRepository, NotesRepository, BlockingsRepository, DriveFilesR
 import type { MiDriveFile } from '@/models/DriveFile.js';
 import type { MiNote } from '@/models/Note.js';
 import type { MiChannel } from '@/models/Channel.js';
-import { MAX_NOTE_TEXT_LENGTH } from '@/const.js';
+import type { Config } from '@/config.js';
 import { Endpoint } from '@/server/api/endpoint-base.js';
 import { NoteEntityService } from '@/core/entities/NoteEntityService.js';
 import { NoteCreateService } from '@/core/NoteCreateService.js';
 import { DI } from '@/di-symbols.js';
 import { isPureRenote } from '@/misc/is-pure-renote.js';
+import { MetaService } from '@/core/MetaService.js';
+import { UtilityService } from '@/core/UtilityService.js';
+import { IdentifiableError } from '@/misc/identifiable-error.js';
 import { ApiError } from '../../error.js';
 
 export const meta = {
@@ -82,6 +85,12 @@ export const meta = {
 			id: '3ac74a84-8fd5-4bb0-870f-01804f82ce15',
 		},
 
+		maxLength: {
+			message: 'You tried posting a note which is too long.',
+			code: 'MAX_LENGTH',
+			id: '3ac74a84-8fd5-4bb0-870f-01804f82ce16',
+		},
+
 		cannotCreateAlreadyExpiredPoll: {
 			message: 'Poll is already expired.',
 			code: 'CANNOT_CREATE_ALREADY_EXPIRED_POLL',
@@ -111,6 +120,12 @@ export const meta = {
 			code: 'CANNOT_RENOTE_OUTSIDE_OF_CHANNEL',
 			id: '33510210-8452-094c-6227-4a6c05d99f00',
 		},
+
+		containsProhibitedWords: {
+			message: 'Cannot post because it contains prohibited words.',
+			code: 'CONTAINS_PROHIBITED_WORDS',
+			id: 'aa6e01d3-a85c-669d-758a-76aab43af334',
+		},
 	},
 } as const;
 
@@ -121,7 +136,7 @@ export const paramDef = {
 		visibleUserIds: { type: 'array', uniqueItems: true, items: {
 			type: 'string', format: 'misskey:id',
 		} },
-		cw: { type: 'string', nullable: true, minLength: 1, maxLength: 100 },
+		cw: { type: 'string', nullable: true, minLength: 1, maxLength: 500 },
 		localOnly: { type: 'boolean', default: false },
 		reactionAcceptance: { type: 'string', nullable: true, enum: [null, 'likeOnly', 'likeOnlyForRemote', 'nonSensitiveOnly', 'nonSensitiveOnlyForLocalLikeOnlyForRemote'], default: null },
 		noExtractMentions: { type: 'boolean', default: false },
@@ -136,7 +151,6 @@ export const paramDef = {
 		text: {
 			type: 'string',
 			minLength: 1,
-			maxLength: MAX_NOTE_TEXT_LENGTH,
 			nullable: true,
 		},
 		fileIds: {
@@ -162,7 +176,7 @@ export const paramDef = {
 					uniqueItems: true,
 					minItems: 2,
 					maxItems: 10,
-					items: { type: 'string', minLength: 1, maxLength: 50 },
+					items: { type: 'string', minLength: 1, maxLength: 150 },
 				},
 				multiple: { type: 'boolean' },
 				expiresAt: { type: 'integer', nullable: true },
@@ -172,18 +186,40 @@ export const paramDef = {
 		},
 	},
 	// (re)note with text, files and poll are optional
-	anyOf: [
-		{ required: ['text'] },
-		{ required: ['renoteId'] },
-		{ required: ['fileIds'] },
-		{ required: ['mediaIds'] },
-		{ required: ['poll'] },
-	],
+	if: {
+		properties: {
+			renoteId: {
+				type: 'null',
+			},
+			fileIds: {
+				type: 'null',
+			},
+			mediaIds: {
+				type: 'null',
+			},
+			poll: {
+				type: 'null',
+			},
+		},
+	},
+	then: {
+		properties: {
+			text: {
+				type: 'string',
+				minLength: 1,
+				pattern: '[^\\s]+',
+			},
+		},
+		required: ['text'],
+	},
 } as const;
 
 @Injectable()
 export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-disable-line import/no-default-export
 	constructor(
+		@Inject(DI.config)
+		private config: Config,
+
 		@Inject(DI.usersRepository)
 		private usersRepository: UsersRepository,
 
@@ -203,6 +239,10 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 		private noteCreateService: NoteCreateService,
 	) {
 		super(meta, paramDef, async (ps, me) => {
+			if (ps.text && (ps.text.length > this.config.maxNoteLength)) {
+				throw new ApiError(meta.errors.maxLength);
+			}
+
 			let visibleUsers: MiUser[] = [];
 			if (ps.visibleUserIds) {
 				visibleUsers = await this.usersRepository.findBy({
@@ -240,7 +280,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 
 				// Check blocking
 				if (renote.userId !== me.id) {
-					const blockExist = await this.blockingsRepository.exist({
+					const blockExist = await this.blockingsRepository.exists({
 						where: {
 							blockerId: renote.userId,
 							blockeeId: me.id,
@@ -283,12 +323,12 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				} else if (isPureRenote(reply)) {
 					throw new ApiError(meta.errors.cannotReplyToPureRenote);
 				} else if (!await this.noteEntityService.isVisibleForMe(reply, me.id)) {
-					throw new ApiError(meta.errors.cannotReplyToInvisibleNote);
+					throw new ApiError(meta.errors.noSuchReplyTarget);
 				}
 
 				// Check blocking
 				if (reply.userId !== me.id) {
-					const blockExist = await this.blockingsRepository.exist({
+					const blockExist = await this.blockingsRepository.exists({
 						where: {
 							blockerId: reply.userId,
 							blockeeId: me.id,
@@ -320,31 +360,40 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 			}
 
 			// 投稿を作成
-			const note = await this.noteCreateService.create(me, {
-				createdAt: new Date(),
-				files: files,
-				poll: ps.poll ? {
-					choices: ps.poll.choices,
-					multiple: ps.poll.multiple ?? false,
-					expiresAt: ps.poll.expiresAt ? new Date(ps.poll.expiresAt) : null,
-				} : undefined,
-				text: ps.text ?? undefined,
-				reply,
-				renote,
-				cw: ps.cw,
-				localOnly: ps.localOnly,
-				reactionAcceptance: ps.reactionAcceptance,
-				visibility: ps.visibility,
-				visibleUsers,
-				channel,
-				apMentions: ps.noExtractMentions ? [] : undefined,
-				apHashtags: ps.noExtractHashtags ? [] : undefined,
-				apEmojis: ps.noExtractEmojis ? [] : undefined,
-			});
+			try {
+				const note = await this.noteCreateService.create(me, {
+					createdAt: new Date(),
+					files: files,
+					poll: ps.poll ? {
+						choices: ps.poll.choices,
+						multiple: ps.poll.multiple ?? false,
+						expiresAt: ps.poll.expiresAt ? new Date(ps.poll.expiresAt) : null,
+					} : undefined,
+					text: ps.text ?? undefined,
+					reply,
+					renote,
+					cw: ps.cw,
+					localOnly: ps.localOnly,
+					reactionAcceptance: ps.reactionAcceptance,
+					visibility: ps.visibility,
+					visibleUsers,
+					channel,
+					apMentions: ps.noExtractMentions ? [] : undefined,
+					apHashtags: ps.noExtractHashtags ? [] : undefined,
+					apEmojis: ps.noExtractEmojis ? [] : undefined,
+				});
 
-			return {
-				createdNote: await this.noteEntityService.pack(note, me),
-			};
+				return {
+					createdNote: await this.noteEntityService.pack(note, me),
+				};
+			} catch (e) {
+				// TODO: 他のErrorもここでキャッチしてエラーメッセージを当てるようにしたい
+				if (e instanceof IdentifiableError) {
+					if (e.id === '689ee33f-f97c-479a-ac49-1b9f8140af99') throw new ApiError(meta.errors.containsProhibitedWords);
+				}
+
+				throw e;
+			}
 		});
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -21,7 +21,7 @@ export const DB_MAX_NOTE_TEXT_LENGTH = 8192;
  * Maximum image description length that can be stored in DB.
  * Surrogate pairs count as one
  */
-export const DB_MAX_IMAGE_COMMENT_LENGTH = 512;
+export const DB_MAX_IMAGE_COMMENT_LENGTH = 8192;
 //#endregion
 
 // ブラウザで直接表示することを許可するファイルの種類のリスト

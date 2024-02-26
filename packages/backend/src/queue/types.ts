@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -15,7 +15,9 @@ export type DeliverJobData = {
 	/** Actor */
 	user: ThinUser;
 	/** Activity */
-	content: unknown;
+	content: string;
+	/** Digest header */
+	digest: string;
 	/** inbox URL to deliver */
 	to: string;
 	/** whether it is sharedInbox */
@@ -39,6 +41,7 @@ export type DbJobData<T extends keyof DbJobMap> = DbJobMap[T];
 
 export type DbJobMap = {
 	deleteDriveFiles: DbJobDataWithUser;
+	exportAccountData: DbJobDataWithUser;
 	exportCustomEmojis: DbJobDataWithUser;
 	exportAntennas: DBExportAntennasData;
 	exportNotes: DbJobDataWithUser;
@@ -48,6 +51,13 @@ export type DbJobMap = {
 	exportBlocking: DbJobDataWithUser;
 	exportUserLists: DbJobDataWithUser;
 	importAntennas: DBAntennaImportJobData;
+	importNotes: DbNoteImportJobData;
+	importTweetsToDb: DbNoteWithParentImportToDbJobData;
+	importIGToDb: DbNoteImportToDbJobData;
+	importFBToDb: DbNoteImportToDbJobData;
+	importMastoToDb: DbNoteWithParentImportToDbJobData;
+	importPleroToDb: DbNoteWithParentImportToDbJobData;
+	importKeyNotesToDb: DbNoteWithParentImportToDbJobData;
 	importFollowing: DbUserImportJobData;
 	importFollowingToDb: DbUserImportToDbJobData;
 	importMuting: DbUserImportJobData;
@@ -83,6 +93,12 @@ export type DbUserImportJobData = {
 	withReplies?: boolean;
 };
 
+export type DbNoteImportJobData = {
+	user: ThinUser;
+	fileId: MiDriveFile['id'];
+	type?: string;
+};
+
 export type DBAntennaImportJobData = {
 	user: ThinUser,
 	antenna: Antenna
@@ -92,6 +108,17 @@ export type DbUserImportToDbJobData = {
 	user: ThinUser;
 	target: string;
 	withReplies?: boolean;
+};
+
+export type DbNoteImportToDbJobData = {
+	user: ThinUser;
+	target: any;
+};
+
+export type DbNoteWithParentImportToDbJobData = {
+	user: ThinUser;
+	target: any;
+	note: MiNote['id'] | null;
 };
 
 export type ObjectStorageJobData = ObjectStorageFileJobData | Record<string, unknown>;

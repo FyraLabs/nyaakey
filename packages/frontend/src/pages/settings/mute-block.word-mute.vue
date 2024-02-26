@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -11,7 +11,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<template #caption>{{ i18n.ts._wordMute.muteWordsDescription }}<br>{{ i18n.ts._wordMute.muteWordsDescription2 }}</template>
 		</MkTextarea>
 	</div>
-	<MkButton primary inline :disabled="!changed" @click="save()"><i class="ti ti-device-floppy"></i> {{ i18n.ts.save }}</MkButton>
+	<MkButton primary inline :disabled="!changed" @click="save()"><i class="ph-floppy-disk ph-bold ph-lg"></i> {{ i18n.ts.save }}</MkButton>
 </div>
 </template>
 
@@ -64,7 +64,7 @@ async function save() {
 					os.alert({
 						type: 'error',
 						title: i18n.ts.regexpError,
-						text: i18n.t('regexpErrorDescription', { tab: 'word mute', line: i + 1 }) + '\n' + err.toString(),
+						text: i18n.tsx.regexpErrorDescription({ tab: 'word mute', line: i + 1 }) + '\n' + err.toString(),
 					});
 					// re-throw error so these invalid settings are not saved
 					throw err;

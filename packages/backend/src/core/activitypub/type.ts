@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -11,7 +11,7 @@ export interface IObject {
 	type: string | string[];
 	id?: string;
 	name?: string | null;
-	summary?: string;
+	summary?: string | null;
 	_misskey_summary?: string;
 	published?: string;
 	cc?: ApObject;
@@ -119,6 +119,8 @@ export interface IPost extends IObject {
 	_misskey_quote?: string;
 	_misskey_content?: string;
 	quoteUrl?: string;
+	quoteUri?: string;
+	updated?: string;
 }
 
 export interface IQuestion extends IObject {
@@ -130,6 +132,7 @@ export interface IQuestion extends IObject {
 	};
 	_misskey_quote?: string;
 	quoteUrl?: string;
+	quoteUri?: string;
 	oneOf?: IQuestionChoice[];
 	anyOf?: IQuestionChoice[];
 	endTime?: Date;
@@ -181,6 +184,9 @@ export interface IActor extends IObject {
 	};
 	'vcard:bday'?: string;
 	'vcard:Address'?: string;
+	noindex?: boolean;
+	listenbrainz?: string;
+	backgroundUrl?: string;
 }
 
 export const isCollection = (object: IObject): object is ICollection =>

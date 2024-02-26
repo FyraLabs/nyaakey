@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -7,7 +7,6 @@ import { Module } from '@nestjs/common';
 import { FanoutTimelineEndpointService } from '@/core/FanoutTimelineEndpointService.js';
 import { AccountMoveService } from './AccountMoveService.js';
 import { AccountUpdateService } from './AccountUpdateService.js';
-import { AiService } from './AiService.js';
 import { AnnouncementService } from './AnnouncementService.js';
 import { AntennaService } from './AntennaService.js';
 import { AppLockService } from './AppLockService.js';
@@ -33,6 +32,7 @@ import { MetaService } from './MetaService.js';
 import { MfmService } from './MfmService.js';
 import { ModerationLogService } from './ModerationLogService.js';
 import { NoteCreateService } from './NoteCreateService.js';
+import { NoteEditService } from './NoteEditService.js';
 import { NoteDeleteService } from './NoteDeleteService.js';
 import { NotePiningService } from './NotePiningService.js';
 import { NoteReadService } from './NoteReadService.js';
@@ -66,6 +66,8 @@ import { FeaturedService } from './FeaturedService.js';
 import { FanoutTimelineService } from './FanoutTimelineService.js';
 import { ChannelFollowingService } from './ChannelFollowingService.js';
 import { RegistryApiService } from './RegistryApiService.js';
+import { ReversiService } from './ReversiService.js';
+
 import { ChartLoggerService } from './chart/ChartLoggerService.js';
 import FederationChart from './chart/charts/federation.js';
 import NotesChart from './chart/charts/notes.js';
@@ -80,6 +82,7 @@ import PerUserFollowingChart from './chart/charts/per-user-following.js';
 import PerUserDriveChart from './chart/charts/per-user-drive.js';
 import ApRequestChart from './chart/charts/ap-request.js';
 import { ChartManagementService } from './chart/ChartManagementService.js';
+
 import { AbuseUserReportEntityService } from './entities/AbuseUserReportEntityService.js';
 import { AntennaEntityService } from './entities/AntennaEntityService.js';
 import { AppEntityService } from './entities/AppEntityService.js';
@@ -112,6 +115,9 @@ import { UserListEntityService } from './entities/UserListEntityService.js';
 import { FlashEntityService } from './entities/FlashEntityService.js';
 import { FlashLikeEntityService } from './entities/FlashLikeEntityService.js';
 import { RoleEntityService } from './entities/RoleEntityService.js';
+import { ReversiGameEntityService } from './entities/ReversiGameEntityService.js';
+import { MetaEntityService } from './entities/MetaEntityService.js';
+
 import { ApAudienceService } from './activitypub/ApAudienceService.js';
 import { ApDbResolverService } from './activitypub/ApDbResolverService.js';
 import { ApDeliverManagerService } from './activitypub/ApDeliverManagerService.js';
@@ -139,7 +145,6 @@ import type { Provider } from '@nestjs/common';
 const $LoggerService: Provider = { provide: 'LoggerService', useExisting: LoggerService };
 const $AccountMoveService: Provider = { provide: 'AccountMoveService', useExisting: AccountMoveService };
 const $AccountUpdateService: Provider = { provide: 'AccountUpdateService', useExisting: AccountUpdateService };
-const $AiService: Provider = { provide: 'AiService', useExisting: AiService };
 const $AnnouncementService: Provider = { provide: 'AnnouncementService', useExisting: AnnouncementService };
 const $AntennaService: Provider = { provide: 'AntennaService', useExisting: AntennaService };
 const $AppLockService: Provider = { provide: 'AppLockService', useExisting: AppLockService };
@@ -165,6 +170,7 @@ const $MetaService: Provider = { provide: 'MetaService', useExisting: MetaServic
 const $MfmService: Provider = { provide: 'MfmService', useExisting: MfmService };
 const $ModerationLogService: Provider = { provide: 'ModerationLogService', useExisting: ModerationLogService };
 const $NoteCreateService: Provider = { provide: 'NoteCreateService', useExisting: NoteCreateService };
+const $NoteEditService: Provider = { provide: 'NoteEditService', useExisting: NoteEditService };
 const $NoteDeleteService: Provider = { provide: 'NoteDeleteService', useExisting: NoteDeleteService };
 const $NotePiningService: Provider = { provide: 'NotePiningService', useExisting: NotePiningService };
 const $NoteReadService: Provider = { provide: 'NoteReadService', useExisting: NoteReadService };
@@ -199,6 +205,7 @@ const $FanoutTimelineService: Provider = { provide: 'FanoutTimelineService', use
 const $FanoutTimelineEndpointService: Provider = { provide: 'FanoutTimelineEndpointService', useExisting: FanoutTimelineEndpointService };
 const $ChannelFollowingService: Provider = { provide: 'ChannelFollowingService', useExisting: ChannelFollowingService };
 const $RegistryApiService: Provider = { provide: 'RegistryApiService', useExisting: RegistryApiService };
+const $ReversiService: Provider = { provide: 'ReversiService', useExisting: ReversiService };
 
 const $ChartLoggerService: Provider = { provide: 'ChartLoggerService', useExisting: ChartLoggerService };
 const $FederationChart: Provider = { provide: 'FederationChart', useExisting: FederationChart };
@@ -247,6 +254,8 @@ const $UserListEntityService: Provider = { provide: 'UserListEntityService', use
 const $FlashEntityService: Provider = { provide: 'FlashEntityService', useExisting: FlashEntityService };
 const $FlashLikeEntityService: Provider = { provide: 'FlashLikeEntityService', useExisting: FlashLikeEntityService };
 const $RoleEntityService: Provider = { provide: 'RoleEntityService', useExisting: RoleEntityService };
+const $ReversiGameEntityService: Provider = { provide: 'ReversiGameEntityService', useExisting: ReversiGameEntityService };
+const $MetaEntityService: Provider = { provide: 'MetaEntityService', useExisting: MetaEntityService };
 
 const $ApAudienceService: Provider = { provide: 'ApAudienceService', useExisting: ApAudienceService };
 const $ApDbResolverService: Provider = { provide: 'ApDbResolverService', useExisting: ApDbResolverService };
@@ -276,7 +285,6 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		LoggerService,
 		AccountMoveService,
 		AccountUpdateService,
-		AiService,
 		AnnouncementService,
 		AntennaService,
 		AppLockService,
@@ -302,6 +310,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		MfmService,
 		ModerationLogService,
 		NoteCreateService,
+		NoteEditService,
 		NoteDeleteService,
 		NotePiningService,
 		NoteReadService,
@@ -336,6 +345,8 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		FanoutTimelineEndpointService,
 		ChannelFollowingService,
 		RegistryApiService,
+		ReversiService,
+
 		ChartLoggerService,
 		FederationChart,
 		NotesChart,
@@ -350,6 +361,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		PerUserDriveChart,
 		ApRequestChart,
 		ChartManagementService,
+
 		AbuseUserReportEntityService,
 		AntennaEntityService,
 		AppEntityService,
@@ -382,6 +394,9 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		FlashEntityService,
 		FlashLikeEntityService,
 		RoleEntityService,
+		ReversiGameEntityService,
+		MetaEntityService,
+
 		ApAudienceService,
 		ApDbResolverService,
 		ApDeliverManagerService,
@@ -406,7 +421,6 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$LoggerService,
 		$AccountMoveService,
 		$AccountUpdateService,
-		$AiService,
 		$AnnouncementService,
 		$AntennaService,
 		$AppLockService,
@@ -432,6 +446,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$MfmService,
 		$ModerationLogService,
 		$NoteCreateService,
+		$NoteEditService,
 		$NoteDeleteService,
 		$NotePiningService,
 		$NoteReadService,
@@ -466,6 +481,8 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$FanoutTimelineEndpointService,
 		$ChannelFollowingService,
 		$RegistryApiService,
+		$ReversiService,
+
 		$ChartLoggerService,
 		$FederationChart,
 		$NotesChart,
@@ -480,6 +497,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$PerUserDriveChart,
 		$ApRequestChart,
 		$ChartManagementService,
+
 		$AbuseUserReportEntityService,
 		$AntennaEntityService,
 		$AppEntityService,
@@ -512,6 +530,9 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$FlashEntityService,
 		$FlashLikeEntityService,
 		$RoleEntityService,
+		$ReversiGameEntityService,
+		$MetaEntityService,
+
 		$ApAudienceService,
 		$ApDbResolverService,
 		$ApDeliverManagerService,
@@ -537,7 +558,6 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		LoggerService,
 		AccountMoveService,
 		AccountUpdateService,
-		AiService,
 		AnnouncementService,
 		AntennaService,
 		AppLockService,
@@ -563,6 +583,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		MfmService,
 		ModerationLogService,
 		NoteCreateService,
+		NoteEditService,
 		NoteDeleteService,
 		NotePiningService,
 		NoteReadService,
@@ -597,6 +618,8 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		FanoutTimelineEndpointService,
 		ChannelFollowingService,
 		RegistryApiService,
+		ReversiService,
+
 		FederationChart,
 		NotesChart,
 		UsersChart,
@@ -610,6 +633,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		PerUserDriveChart,
 		ApRequestChart,
 		ChartManagementService,
+
 		AbuseUserReportEntityService,
 		AntennaEntityService,
 		AppEntityService,
@@ -642,6 +666,9 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		FlashEntityService,
 		FlashLikeEntityService,
 		RoleEntityService,
+		ReversiGameEntityService,
+		MetaEntityService,
+
 		ApAudienceService,
 		ApDbResolverService,
 		ApDeliverManagerService,
@@ -666,7 +693,6 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$LoggerService,
 		$AccountMoveService,
 		$AccountUpdateService,
-		$AiService,
 		$AnnouncementService,
 		$AntennaService,
 		$AppLockService,
@@ -692,6 +718,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$MfmService,
 		$ModerationLogService,
 		$NoteCreateService,
+		$NoteEditService,
 		$NoteDeleteService,
 		$NotePiningService,
 		$NoteReadService,
@@ -726,6 +753,8 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$FanoutTimelineEndpointService,
 		$ChannelFollowingService,
 		$RegistryApiService,
+		$ReversiService,
+
 		$FederationChart,
 		$NotesChart,
 		$UsersChart,
@@ -739,6 +768,7 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$PerUserDriveChart,
 		$ApRequestChart,
 		$ChartManagementService,
+
 		$AbuseUserReportEntityService,
 		$AntennaEntityService,
 		$AppEntityService,
@@ -771,6 +801,9 @@ const $ApQuestionService: Provider = { provide: 'ApQuestionService', useExisting
 		$FlashEntityService,
 		$FlashLikeEntityService,
 		$RoleEntityService,
+		$ReversiGameEntityService,
+		$MetaEntityService,
+
 		$ApAudienceService,
 		$ApDbResolverService,
 		$ApDeliverManagerService,

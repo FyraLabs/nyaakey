@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -11,10 +11,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div>
 			<p v-if="note.cw != null" :class="$style.cw">
 				<Mfm v-if="note.cw != ''" style="margin-right: 8px;" :text="note.cw" :author="note.user" :nyaize="'respect'" :emojiUrls="note.emojis"/>
-				<MkCwButton v-model="showContent" :text="note.text" :files="note.files" :poll="note.poll"/>
+				<MkCwButton v-model="showContent" :text="note.text" :files="note.files" :poll="note.poll" @click.stop/>
 			</p>
 			<div v-show="note.cw == null || showContent">
-				<MkSubNoteContent :class="$style.text" :note="note"/>
+				<MkSubNoteContent :hideFiles="hideFiles" :class="$style.text" :note="note" :expandAllCws="props.expandAllCws"/>
 			</div>
 		</div>
 	</div>
@@ -22,17 +22,24 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import * as Misskey from 'misskey-js';
 import MkNoteHeader from '@/components/MkNoteHeader.vue';
 import MkSubNoteContent from '@/components/MkSubNoteContent.vue';
 import MkCwButton from '@/components/MkCwButton.vue';
+import { defaultStore } from '@/store.js';
 
 const props = defineProps<{
 	note: Misskey.entities.Note;
+	expandAllCws?: boolean;
+	hideFiles?: boolean;
 }>();
 
-const showContent = ref(false);
+let showContent = ref(defaultStore.state.uncollapseCW);
+
+watch(() => props.expandAllCws, (expandAllCws) => {
+	if (expandAllCws !== showContent.value) showContent.value = expandAllCws;
+});
 </script>
 
 <style lang="scss" module>
@@ -49,7 +56,7 @@ const showContent = ref(false);
 	margin: 0 10px 0 0;
 	width: 34px;
 	height: 34px;
-	border-radius: 8px;
+	border-radius: var(--radius-sm);
 	position: sticky !important;
 	top: calc(16px + var(--stickyTop, 0px));
 	left: 0;
@@ -62,20 +69,22 @@ const showContent = ref(false);
 
 .header {
 	margin-bottom: 2px;
+	z-index: 2;
 }
 
 .cw {
-	cursor: default;
 	display: block;
 	margin: 0;
 	padding: 0;
 	overflow-wrap: break-word;
+	overflow: hidden;
 }
 
 .text {
 	cursor: default;
 	margin: 0;
 	padding: 0;
+	overflow: hidden;
 }
 
 @container (min-width: 250px) {

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -101,6 +101,7 @@ export function userDetailed(id = 'someuserid', username = 'miskist', host = 'mi
 		isBlocking: false,
 		isBot: false,
 		isCat: false,
+		speakAsCat: false,
 		isFollowed: false,
 		isFollowing: false,
 		isLocked: false,

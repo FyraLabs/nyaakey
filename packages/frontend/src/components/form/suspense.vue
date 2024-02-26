@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -12,8 +12,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 </div>
 <div v-else>
 	<div :class="$style.error">
-		<div><i class="ti ti-alert-triangle"></i> {{ i18n.ts.somethingHappened }}</div>
-		<MkButton inline style="margin-top: 16px;" @click="retry"><i class="ti ti-reload"></i> {{ i18n.ts.retry }}</MkButton>
+		<div><i class="ph-warning ph-bold ph-lg"></i> {{ i18n.ts.somethingHappened }}</div>
+		<MkButton inline style="margin-top: 16px;" @click="retry"><i class="ph-arrow-clockwise ph-bold ph-lg"></i> {{ i18n.ts.retry }}</MkButton>
 	</div>
 </div>
 </template>

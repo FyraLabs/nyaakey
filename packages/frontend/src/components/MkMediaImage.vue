@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -8,10 +8,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<component
 		:is="disableImageLink ? 'div' : 'a'"
 		v-bind="disableImageLink ? {
-			title: image.name,
+			title: image.comment,
 			class: $style.imageContainer,
 		} : {
-			title: image.name,
+			title: image.comment,
 			class: $style.imageContainer,
 			href: image.url,
 			style: 'cursor: zoom-in;'
@@ -22,8 +22,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 			:src="(defaultStore.state.dataSaver.media && hide) ? null : url"
 			:forceBlurhash="hide"
 			:cover="hide || cover"
-			:alt="image.comment || image.name"
-			:title="image.comment || image.name"
+			:alt="image.comment"
+			:title="image.comment"
 			:width="image.properties.width"
 			:height="image.properties.height"
 			:style="hide ? 'filter: brightness(0.7);' : null"
@@ -32,8 +32,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<template v-if="hide">
 		<div :class="$style.hiddenText">
 			<div :class="$style.hiddenTextWrapper">
-				<b v-if="image.isSensitive" style="display: block;"><i class="ti ti-eye-exclamation"></i> {{ i18n.ts.sensitive }}{{ defaultStore.state.dataSaver.media ? ` (${i18n.ts.image}${image.size ? ' ' + bytes(image.size) : ''})` : '' }}</b>
-				<b v-else style="display: block;"><i class="ti ti-photo"></i> {{ defaultStore.state.dataSaver.media && image.size ? bytes(image.size) : i18n.ts.image }}</b>
+				<b v-if="image.isSensitive" style="display: block;"><i class="ph-eye-closed ph-bold ph-lg"></i> {{ i18n.ts.sensitive }}{{ defaultStore.state.dataSaver.media ? ` (${i18n.ts.image}${image.size ? ' ' + bytes(image.size) : ''})` : '' }}</b>
+				<b v-else style="display: block;"><i class="ph-image-square ph-bold ph-lg"></i> {{ defaultStore.state.dataSaver.media && image.size ? bytes(image.size) : i18n.ts.image }}</b>
 				<span v-if="controls" style="display: block;">{{ i18n.ts.clickToShow }}</span>
 			</div>
 		</div>
@@ -42,10 +42,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div :class="$style.indicators">
 			<div v-if="['image/gif', 'image/apng'].includes(image.type)" :class="$style.indicator">GIF</div>
 			<div v-if="image.comment" :class="$style.indicator">ALT</div>
-			<div v-if="image.isSensitive" :class="$style.indicator" style="color: var(--warn);" :title="i18n.ts.sensitive"><i class="ti ti-eye-exclamation"></i></div>
+			<div v-if="image.isSensitive" :class="$style.indicator" style="color: var(--warn);" :title="i18n.ts.sensitive"><i class="ph-eye-closed ph-bold ph-lg"></i></div>
+			<div v-if="!image.comment" :class="$style.indicator" title="Image lacks descriptive text"><i class="ph-pencil-simple ph-bold ph-lg-off"></i></div>
 		</div>
-		<button :class="$style.menu" class="_button" @click.stop="showMenu"><i class="ti ti-dots" style="vertical-align: middle;"></i></button>
-		<i class="ti ti-eye-off" :class="$style.hide" @click.stop="hide = true"></i>
+		<button :class="$style.menu" class="_button" @click.stop="showMenu"><i class="ph-dots-three ph-bold ph-lg" style="vertical-align: middle;"></i></button>
+		<i class="ph-eye-slash ph-bold ph-lg" :class="$style.hide" @click.stop="hide = true"></i>
 	</template>
 </div>
 </template>
@@ -103,13 +104,13 @@ watch(() => props.image, () => {
 function showMenu(ev: MouseEvent) {
 	os.popupMenu([{
 		text: i18n.ts.hide,
-		icon: 'ti ti-eye-off',
+		icon: 'ph-eye-slash ph-bold ph-lg',
 		action: () => {
 			hide.value = true;
 		},
 	}, ...(iAmModerator ? [{
 		text: i18n.ts.markAsSensitive,
-		icon: 'ti ti-eye-exclamation',
+		icon: 'ph-eye-closed ph-bold ph-lg',
 		danger: true,
 		action: () => {
 			os.apiWithDialog('drive/files/update', { fileId: props.image.id, isSensitive: true });
@@ -156,8 +157,8 @@ function showMenu(ev: MouseEvent) {
 .hide {
 	display: block;
 	position: absolute;
-	border-radius: 6px;
-	background-color: var(--fg);
+	border-radius: var(--radius-sm);
+	background-color: black;
 	color: var(--accentLighten);
 	font-size: 12px;
 	opacity: .5;
@@ -186,7 +187,7 @@ function showMenu(ev: MouseEvent) {
 .menu {
 	display: block;
 	position: absolute;
-	border-radius: 999px;
+	border-radius: var(--radius-ellipse);
 	background-color: rgba(0, 0, 0, 0.3);
 	-webkit-backdrop-filter: var(--blur, blur(15px));
 	backdrop-filter: var(--blur, blur(15px));
@@ -222,7 +223,7 @@ function showMenu(ev: MouseEvent) {
 .indicator {
 	/* Hardcode to black because either --bg or --fg makes it hard to read in dark/light mode */
 	background-color: black;
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	color: var(--accentLighten);
 	display: inline-block;
 	font-weight: bold;

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -13,7 +13,7 @@ import { intersperse } from '@/misc/prelude/array.js';
 import type { IMentionedRemoteUsers } from '@/models/Note.js';
 import { bindThis } from '@/decorators.js';
 import * as TreeAdapter from '../../node_modules/parse5/dist/tree-adapters/default.js';
-import type * as mfm from 'mfm-js';
+import type * as mfm from '@transfem-org/sfm-js';
 
 const treeAdapter = TreeAdapter.defaultTreeAdapter;
 
@@ -419,6 +419,10 @@ export class MfmService {
 			},
 
 			text: (node) => {
+				if (!node.props.text.match(/[\r\n]/)) {
+					return doc.createTextNode(node.props.text);
+				}
+
 				const el = doc.createElement('span');
 				const nodes = node.props.text.split(/\r\n|\r|\n/).map(x => doc.createTextNode(x));
 
@@ -453,5 +457,215 @@ export class MfmService {
 		appendChildren(nodes, doc.body);
 
 		return `<p>${doc.body.innerHTML}</p>`;
+	}
+
+	// the toMastoHtml function was taken from Iceshrimp and written by zotan and modified by marie to work with the current MK version
+
+	@bindThis
+	public async toMastoHtml(nodes: mfm.MfmNode[] | null, mentionedRemoteUsers: IMentionedRemoteUsers = [], inline = false, quoteUri: string | null = null) {
+		if (nodes == null) {
+			return null;
+		}
+
+		const { window } = new Window();
+
+		const doc = window.document;
+
+		async function appendChildren(children: mfm.MfmNode[], targetElement: any): Promise<void> {
+			if (children) {
+				for (const child of await Promise.all(children.map(async (x) => await (handlers as any)[x.type](x)))) targetElement.appendChild(child);
+			}
+		}
+
+		const handlers: {
+            [K in mfm.MfmNode['type']]: (node: mfm.NodeType<K>) => any;
+        } = {
+        	async bold(node) {
+        		const el = doc.createElement('span');
+        		el.textContent = '**';
+        		await appendChildren(node.children, el);
+        		el.textContent += '**';
+        		return el;
+        	},
+
+        	async small(node) {
+        		const el = doc.createElement('small');
+        		await appendChildren(node.children, el);
+        		return el;
+        	},
+
+        	async strike(node) {
+        		const el = doc.createElement('span');
+        		el.textContent = '~~';
+        		await appendChildren(node.children, el);
+        		el.textContent += '~~';
+        		return el;
+        	},
+
+        	async italic(node) {
+        		const el = doc.createElement('span');
+        		el.textContent = '*';
+        		await appendChildren(node.children, el);
+        		el.textContent += '*';
+        		return el;
+        	},
+
+        	async fn(node) {
+        		const el = doc.createElement('span');
+        		el.textContent = '*';
+        		await appendChildren(node.children, el);
+        		el.textContent += '*';
+        		return el;
+        	},
+
+        	blockCode(node) {
+        		const pre = doc.createElement('pre');
+        		const inner = doc.createElement('code');
+
+        		const nodes = node.props.code
+        			.split(/\r\n|\r|\n/)
+        			.map((x) => doc.createTextNode(x));
+
+        		for (const x of intersperse<FIXME | 'br'>('br', nodes)) {
+        			inner.appendChild(x === 'br' ? doc.createElement('br') : x);
+        		}
+
+        		pre.appendChild(inner);
+        		return pre;
+        	},
+
+        	async center(node) {
+        		const el = doc.createElement('div');
+        		await appendChildren(node.children, el);
+        		return el;
+        	},
+
+        	emojiCode(node) {
+        		return doc.createTextNode(`\u200B:${node.props.name}:\u200B`);
+        	},
+
+        	unicodeEmoji(node) {
+        		return doc.createTextNode(node.props.emoji);
+        	},
+
+        	hashtag: (node) => {
+        		const a = doc.createElement('a');
+        		a.setAttribute('href', `${this.config.url}/tags/${node.props.hashtag}`);
+        		a.textContent = `#${node.props.hashtag}`;
+        		a.setAttribute('rel', 'tag');
+        		a.setAttribute('class', 'hashtag');
+        		return a;
+        	},
+
+        	inlineCode(node) {
+        		const el = doc.createElement('code');
+        		el.textContent = node.props.code;
+        		return el;
+        	},
+
+        	mathInline(node) {
+        		const el = doc.createElement('code');
+        		el.textContent = node.props.formula;
+        		return el;
+        	},
+
+        	mathBlock(node) {
+        		const el = doc.createElement('code');
+        		el.textContent = node.props.formula;
+        		return el;
+        	},
+
+        	async link(node) {
+        		const a = doc.createElement('a');
+        		a.setAttribute('rel', 'nofollow noopener noreferrer');
+        		a.setAttribute('target', '_blank');
+        		a.setAttribute('href', node.props.url);
+        		await appendChildren(node.children, a);
+        		return a;
+        	},
+
+        	async mention(node) {
+        		const { username, host, acct } = node.props;
+        		const resolved = mentionedRemoteUsers.find(remoteUser => remoteUser.username === username && remoteUser.host === host);
+
+        		const el = doc.createElement('span');
+        		if (!resolved) {
+        			el.textContent = acct;
+        		} else {
+        			el.setAttribute('class', 'h-card');
+        			el.setAttribute('translate', 'no');
+        			const a = doc.createElement('a');
+        			a.setAttribute('href', resolved.url ? resolved.url : resolved.uri);
+        			a.className = 'u-url mention';
+        			const span = doc.createElement('span');
+        			span.textContent = resolved.username || username;
+        			a.textContent = '@';
+        			a.appendChild(span);
+        			el.appendChild(a);
+        		}
+
+        		return el;
+        	},
+
+        	async quote(node) {
+        		const el = doc.createElement('blockquote');
+        		await appendChildren(node.children, el);
+        		return el;
+        	},
+
+        	text(node) {
+        		const el = doc.createElement('span');
+        		const nodes = node.props.text
+        			.split(/\r\n|\r|\n/)
+        			.map((x) => doc.createTextNode(x));
+
+        		for (const x of intersperse<FIXME | 'br'>('br', nodes)) {
+        			el.appendChild(x === 'br' ? doc.createElement('br') : x);
+        		}
+
+        		return el;
+        	},
+
+        	url(node) {
+        		const a = doc.createElement('a');
+        		a.setAttribute('rel', 'nofollow noopener noreferrer');
+        		a.setAttribute('target', '_blank');
+        		a.setAttribute('href', node.props.url);
+        		a.textContent = node.props.url.replace(/^https?:\/\//, '');
+        		return a;
+        	},
+
+        	search: (node) => {
+        		const a = doc.createElement('a');
+        		a.setAttribute('href', `https"google.com/${node.props.query}`);
+        		a.textContent = node.props.content;
+        		return a;
+        	},
+
+        	async plain(node) {
+        		const el = doc.createElement('span');
+        		await appendChildren(node.children, el);
+        		return el;
+        	},
+        };
+		
+		await appendChildren(nodes, doc.body);
+
+		if (quoteUri !== null) {
+			const a = doc.createElement('a');
+			a.setAttribute('href', quoteUri);
+			a.textContent = quoteUri.replace(/^https?:\/\//, '');
+
+			const quote = doc.createElement('span');
+			quote.setAttribute('class', 'quote-inline');
+			quote.appendChild(doc.createElement('br'));
+			quote.appendChild(doc.createElement('br'));
+			quote.innerHTML += 'RE: ';
+			quote.appendChild(a);
+
+			doc.body.appendChild(quote);
+		}
+
+		return inline ? doc.body.innerHTML : `<p>${doc.body.innerHTML}</p>`;
 	}
 }

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -106,8 +106,29 @@
 
 	//#region Theme
 	const theme = localStorage.getItem('theme');
+	const themeFontFaceName = 'sharkey-theme-font-face';
 	if (theme) {
-		for (const [k, v] of Object.entries(JSON.parse(theme))) {
+		let existingFontFace;
+		document.fonts.forEach((v,k,s)=>{if (v.family === themeFontFaceName) existingFontFace=v;});
+		if (existingFontFace) document.fonts.delete(existingFontFace);
+
+		const themeProps = JSON.parse(theme);
+		const fontFaceSrc = themeProps.fontFaceSrc;
+		const fontFaceOpts = themeProps.fontFaceOpts || {};
+		if (fontFaceSrc) {
+			const fontFace = new FontFace(
+				themeFontFaceName,
+				fontFaceSrc, fontFaceOpts || {},
+			);
+			document.fonts.add(fontFace);
+			fontFace.load().catch(
+				(failure) => {
+					console.log(failure)
+				}
+			);
+		}
+		for (const [k, v] of Object.entries(themeProps)) {
+			if (k.startsWith('font')) continue;
 			document.documentElement.style.setProperty(`--${k}`, v.toString());
 
 			// HTMLの theme-color 適用
@@ -130,6 +151,11 @@
 	const fontSize = localStorage.getItem('fontSize');
 	if (fontSize) {
 		document.documentElement.classList.add('f-' + fontSize);
+	}
+
+	const cornerRadius = localStorage.getItem('cornerRadius');
+	if (cornerRadius) {
+		document.documentElement.classList.add(`radius-${cornerRadius}`);
 	}
 
 	const useSystemFont = localStorage.getItem('useSystemFont');
@@ -213,7 +239,7 @@
 			font-family: BIZ UDGothic, Roboto, HelveticaNeue, Arial, sans-serif;
 		}
 
-		#misskey_app,
+		#sharkey_app,
 		#splash {
 			display: none !important;
 		}

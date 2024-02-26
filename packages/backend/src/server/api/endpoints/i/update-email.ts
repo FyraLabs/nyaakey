@@ -1,11 +1,12 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
 import { Inject, Injectable } from '@nestjs/common';
 import ms from 'ms';
-import bcrypt from 'bcryptjs';
+//import bcrypt from 'bcryptjs';
+import * as argon2 from 'argon2';
 import { Endpoint } from '@/server/api/endpoint-base.js';
 import type { UserProfilesRepository } from '@/models/_.js';
 import { UserEntityService } from '@/core/entities/UserEntityService.js';
@@ -43,7 +44,7 @@ export const meta = {
 
 	res: {
 		type: 'object',
-		ref: 'UserDetailed',
+		ref: 'MeDetailed',
 	},
 } as const;
 
@@ -87,7 +88,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 				}
 			}
 
-			const passwordMatched = await bcrypt.compare(ps.password, profile.password!);
+			const passwordMatched = await argon2.verify(profile.password!, ps.password);
 			if (!passwordMatched) {
 				throw new ApiError(meta.errors.incorrectPassword);
 			}
@@ -106,7 +107,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 			});
 
 			const iObj = await this.userEntityService.pack(me.id, me, {
-				detail: true,
+				schema: 'MeDetailed',
 				includeSecrets: true,
 			});
 

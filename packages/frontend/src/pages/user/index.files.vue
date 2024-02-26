@@ -1,11 +1,11 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
 <MkContainer :max-height="300" :foldable="true">
-	<template #icon><i class="ti ti-photo"></i></template>
+	<template #icon><i class="ph-image-square ph-bold ph-lg"></i></template>
 	<template #header>{{ i18n.ts.files }}</template>
 	<div :class="$style.root">
 		<MkLoading v-if="fetching"/>
@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 					<ImgWithBlurhash :class="$style.sensitiveImg" :hash="file.file.blurhash" :src="thumbnail(file.file)" :title="file.file.name" :forceBlurhash="true"/>
 					<div :class="$style.sensitive">
 						<div>
-							<div><i class="ti ti-eye-exclamation"></i> {{ i18n.ts.sensitive }}</div>
+							<div><i class="ph-eye-slash ph-bold ph-lg"></i> {{ i18n.ts.sensitive }}</div>
 							<div>{{ i18n.ts.clickToShow }}</div>
 						</div>
 					</div>
@@ -37,7 +37,7 @@ import { onMounted, ref } from 'vue';
 import * as Misskey from 'misskey-js';
 import { getStaticImageUrl } from '@/scripts/media-proxy.js';
 import { notePage } from '@/filters/note.js';
-import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import MkContainer from '@/components/MkContainer.vue';
 import ImgWithBlurhash from '@/components/MkImgWithBlurhash.vue';
 import { defaultStore } from '@/store.js';
@@ -61,7 +61,7 @@ function thumbnail(image: Misskey.entities.DriveFile): string {
 }
 
 onMounted(() => {
-	os.api('users/notes', {
+	misskeyApi('users/notes', {
 		userId: props.user.id,
 		withFiles: true,
 		limit: 15,
@@ -93,7 +93,7 @@ onMounted(() => {
 .img {
 	position: relative;
 	height: 128px;
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	overflow: clip;
 }
 

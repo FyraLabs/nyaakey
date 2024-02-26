@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -13,8 +13,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 >
 	<div v-show="showing" ref="el" :class="$style.root" class="_acrylic _shadow" :style="{ zIndex, maxWidth: maxWidth + 'px' }">
 		<slot>
-			<Mfm v-if="asMfm" :text="text"/>
-			<span v-else>{{ text }}</span>
+			<template v-if="text">
+				<Mfm v-if="asMfm" :text="text"/>
+				<span v-else>{{ text }}</span>
+			</template>
 		</slot>
 	</div>
 </Transition>
@@ -53,6 +55,7 @@ const el = shallowRef<HTMLElement>();
 const zIndex = os.claimZIndex('high');
 
 function setPosition() {
+	if (el.value == null) return;
 	const data = calcPopupPosition(el.value, {
 		anchorElement: props.targetElement,
 		direction: props.direction,
@@ -106,7 +109,7 @@ onUnmounted(() => {
 	padding: 8px 12px;
 	box-sizing: border-box;
 	text-align: center;
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	border: solid 0.5px var(--divider);
 	pointer-events: none;
 	transform-origin: center center;

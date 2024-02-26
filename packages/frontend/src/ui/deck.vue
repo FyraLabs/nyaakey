@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -36,29 +36,29 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</div>
 			<div :class="$style.sideMenu">
 				<div :class="$style.sideMenuTop">
-					<button v-tooltip.noDelay.left="`${i18n.ts._deck.profile}: ${deckStore.state.profile}`" :class="$style.sideMenuButton" class="_button" @click="changeProfile"><i class="ti ti-caret-down"></i></button>
-					<button v-tooltip.noDelay.left="i18n.ts._deck.deleteProfile" :class="$style.sideMenuButton" class="_button" @click="deleteProfile"><i class="ti ti-trash"></i></button>
+					<button v-tooltip.noDelay.left="`${i18n.ts._deck.profile}: ${deckStore.state.profile}`" :class="$style.sideMenuButton" class="_button" @click="changeProfile"><i class="ph-caret-down ph-bold ph-lg"></i></button>
+					<button v-tooltip.noDelay.left="i18n.ts._deck.deleteProfile" :class="$style.sideMenuButton" class="_button" @click="deleteProfile"><i class="ph-trash ph-bold ph-lg"></i></button>
 				</div>
 				<div :class="$style.sideMenuMiddle">
-					<button v-tooltip.noDelay.left="i18n.ts._deck.addColumn" :class="$style.sideMenuButton" class="_button" @click="addColumn"><i class="ti ti-plus"></i></button>
+					<button v-tooltip.noDelay.left="i18n.ts._deck.addColumn" :class="$style.sideMenuButton" class="_button" @click="addColumn"><i class="ph-plus ph-bold ph-lg"></i></button>
 				</div>
 				<div :class="$style.sideMenuBottom">
-					<button v-tooltip.noDelay.left="i18n.ts.settings" :class="$style.sideMenuButton" class="_button" @click="showSettings"><i class="ti ti-settings"></i></button>
+					<button v-tooltip.noDelay.left="i18n.ts.settings" :class="$style.sideMenuButton" class="_button" @click="showSettings"><i class="ph-gear ph-bold ph-lg"></i></button>
 				</div>
 			</div>
 		</div>
 	</div>
 
 	<div v-if="isMobile" :class="$style.nav">
-		<button :class="$style.navButton" class="_button" @click="drawerMenuShowing = true"><i :class="$style.navButtonIcon" class="ti ti-menu-2"></i><span v-if="menuIndicated" :class="$style.navButtonIndicator"><i class="_indicatorCircle"></i></span></button>
-		<button :class="$style.navButton" class="_button" @click="mainRouter.push('/')"><i :class="$style.navButtonIcon" class="ti ti-home"></i></button>
+		<button :class="$style.navButton" class="_button" @click="drawerMenuShowing = true"><i :class="$style.navButtonIcon" class="ph-list ph-bold ph-lg-2"></i><span v-if="menuIndicated" :class="$style.navButtonIndicator"><i class="_indicatorCircle"></i></span></button>
+		<button :class="$style.navButton" class="_button" @click="mainRouter.push('/')"><i :class="$style.navButtonIcon" class="ph-house ph-bold ph-lg"></i></button>
 		<button :class="$style.navButton" class="_button" @click="mainRouter.push('/my/notifications')">
-			<i :class="$style.navButtonIcon" class="ti ti-bell"></i>
+			<i :class="$style.navButtonIcon" class="ph-bell ph-bold ph-lg"></i>
 			<span v-if="$i?.hasUnreadNotification" :class="$style.navButtonIndicator">
 				<span class="_indicateCounter" :class="$style.itemIndicateValueIcon">{{ $i.unreadNotificationsCount > 99 ? '99+' : $i.unreadNotificationsCount }}</span>
 			</span>
 		</button>
-		<button :class="$style.postButton" class="_button" @click="os.post()"><i :class="$style.navButtonIcon" class="ti ti-pencil"></i></button>
+		<button :class="$style.postButton" class="_button" @click="os.post()"><i :class="$style.navButtonIcon" class="ph-pencil-simple ph-bold ph-lg"></i></button>
 	</div>
 
 	<Transition
@@ -103,7 +103,6 @@ import * as os from '@/os.js';
 import { navbarItemDef } from '@/navbar.js';
 import { $i } from '@/account.js';
 import { i18n } from '@/i18n.js';
-import { mainRouter } from '@/router.js';
 import { unisonReload } from '@/scripts/unison-reload.js';
 import { deviceKind } from '@/scripts/device-kind.js';
 import { defaultStore } from '@/store.js';
@@ -117,6 +116,7 @@ import XWidgetsColumn from '@/ui/deck/widgets-column.vue';
 import XMentionsColumn from '@/ui/deck/mentions-column.vue';
 import XDirectColumn from '@/ui/deck/direct-column.vue';
 import XRoleTimelineColumn from '@/ui/deck/role-timeline-column.vue';
+import { mainRouter } from '@/router/main.js';
 const XStatusBars = defineAsyncComponent(() => import('@/ui/_common_/statusbars.vue'));
 const XAnnouncements = defineAsyncComponent(() => import('@/ui/_common_/announcements.vue'));
 
@@ -189,7 +189,7 @@ const addColumn = async (ev) => {
 	const { canceled, result: column } = await os.select({
 		title: i18n.ts._deck.addColumn,
 		items: columns.map(column => ({
-			value: column, text: i18n.t('_deck._columns.' + column),
+			value: column, text: i18n.ts._deck._columns[column],
 		})),
 	});
 	if (canceled) return;
@@ -197,7 +197,7 @@ const addColumn = async (ev) => {
 	addColumnToStore({
 		type: column,
 		id: uuid(),
-		name: i18n.t('_deck._columns.' + column),
+		name: i18n.ts._deck._columns[column],
 		width: 330,
 	});
 };
@@ -237,11 +237,11 @@ function changeProfile(ev: MouseEvent) {
 			},
 		}))), { type: 'divider' }, {
 			text: i18n.ts._deck.newProfile,
-			icon: 'ti ti-plus',
+			icon: 'ph-plus ph-bold ph-lg',
 			action: async () => {
 				const { canceled, result: name } = await os.inputText({
 					title: i18n.ts._deck.profile,
-					allowEmpty: false,
+					minLength: 1,
 				});
 				if (canceled) return;
 
@@ -256,7 +256,7 @@ function changeProfile(ev: MouseEvent) {
 async function deleteProfile() {
 	const { canceled } = await os.confirm({
 		type: 'warning',
-		text: i18n.t('deleteAreYouSure', { x: deckStore.state.profile }),
+		text: i18n.tsx.deleteAreYouSure({ x: deckStore.state.profile }),
 	});
 	if (canceled) return;
 
@@ -278,7 +278,7 @@ body {
 	overscroll-behavior: none;
 }
 
-#misskey_app {
+#sharkey_app {
 	width: 100%;
 	height: 100%;
 	overflow: clip;
@@ -325,7 +325,7 @@ body {
 }
 
 .rootIsMobile {
-	padding-bottom: 100px;
+	padding-bottom: 58px;
 }
 
 .main {
@@ -446,20 +446,20 @@ body {
 .navButton {
 	position: relative;
 	padding: 0;
-	aspect-ratio: 1;
+	height: 32px;
 	width: 100%;
 	max-width: 60px;
 	margin: auto;
-	border-radius: 100%;
-	background: var(--panel);
+	border-radius: var(--radius-lg);
+	background: transparent;
 	color: var(--fg);
 
 	&:hover {
-		background: var(--panelHighlight);
+		color: var(--accent);
 	}
 
 	&:active {
-		background: var(--X2);
+		color: var(--accent);
 	}
 }
 
@@ -470,15 +470,17 @@ body {
 
 	&:hover {
 		background: linear-gradient(90deg, var(--X8), var(--X8));
+		color: var(--fgOnAccent);
 	}
 
 	&:active {
 		background: linear-gradient(90deg, var(--X8), var(--X8));
+		color: var(--fgOnAccent);
 	}
 }
 
 .navButtonIcon {
-	font-size: 18px;
+	font-size: 16px;
 	vertical-align: middle;
 }
 
@@ -488,7 +490,7 @@ body {
 	left: 0;
 	color: var(--indicator);
 	font-size: 16px;
-	animation: blink 1s infinite;
+	animation: global-blink 1s infinite;
 
 	&:has(.itemIndicateValueIcon) {
 		animation: none;

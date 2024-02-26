@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -43,6 +43,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
 	(ev: 'update:modelValue', value: number): void;
+	(ev: 'dragEnded', value: number): void;
 }>();
 
 const containerEl = shallowRef<HTMLElement>();
@@ -85,7 +86,7 @@ onMounted(() => {
 	ro = new ResizeObserver((entries, observer) => {
 		calcThumbPosition();
 	});
-	ro.observe(containerEl.value);
+	if (containerEl.value) ro.observe(containerEl.value);
 });
 
 onUnmounted(() => {
@@ -121,7 +122,7 @@ const onMousedown = (ev: MouseEvent | TouchEvent) => {
 	const onDrag = (ev: MouseEvent | TouchEvent) => {
 		ev.preventDefault();
 		const containerRect = containerEl.value!.getBoundingClientRect();
-		const pointerX = ev.touches && ev.touches.length > 0 ? ev.touches[0].clientX : ev.clientX;
+		const pointerX = 'touches' in ev && ev.touches.length > 0 ? ev.touches[0].clientX : 'clientX' in ev ? ev.clientX : 0;
 		const pointerPositionOnContainer = pointerX - (containerRect.left + (thumbWidth / 2));
 		rawValue.value = Math.min(1, Math.max(0, pointerPositionOnContainer / (containerEl.value!.offsetWidth - thumbWidth)));
 
@@ -143,6 +144,7 @@ const onMousedown = (ev: MouseEvent | TouchEvent) => {
 		// 値が変わってたら通知
 		if (beforeValue !== finalValue.value) {
 			emit('update:modelValue', finalValue.value);
+			emit('dragEnded', finalValue.value);
 		}
 	};
 
@@ -186,7 +188,7 @@ const onMousedown = (ev: MouseEvent | TouchEvent) => {
 		padding: 7px 12px;
 		background: var(--panel);
 		border: solid 1px var(--panel);
-		border-radius: 6px;
+		border-radius: var(--radius-sm);
 
 		> .container {
 			position: relative;
@@ -202,7 +204,7 @@ const onMousedown = (ev: MouseEvent | TouchEvent) => {
 				width: calc(100% - #{$thumbWidth});
 				height: 3px;
 				background: rgba(0, 0, 0, 0.1);
-				border-radius: 999px;
+				border-radius: var(--radius-ellipse);
 				overflow: clip;
 
 				> .highlight {
@@ -233,7 +235,7 @@ const onMousedown = (ev: MouseEvent | TouchEvent) => {
 					height: 3px;
 					margin-left: - math.div($tickWidth, 2);
 					background: var(--divider);
-					border-radius: 999px;
+					border-radius: var(--radius-ellipse);
 				}
 			}
 
@@ -243,7 +245,7 @@ const onMousedown = (ev: MouseEvent | TouchEvent) => {
 				height: $thumbHeight;
 				cursor: grab;
 				background: var(--accent);
-				border-radius: 999px;
+				border-radius: var(--radius-ellipse);
 
 				&:hover {
 					background: var(--accentLighten);

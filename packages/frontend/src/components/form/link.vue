@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -10,7 +10,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<span :class="$style.text"><slot></slot></span>
 		<span :class="$style.suffix">
 			<span :class="$style.suffixText"><slot name="suffix"></slot></span>
-			<i class="ti ti-external-link"></i>
+			<i class="ph-arrow-square-out ph-bold ph-lg"></i>
+		</span>
+	</a>
+	<a v-else-if="onClick" :class="[$style.main, { [$style.active]: active }]" class="_button" :behavior="behavior" @click="onClick">
+		<span :class="$style.icon"><slot name="icon"></slot></span>
+		<span :class="$style.text"><slot></slot></span>
+		<span :class="$style.suffix">
+			<span :class="$style.suffixText"><slot name="suffix"></slot></span>
+			<i class="ph-caret-right ph-bold ph-lg"></i>
 		</span>
 	</a>
 	<MkA v-else :class="[$style.main, { [$style.active]: active }]" class="_button" :to="to" :behavior="behavior">
@@ -18,7 +26,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<span :class="$style.text"><slot></slot></span>
 		<span :class="$style.suffix">
 			<span :class="$style.suffixText"><slot name="suffix"></slot></span>
-			<i class="ti ti-chevron-right"></i>
+			<i class="ph-caret-right ph-bold ph-lg"></i>
 		</span>
 	</MkA>
 </div>
@@ -31,6 +39,7 @@ const props = defineProps<{
 	to: string;
 	active?: boolean;
 	external?: boolean;
+	onClick?: () => void;
 	behavior?: null | 'window' | 'browser';
 	inline?: boolean;
 }>();
@@ -52,7 +61,7 @@ const props = defineProps<{
 	box-sizing: border-box;
 	padding: 10px 14px;
 	background: var(--buttonBg);
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	font-size: 0.9em;
 
 	&:hover {

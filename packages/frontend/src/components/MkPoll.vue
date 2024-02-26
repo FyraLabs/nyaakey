@@ -1,22 +1,24 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
 <div :class="{ [$style.done]: closed || isVoted }">
 	<ul :class="$style.choices">
-		<li v-for="(choice, i) in note.poll.choices" :key="i" :class="$style.choice" @click="vote(i)">
+		<li v-for="(choice, i) in poll.choices" :key="i" :class="$style.choice" @click="vote(i)">
 			<div :class="$style.bg" :style="{ 'width': `${showResult ? (choice.votes / total * 100) : 0}%` }"></div>
 			<span :class="$style.fg">
-				<template v-if="choice.isVoted"><i class="ti ti-check" style="margin-right: 4px; color: var(--accent);"></i></template>
+				<template v-if="choice.isVoted"><i class="ph-check ph-bold ph-lg" style="margin-right: 4px; color: var(--accent);"></i></template>
 				<Mfm :text="choice.text" :plain="true"/>
-				<span v-if="showResult" style="margin-left: 4px; opacity: 0.7;">({{ i18n.t('_poll.votesCount', { n: choice.votes }) }})</span>
+				<span v-if="showResult" style="margin-left: 4px; opacity: 0.7;">({{ i18n.tsx._poll.votesCount({ n: choice.votes }) }})</span>
 			</span>
 		</li>
 	</ul>
 	<p v-if="!readOnly" :class="$style.info">
-		<span>{{ i18n.t('_poll.totalVotes', { n: total }) }}</span>
+		<span>{{ i18n.tsx._poll.totalVotes({ n: total }) }}</span>
+		<span v-if="poll.multiple"> · </span>
+		<span v-if="poll.multiple" style="color: var(--accent); font-weight: bolder;">{{ i18n.ts._poll.multiple }}</span>
 		<span> · </span>
 		<a v-if="!closed && !isVoted" style="color: inherit;" @click="showResult = !showResult">{{ showResult ? i18n.ts._poll.vote : i18n.ts._poll.showResult }}</a>
 		<span v-if="isVoted">{{ i18n.ts._poll.voted }}</span>
@@ -32,35 +34,38 @@ import * as Misskey from 'misskey-js';
 import { sum } from '@/scripts/array.js';
 import { pleaseLogin } from '@/scripts/please-login.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 import { useInterval } from '@/scripts/use-interval.js';
 
 const props = defineProps<{
-	note: Misskey.entities.Note;
+	noteId: string;
+	poll: NonNullable<Misskey.entities.Note['poll']>;
 	readOnly?: boolean;
 }>();
 
 const remaining = ref(-1);
 
-const total = computed(() => sum(props.note.poll.choices.map(x => x.votes)));
+const total = computed(() => sum(props.poll.choices.map(x => x.votes)));
 const closed = computed(() => remaining.value === 0);
-const isVoted = computed(() => !props.note.poll.multiple && props.note.poll.choices.some(c => c.isVoted));
-const timer = computed(() => i18n.t(
-	remaining.value >= 86400 ? '_poll.remainingDays' :
-	remaining.value >= 3600 ? '_poll.remainingHours' :
-	remaining.value >= 60 ? '_poll.remainingMinutes' : '_poll.remainingSeconds', {
-		s: Math.floor(remaining.value % 60),
-		m: Math.floor(remaining.value / 60) % 60,
-		h: Math.floor(remaining.value / 3600) % 24,
-		d: Math.floor(remaining.value / 86400),
-	}));
+const isVoted = computed(() => !props.poll.multiple && props.poll.choices.some(c => c.isVoted));
+const timer = computed(() => i18n.tsx._poll[
+	remaining.value >= 86400 ? 'remainingDays' :
+	remaining.value >= 3600 ? 'remainingHours' :
+	remaining.value >= 60 ? 'remainingMinutes' : 'remainingSeconds'
+]({
+	s: Math.floor(remaining.value % 60),
+	m: Math.floor(remaining.value / 60) % 60,
+	h: Math.floor(remaining.value / 3600) % 24,
+	d: Math.floor(remaining.value / 86400),
+}));
 
 const showResult = ref(props.readOnly || isVoted.value);
 
 // 期限付きアンケート
-if (props.note.poll.expiresAt) {
+if (props.poll.expiresAt) {
 	const tick = () => {
-		remaining.value = Math.floor(Math.max(new Date(props.note.poll.expiresAt).getTime() - Date.now(), 0) / 1000);
+		remaining.value = Math.floor(Math.max(new Date(props.poll.expiresAt!).getTime() - Date.now(), 0) / 1000);
 		if (remaining.value === 0) {
 			showResult.value = true;
 		}
@@ -76,18 +81,25 @@ const vote = async (id) => {
 	pleaseLogin();
 
 	if (props.readOnly || closed.value || isVoted.value) return;
+	if (!props.poll.multiple) {
+		const { canceled } = await os.confirm({
+			type: 'question',
+			text: i18n.tsx.voteConfirm({ choice: props.poll.choices[id].text }),
+		});
+		if (canceled) return;
+	} else {
+		const { canceled } = await os.confirm({
+			type: 'question',
+			text: i18n.tsx.voteConfirmMulti({ choice: props.poll.choices[id].text }),
+		});
+		if (canceled) return;
+	}
 
-	const { canceled } = await os.confirm({
-		type: 'question',
-		text: i18n.t('voteConfirm', { choice: props.note.poll.choices[id].text }),
-	});
-	if (canceled) return;
-
-	await os.api('notes/polls/vote', {
-		noteId: props.note.id,
+	await misskeyApi('notes/polls/vote', {
+		noteId: props.noteId,
 		choice: id,
 	});
-	if (!showResult.value) showResult.value = !props.note.poll.multiple;
+	if (!showResult.value) showResult.value = !props.poll.multiple;
 };
 </script>
 
@@ -106,7 +118,7 @@ const vote = async (id) => {
 	padding: 4px;
 	//border: solid 0.5px var(--divider);
 	background: var(--accentedBg);
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 	overflow: clip;
 	cursor: pointer;
 }
@@ -126,7 +138,7 @@ const vote = async (id) => {
 	display: inline-block;
 	padding: 3px 5px;
 	background: var(--panel);
-	border-radius: 3px;
+	border-radius: var(--radius-xs);
 }
 
 .info {

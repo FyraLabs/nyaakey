@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -11,12 +11,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 	:withOkButton="true"
 	:okButtonDisabled="false"
 	@ok="ok()"
-	@close="dialog.close()"
+	@close="dialog?.close()"
 	@closed="emit('closed')"
 >
 	<template #header>{{ i18n.ts.describeFile }}</template>
 	<MkSpacer :marginMin="20" :marginMax="28">
-		<MkDriveFileThumbnail :file="file" fit="contain" style="height: 100px; margin-bottom: 16px;"/>
+		<MkDriveFileThumbnail :file="file" fit="contain" style="height: 193px; margin-bottom: 16px;"/>
 		<MkTextarea v-model="caption" autofocus :placeholder="i18n.ts.inputNewDescription">
 			<template #label>{{ i18n.ts.caption }}</template>
 		</MkTextarea>
@@ -48,6 +48,6 @@ const caption = ref(props.default);
 
 async function ok() {
 	emit('done', caption.value);
-	dialog.value.close();
+	dialog.value?.close();
 }
 </script>

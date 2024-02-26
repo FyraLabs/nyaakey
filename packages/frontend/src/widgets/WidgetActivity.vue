@@ -1,13 +1,13 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
 <MkContainer :showHeader="widgetProps.showHeader" :naked="widgetProps.transparent" data-cy-mkw-activity class="mkw-activity">
-	<template #icon><i class="ti ti-chart-line"></i></template>
+	<template #icon><i class="ph-chart-line ph-bold ph-lg"></i></template>
 	<template #header>{{ i18n.ts._widgets.activity }}</template>
-	<template #func="{ buttonStyleClass }"><button class="_button" :class="buttonStyleClass" @click="toggleView()"><i class="ti ti-selector"></i></button></template>
+	<template #func="{ buttonStyleClass }"><button class="_button" :class="buttonStyleClass" @click="toggleView()"><i class="ph-caret-up-down ph-bold ph-lg"></i></button></template>
 
 	<div>
 		<MkLoading v-if="fetching"/>
@@ -25,7 +25,7 @@ import { useWidgetPropsManager, WidgetComponentEmits, WidgetComponentExpose, Wid
 import XCalendar from './WidgetActivity.calendar.vue';
 import XChart from './WidgetActivity.chart.vue';
 import { GetFormResultType } from '@/scripts/form.js';
-import * as os from '@/os.js';
+import { misskeyApiGet } from '@/scripts/misskey-api.js';
 import MkContainer from '@/components/MkContainer.vue';
 import { $i } from '@/account.js';
 import { i18n } from '@/i18n.js';
@@ -76,7 +76,7 @@ const toggleView = () => {
 	save();
 };
 
-os.apiGet('charts/user/notes', {
+misskeyApiGet('charts/user/notes', {
 	userId: $i.id,
 	span: 'day',
 	limit: 7 * 21,

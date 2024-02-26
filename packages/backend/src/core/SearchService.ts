@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -81,7 +81,7 @@ export class SearchService {
 		private idService: IdService,
 	) {
 		if (meilisearch) {
-			this.meilisearchNoteIndex = meilisearch.index(`${config.meilisearch!.index}---notes`);
+			this.meilisearchNoteIndex = meilisearch.index(`${this.config.meilisearch?.index}---notes`);
 			this.meilisearchNoteIndex.updateSettings({
 				searchableAttributes: [
 					'text',
@@ -96,6 +96,7 @@ export class SearchService {
 					'userHost',
 					'channelId',
 					'tags',
+					'attachedFileTypes',
 				],
 				typoTolerance: {
 					enabled: false,
@@ -106,8 +107,8 @@ export class SearchService {
 			});
 		}
 
-		if (config.meilisearch?.scope) {
-			this.meilisearchIndexScope = config.meilisearch.scope;
+		if (this.config.meilisearch?.scope) {
+			this.meilisearchIndexScope = this.config.meilisearch.scope;
 		}
 	}
 
@@ -141,6 +142,7 @@ export class SearchService {
 				cw: note.cw,
 				text: note.text,
 				tags: note.tags,
+				attachedFileTypes: note.attachedFileTypes,
 			}], {
 				primaryKey: 'id',
 			});
@@ -161,12 +163,15 @@ export class SearchService {
 		userId?: MiNote['userId'] | null;
 		channelId?: MiNote['channelId'] | null;
 		host?: string | null;
+		filetype?: string | null;
+		order?: string | null;
+		disableMeili?: boolean | null;
 	}, pagination: {
 		untilId?: MiNote['id'];
 		sinceId?: MiNote['id'];
 		limit?: number;
 	}): Promise<MiNote[]> {
-		if (this.meilisearch) {
+		if (this.meilisearch && !opts.disableMeili) {
 			const filter: Q = {
 				op: 'and',
 				qs: [],
@@ -182,8 +187,46 @@ export class SearchService {
 					filter.qs.push({ op: '=', k: 'userHost', v: opts.host });
 				}
 			}
+			if (opts.filetype) {
+				if (opts.filetype === 'image') {
+					filter.qs.push({ op: 'or', qs: [
+						{ op: '=', k: 'attachedFileTypes', v: 'image/webp' }, 
+						{ op: '=', k: 'attachedFileTypes', v: 'image/png' },
+						{ op: '=', k: 'attachedFileTypes', v: 'image/jpeg' },
+						{ op: '=', k: 'attachedFileTypes', v: 'image/avif' },
+						{ op: '=', k: 'attachedFileTypes', v: 'image/apng' },
+						{ op: '=', k: 'attachedFileTypes', v: 'image/gif' },
+					] });
+				} else if (opts.filetype === 'video') {
+					filter.qs.push({ op: 'or', qs: [
+						{ op: '=', k: 'attachedFileTypes', v: 'video/mp4' }, 
+						{ op: '=', k: 'attachedFileTypes', v: 'video/webm' },
+						{ op: '=', k: 'attachedFileTypes', v: 'video/mpeg' },
+						{ op: '=', k: 'attachedFileTypes', v: 'video/x-m4v' },
+					] });
+				} else if (opts.filetype === 'audio') {
+					filter.qs.push({ op: 'or', qs: [
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/mpeg' }, 
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/flac' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/wav' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/aac' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/webm' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/opus' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/ogg' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/x-m4a' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/mod' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/s3m' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/xm' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/it' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/x-mod' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/x-s3m' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/x-xm' },
+						{ op: '=', k: 'attachedFileTypes', v: 'audio/x-it' },
+					] });
+				}
+			}
 			const res = await this.meilisearchNoteIndex!.search(q, {
-				sort: ['createdAt:desc'],
+				sort: [`createdAt:${opts.order ? opts.order : 'desc'}`],
 				matchingStrategy: 'all',
 				attributesToRetrieve: ['id', 'createdAt'],
 				filter: compileQuery(filter),
@@ -228,6 +271,21 @@ export class SearchService {
 				} else {
 					query.andWhere('user.host = :host', { host: opts.host });
 				}
+			}
+
+			if (opts.filetype) {
+				/* this is very ugly, but the "correct" solution would
+				  be `and exists (select 1 from
+				  unnest(note."attachedFileTypes") x(t) where t like
+				  :type)` and I can't find a way to get TypeORM to
+				  generate that; this hack works because `~*` is
+				  "regexp match, ignoring case" and the stringified
+				  version of an array of varchars (which is what
+				  `attachedFileTypes` is) looks like `{foo,bar}`, so
+				  we're looking for opts.filetype as the first half of
+				  a MIME type, either at start of the array (after the
+				  `{`) or later (after a `,`) */
+				query.andWhere(`note."attachedFileTypes"::varchar ~* :type`, { type: `[{,]${opts.filetype}/` });
 			}
 
 			this.queryService.generateVisibilityQuery(query, me);

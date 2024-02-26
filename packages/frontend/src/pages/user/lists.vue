@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -45,7 +45,7 @@ const pagination = {
 	display: block;
 	padding: 16px;
 	border: solid 1px var(--divider);
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	margin-bottom: 8px;
 
 	&:hover {

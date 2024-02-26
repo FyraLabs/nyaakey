@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -22,19 +22,19 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<XWidgets/>
 	</div>
 
-	<button v-if="(!isDesktop || pageMetadata?.needWideArea) && !isMobile" :class="$style.widgetButton" class="_button" @click="widgetsShowing = true"><i class="ti ti-apps"></i></button>
+	<button v-if="(!isDesktop || pageMetadata?.needWideArea) && !isMobile" :class="$style.widgetButton" class="_button" @click="widgetsShowing = true"><i class="ph-stack ph-bold ph-lg"></i></button>
 
 	<div v-if="isMobile" ref="navFooter" :class="$style.nav">
-		<button :class="$style.navButton" class="_button" @click="drawerMenuShowing = true"><i :class="$style.navButtonIcon" class="ti ti-menu-2"></i><span v-if="menuIndicated" :class="$style.navButtonIndicator"><i class="_indicatorCircle"></i></span></button>
-		<button :class="$style.navButton" class="_button" @click="mainRouter.currentRoute.value.name === 'index' ? top() : mainRouter.push('/')"><i :class="$style.navButtonIcon" class="ti ti-home"></i></button>
+		<button :class="$style.navButton" class="_button" @click="drawerMenuShowing = true"><i :class="$style.navButtonIcon" class="ph-list ph-bold ph-lg-2"></i><span v-if="menuIndicated" :class="$style.navButtonIndicator"><i class="_indicatorCircle"></i></span></button>
+		<button :class="$style.navButton" class="_button" @click="isRoot ? top() : mainRouter.push('/')"><i :class="$style.navButtonIcon" class="ph-house ph-bold ph-lg"></i></button>
 		<button :class="$style.navButton" class="_button" @click="mainRouter.push('/my/notifications')">
-			<i :class="$style.navButtonIcon" class="ti ti-bell"></i>
+			<i :class="$style.navButtonIcon" class="ph-bell ph-bold ph-lg"></i>
 			<span v-if="$i?.hasUnreadNotification" :class="$style.navButtonIndicator">
 				<span class="_indicateCounter" :class="$style.itemIndicateValueIcon">{{ $i.unreadNotificationsCount > 99 ? '99+' : $i.unreadNotificationsCount }}</span>
 			</span>
 		</button>
-		<button :class="$style.navButton" class="_button" @click="widgetsShowing = true"><i :class="$style.navButtonIcon" class="ti ti-apps"></i></button>
-		<button :class="$style.postButton" class="_button" @click="os.post()"><i :class="$style.navButtonIcon" class="ti ti-pencil"></i></button>
+		<button :class="$style.navButton" class="_button" @click="widgetsShowing = true"><i :class="$style.navButtonIcon" class="ph-stack ph-bold ph-lg"></i></button>
+		<button :class="$style.postButton" class="_button" @click="os.post()"><i :class="$style.navButtonIcon" class="ph-pencil-simple ph-bold ph-lg"></i></button>
 	</div>
 
 	<Transition
@@ -85,7 +85,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		:leaveToClass="defaultStore.state.animation ? $style.transition_widgetsDrawer_leaveTo : ''"
 	>
 		<div v-if="widgetsShowing" :class="$style.widgetsDrawer">
-			<button class="_button" :class="$style.widgetsCloseButton" @click="widgetsShowing = false"><i class="ti ti-x"></i></button>
+			<button class="_button" :class="$style.widgetsCloseButton" @click="widgetsShowing = false"><i class="ph-x ph-bold ph-lg"></i></button>
 			<XWidgets/>
 		</div>
 	</Transition>
@@ -105,17 +105,19 @@ import { defaultStore } from '@/store.js';
 import { navbarItemDef } from '@/navbar.js';
 import { i18n } from '@/i18n.js';
 import { $i } from '@/account.js';
-import { mainRouter } from '@/router.js';
-import { PageMetadata, provideMetadataReceiver } from '@/scripts/page-metadata.js';
+import { PageMetadata, provideMetadataReceiver, provideReactiveMetadata } from '@/scripts/page-metadata.js';
 import { deviceKind } from '@/scripts/device-kind.js';
 import { miLocalStorage } from '@/local-storage.js';
 import { CURRENT_STICKY_BOTTOM } from '@/const.js';
 import { useScrollPositionManager } from '@/nirax.js';
+import { mainRouter } from '@/router/main.js';
 
 const XWidgets = defineAsyncComponent(() => import('./universal.widgets.vue'));
 const XSidebar = defineAsyncComponent(() => import('@/ui/_common_/navbar.vue'));
 const XStatusBars = defineAsyncComponent(() => import('@/ui/_common_/statusbars.vue'));
 const XAnnouncements = defineAsyncComponent(() => import('@/ui/_common_/announcements.vue'));
+
+const isRoot = computed(() => mainRouter.currentRoute.value.name === 'index');
 
 const DESKTOP_THRESHOLD = 1100;
 const MOBILE_THRESHOLD = 500;
@@ -127,18 +129,24 @@ window.addEventListener('resize', () => {
 	isMobile.value = deviceKind === 'smartphone' || window.innerWidth <= MOBILE_THRESHOLD;
 });
 
-const pageMetadata = ref<null | PageMetadata>();
+const pageMetadata = ref<null | PageMetadata>(null);
 const widgetsShowing = ref(false);
 const navFooter = shallowRef<HTMLElement>();
 const contents = shallowRef<InstanceType<typeof MkStickyContainer>>();
 
 provide('router', mainRouter);
-provideMetadataReceiver((info) => {
-	pageMetadata.value = info.value;
+provideMetadataReceiver((metadataGetter) => {
+	const info = metadataGetter();
+	pageMetadata.value = info;
 	if (pageMetadata.value) {
-		document.title = `${pageMetadata.value.title} | ${instanceName}`;
+		if (isRoot.value && pageMetadata.value.title === instanceName) {
+			document.title = pageMetadata.value.title;
+		} else {
+			document.title = `${pageMetadata.value.title} | ${instanceName}`;
+		}
 	}
 });
+provideReactiveMetadata(pageMetadata);
 
 const menuIndicated = computed(() => {
 	for (const def in navbarItemDef) {
@@ -201,7 +209,7 @@ const onContextmenu = (ev) => {
 		type: 'label',
 		text: path,
 	}, {
-		icon: 'ti ti-window-maximize',
+		icon: 'ph-frame-corners ph-bold ph-lg',
 		text: i18n.ts.openInWindow,
 		action: () => {
 			os.pageWindow(path);
@@ -248,7 +256,7 @@ body {
 	overscroll-behavior: none;
 }
 
-#misskey_app {
+#sharkey_app {
 	width: 100%;
 	height: 100%;
 	overflow: clip;
@@ -324,7 +332,7 @@ $widgets-hide-threshold: 1090px;
 	min-width: 0;
 	overflow: auto;
 	overflow-y: scroll;
-	overscroll-behavior: contain;
+	overscroll-behavior: unset;
 	background: var(--bg);
 }
 
@@ -350,7 +358,7 @@ $widgets-hide-threshold: 1090px;
 	right: 32px;
 	width: 64px;
 	height: 64px;
-	border-radius: 100%;
+	border-radius: var(--radius-full);
 	box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2), 0 6px 10px 0 rgba(0, 0, 0, 0.14), 0 1px 18px 0 rgba(0, 0, 0, 0.12);
 	font-size: 22px;
 	background: var(--panel);
@@ -406,20 +414,20 @@ $widgets-hide-threshold: 1090px;
 .navButton {
 	position: relative;
 	padding: 0;
-	aspect-ratio: 1;
+	height: 32px;
 	width: 100%;
 	max-width: 60px;
 	margin: auto;
-	border-radius: 100%;
-	background: var(--panel);
+	border-radius: var(--radius-lg);
+	background: transparent;
 	color: var(--fg);
 
 	&:hover {
-		background: var(--panelHighlight);
+		color: var(--accent);
 	}
 
 	&:active {
-		background: var(--X2);
+		color: var(--accent);
 	}
 }
 
@@ -430,15 +438,17 @@ $widgets-hide-threshold: 1090px;
 
 	&:hover {
 		background: linear-gradient(90deg, var(--X8), var(--X8));
+		color: var(--fgOnAccent);
 	}
 
 	&:active {
 		background: linear-gradient(90deg, var(--X8), var(--X8));
+		color: var(--fgOnAccent);
 	}
 }
 
 .navButtonIcon {
-	font-size: 18px;
+	font-size: 16px;
 	vertical-align: middle;
 }
 
@@ -448,7 +458,7 @@ $widgets-hide-threshold: 1090px;
 	left: 0;
 	color: var(--indicator);
 	font-size: 16px;
-	animation: blink 1s infinite;
+	animation: global-blink 1s infinite;
 
 	&:has(.itemIndicateValueIcon) {
 		animation: none;

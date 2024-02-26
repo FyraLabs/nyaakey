@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<XQueue v-if="tab === 'deliver'" domain="deliver"/>
 		<XQueue v-else-if="tab === 'inbox'" domain="inbox"/>
 		<br>
-		<MkButton @click="promoteAllQueues"><i class="ti ti-reload"></i> {{ i18n.ts.retryAllQueuesNow }}</MkButton>
+		<MkButton @click="promoteAllQueues"><i class="ph-arrow-clockwise ph-bold ph-lg"></i> {{ i18n.ts.retryAllQueuesNow }}</MkButton>
 	</MkSpacer>
 </MkStickyContainer>
 </template>
@@ -53,7 +53,7 @@ function promoteAllQueues() {
 
 const headerActions = computed(() => [{
 	asFullButton: true,
-	icon: 'ti ti-external-link',
+	icon: 'ph-arrow-square-out ph-bold ph-lg',
 	text: i18n.ts.dashboard,
 	handler: () => {
 		window.open(config.url + '/queue', '_blank', 'noopener');
@@ -68,8 +68,8 @@ const headerTabs = computed(() => [{
 	title: 'Inbox',
 }]);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.jobQueue,
-	icon: 'ti ti-clock-play',
-});
+	icon: 'ph-clock ph-bold ph-lg-play',
+}));
 </script>

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -15,6 +15,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div v-if="user != null">
 			<div :class="$style.banner" :style="user.bannerUrl ? `background-image: url(${user.bannerUrl})` : ''">
 				<span v-if="$i && $i.id != user.id && user.isFollowed" :class="$style.followed">{{ i18n.ts.followsYou }}</span>
+				<span v-if="user.isLocked && $i && $i.id != user.id && !user.isFollowing" :title="i18n.ts.isLocked" :class="$style.locked"><i class="ph-lock ph-bold ph-lg"></i></span>
 			</div>
 			<svg viewBox="0 0 128 128" :class="$style.avatarBack">
 				<g transform="matrix(1.6,0,0,1.6,-38.4,-51.2)">
@@ -27,8 +28,19 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<div :class="$style.username"><MkAcct :user="user"/></div>
 			</div>
 			<div :class="$style.description">
-				<Mfm v-if="user.description" :class="$style.mfm" :text="user.description" :author="user"/>
+				<Mfm v-if="user.description" :nyaize="false" :class="$style.mfm" :text="user.description" :author="user"/>
 				<div v-else style="opacity: 0.7;">{{ i18n.ts.noAccountDescription }}</div>
+			</div>
+			<div v-if="user.fields.length > 0" :class="$style.fields">
+				<dl v-for="(field, i) in user.fields" :key="i" :class="$style.field">
+					<dt :class="$style.fieldname">
+						<Mfm :text="field.name" :nyaize="false" :plain="true" :colored="false"/>
+					</dt>
+					<dd :class="$style.fieldvalue">
+						<Mfm :text="field.value" :nyaize="false" :author="user" :colored="false"/>
+						<i v-if="user.verifiedLinks.includes(field.value)" v-tooltip:dialog="i18n.ts.verifiedLink" class="ph-seal-check ph-bold ph-lg" :class="$style.verifiedLink"></i>
+					</dd>
+				</dl>
 			</div>
 			<div :class="$style.status">
 				<div :class="$style.statusItem">
@@ -44,7 +56,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 					<div>{{ number(user.followersCount) }}</div>
 				</div>
 			</div>
-			<button class="_button" :class="$style.menu" @click="showMenu"><i class="ti ti-dots"></i></button>
+			<button class="_button" :class="$style.menu" @click="showMenu"><i class="ph-dots-three ph-bold ph-lg"></i></button>
 			<MkFollowButton v-if="$i && user.id != $i.id" v-model:user="user" :class="$style.follow" mini/>
 		</div>
 		<div v-else>
@@ -60,6 +72,7 @@ import * as Misskey from 'misskey-js';
 import MkFollowButton from '@/components/MkFollowButton.vue';
 import { userPage } from '@/filters/user.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { getUserMenu } from '@/scripts/get-user-menu.js';
 import number from '@/filters/number.js';
 import { i18n } from '@/i18n.js';
@@ -85,6 +98,7 @@ const top = ref(0);
 const left = ref(0);
 
 function showMenu(ev: MouseEvent) {
+	if (user.value == null) return;
 	const { menu, cleanup } = getUserMenu(user.value);
 	os.popupMenu(menu, ev.currentTarget ?? ev.target).finally(cleanup);
 }
@@ -97,7 +111,7 @@ onMounted(() => {
 			Misskey.acct.parse(props.q.substring(1)) :
 			{ userId: props.q };
 
-		os.api('users/show', query).then(res => {
+		misskeyApi('users/show', query).then(res => {
 			if (!props.showing) return;
 			user.value = res;
 		});
@@ -145,7 +159,29 @@ onMounted(() => {
 	color: #fff;
 	background: rgba(0, 0, 0, 0.7);
 	font-size: 0.7em;
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
+}
+
+.locked:first-child {
+	position: absolute;
+	top: 12px;
+	left: 12px;
+	padding: 4px 8px;
+	color: #fff;
+	background: rgba(0, 0, 0, 0.7);
+	font-size: 0.7em;
+	border-radius: var(--radius-xs);
+}
+
+.locked:not(:first-child) {
+	position: absolute;
+	top: 34px;
+	left: 12px;
+	padding: 4px 8px;
+	color: #fff;
+	background: rgba(0, 0, 0, 0.7);
+	font-size: 0.7em;
+	border-radius: var(--radius-xs);
 }
 
 .avatarBack {
@@ -165,8 +201,8 @@ onMounted(() => {
 	right: 0;
 	margin: 0 auto;
 	z-index: 2;
-	width: 58px;
-	height: 58px;
+	width: var(--avatar);
+	height: var(--avatar);
 }
 
 .title {
@@ -198,6 +234,48 @@ onMounted(() => {
 	border-bottom: solid 1px var(--divider);
 }
 
+.fields {
+	font-size: 0.8em;
+	padding: 16px;
+	border-top: solid 1px var(--divider);
+	border-bottom: solid 1px var(--divider);
+}
+
+.field {
+	display: flex;
+	padding: 0;
+	margin: 0;
+
+	&:not(:last-child) {
+		margin-bottom: 8px;
+	}
+
+	:deep(span) {
+		white-space: nowrap !important;
+	}
+}
+
+.fieldvalue {
+	width: 70%;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	word-wrap: nowrap;
+	margin: 0;
+}
+
+.fieldname {
+	width: 100px;
+	max-height: 45px;
+	overflow: hidden;
+	white-space: nowrap;
+	display: inline;
+	text-overflow: ellipsis;
+	font-weight: bold;
+	text-align: center;
+	padding-inline-end: 10px;
+}
+
 .mfm {
 	display: -webkit-box;
 	-webkit-line-clamp: 5;
@@ -226,7 +304,7 @@ onMounted(() => {
 	right: 44px;
 	padding: 6px;
 	background: var(--panel);
-	border-radius: 999px;
+	border-radius: var(--radius-ellipse);
 }
 
 .follow {

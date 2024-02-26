@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <div>
 	<MkPagination v-slot="{items}" :pagination="pagination" class="urempief" :class="{ grid: viewMode === 'grid' }">
 		<MkA
-			v-for="file in items"
+			v-for="file in (items as Misskey.entities.DriveFile[])"
 			:key="file.id"
 			v-tooltip.mfm="`${file.type}\n${bytes(file.size)}\n${dateString(file.createdAt)}\nby ${file.user ? '@' + Misskey.acct.toString(file.user) : 'system'}`"
 			:to="`/admin/file/${file.id}`"
@@ -108,7 +108,7 @@ const props = defineProps<{
 				padding: 2px 4px;
 				background: #ff0000bf;
 				color: #fff;
-				border-radius: 4px;
+				border-radius: var(--radius-xs);
 				font-size: 85%;
 				animation: sensitive-blink 1s infinite;
 			}

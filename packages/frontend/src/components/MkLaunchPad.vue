@@ -1,10 +1,10 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-<MkModal ref="modal" v-slot="{ type, maxHeight }" :preferType="preferedModalType" :anchor="anchor" :transparentBg="true" :src="src" @click="modal.close()" @closed="emit('closed')">
+<MkModal ref="modal" v-slot="{ type, maxHeight }" :preferType="preferedModalType" :anchor="anchor" :transparentBg="true" :src="src" @click="modal?.close()" @closed="emit('closed')">
 	<div class="szkkfdyq _popup _shadow" :class="{ asDrawer: type === 'drawer' }" :style="{ maxHeight: maxHeight ? maxHeight + 'px' : '' }">
 		<div class="main">
 			<template v-for="item in items" :key="item.text">
@@ -63,7 +63,7 @@ const items = Object.keys(navbarItemDef).filter(k => !menu.includes(k)).map(k =>
 }));
 
 function close() {
-	modal.value.close();
+	modal.value?.close();
 }
 </script>
 
@@ -77,12 +77,12 @@ function close() {
 	overflow: auto;
 	overscroll-behavior: contain;
 	text-align: left;
-	border-radius: 16px;
+	border-radius: var(--radius-md);
 
 	&.asDrawer {
 		width: 100%;
 		padding: 16px 16px max(env(safe-area-inset-bottom, 0px), 16px) 16px;
-		border-radius: 24px;
+		border-radius: var(--radius-lg);
 		border-bottom-right-radius: 0;
 		border-bottom-left-radius: 0;
 		text-align: center;
@@ -100,7 +100,7 @@ function close() {
 			justify-content: center;
 			vertical-align: bottom;
 			height: 100px;
-			border-radius: 10px;
+			border-radius: var(--radius);
 			padding: 10px;
 			box-sizing: border-box;
 
@@ -119,6 +119,7 @@ function close() {
 				margin-top: 12px;
 				font-size: 0.8em;
 				line-height: 1.5em;
+				text-align: center;
 			}
 
 			> .indicatorWithValue {
@@ -138,7 +139,7 @@ function close() {
 				left: 32px;
 				color: var(--indicator);
 				font-size: 8px;
-				animation: blink 1s infinite;
+				animation: global-blink 1s infinite;
 
 				@media (max-width: 500px) {
 					top: 16px;

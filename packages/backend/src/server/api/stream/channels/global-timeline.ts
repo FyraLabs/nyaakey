@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -20,6 +20,7 @@ class GlobalTimelineChannel extends Channel {
 	public static requireCredential = false as const;
 	private withRenotes: boolean;
 	private withFiles: boolean;
+	private withBots: boolean;
 
 	constructor(
 		private metaService: MetaService,
@@ -40,6 +41,7 @@ class GlobalTimelineChannel extends Channel {
 
 		this.withRenotes = params.withRenotes ?? true;
 		this.withFiles = params.withFiles ?? false;
+		this.withBots = params.withBots ?? true;
 
 		// Subscribe events
 		this.subscriber.on('notesStream', this.onNote);
@@ -48,6 +50,7 @@ class GlobalTimelineChannel extends Channel {
 	@bindThis
 	private async onNote(note: Packed<'Note'>) {
 		if (this.withFiles && (note.fileIds == null || note.fileIds.length === 0)) return;
+		if (!this.withBots && note.user.isBot) return;
 
 		if (note.visibility !== 'public') return;
 		if (note.channelId != null) return;
@@ -59,15 +62,20 @@ class GlobalTimelineChannel extends Channel {
 			if (reply.userId !== this.user!.id && note.userId !== this.user!.id && reply.userId !== note.userId) return;
 		}
 
+		if (note.user.isSilenced && !this.following[note.userId] && note.userId !== this.user!.id) return;
+
 		if (note.renote && note.text == null && (note.fileIds == null || note.fileIds.length === 0) && !this.withRenotes) return;
 
 		// Ignore notes from instances the user has muted
-		if (isInstanceMuted(note, new Set<string>(this.userProfile?.mutedInstances ?? []))) return;
+		if (isInstanceMuted(note, new Set<string>(this.userProfile?.mutedInstances ?? [])) && !this.following[note.userId]) return;
 
 		// 流れてきたNoteがミュートしているユーザーが関わるものだったら無視する
 		if (isUserRelated(note, this.userIdsWhoMeMuting)) return;
 		// 流れてきたNoteがブロックされているユーザーが関わるものだったら無視する
 		if (isUserRelated(note, this.userIdsWhoBlockingMe)) return;
+
+		if (note.renote && !note.text && note.renote.mentions?.some(mention => this.userIdsWhoMeMuting.has(mention))) return;
+		if (note.mentions?.some(mention => this.userIdsWhoMeMuting.has(mention))) return;
 
 		if (note.renote && !note.text && isUserRelated(note, this.userIdsWhoMeMutingRenotes)) return;
 

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -10,7 +10,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div :class="$style.root">
 			<img :class="$style.img" :src="serverErrorImageUrl" class="_ghost"/>
 			<p :class="$style.text">
-				<i class="ti ti-alert-triangle"></i>
+				<i class="ph-warning ph-bold ph-lg"></i>
 				{{ error }}
 			</p>
 		</div>
@@ -38,7 +38,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <script lang="ts" setup>
 import { computed, watch, ref } from 'vue';
 import * as Misskey from 'misskey-js';
-import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import MkUserList from '@/components/MkUserList.vue';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { i18n } from '@/i18n.js';
@@ -59,7 +59,7 @@ const error = ref();
 const visible = ref(false);
 
 watch(() => props.role, () => {
-	os.api('roles/show', {
+	misskeyApi('roles/show', {
 		roleId: props.role,
 	}).then(res => {
 		role.value = res;
@@ -85,18 +85,18 @@ const users = computed(() => ({
 
 const headerTabs = computed(() => [{
 	key: 'users',
-	icon: 'ti ti-users',
+	icon: 'ph-users ph-bold ph-lg',
 	title: i18n.ts.users,
 }, {
 	key: 'timeline',
-	icon: 'ti ti-pencil',
+	icon: 'ph-pencil-simple ph-bold ph-lg',
 	title: i18n.ts.timeline,
 }]);
 
-definePageMetadata(computed(() => ({
-	title: role.value?.name,
-	icon: 'ti ti-badge',
-})));
+definePageMetadata(() => ({
+	title: role.value ? role.value.name : i18n.ts.role,
+	icon: 'ph-seal-check ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>
@@ -115,7 +115,7 @@ definePageMetadata(computed(() => ({
   width: 128px;
 	height: 128px;
 	margin-bottom: 16px;
-	border-radius: 16px;
+	border-radius: var(--radius-md);
 }
 </style>
 

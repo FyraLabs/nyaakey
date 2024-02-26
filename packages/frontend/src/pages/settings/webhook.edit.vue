@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -14,7 +14,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 	</MkInput>
 
 	<MkInput v-model="secret">
-		<template #prefix><i class="ti ti-lock"></i></template>
+		<template #prefix><i class="ph-lock ph-bold ph-lg"></i></template>
 		<template #label>{{ i18n.ts._webhookSettings.secret }}</template>
 	</MkInput>
 
@@ -35,8 +35,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<MkSwitch v-model="active">{{ i18n.ts._webhookSettings.active }}</MkSwitch>
 
 	<div class="_buttons">
-		<MkButton primary inline @click="save"><i class="ti ti-check"></i> {{ i18n.ts.save }}</MkButton>
-		<MkButton danger inline @click="del"><i class="ti ti-trash"></i> {{ i18n.ts.delete }}</MkButton>
+		<MkButton primary inline @click="save"><i class="ph-check ph-bold ph-lg"></i> {{ i18n.ts.save }}</MkButton>
+		<MkButton danger inline @click="del"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts.delete }}</MkButton>
 	</div>
 </div>
 </template>
@@ -48,9 +48,10 @@ import FormSection from '@/components/form/section.vue';
 import MkSwitch from '@/components/MkSwitch.vue';
 import MkButton from '@/components/MkButton.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
-import { useRouter } from '@/router.js';
+import { useRouter } from '@/router/supplier.js';
 
 const router = useRouter();
 
@@ -58,7 +59,7 @@ const props = defineProps<{
 	webhookId: string;
 }>();
 
-const webhook = await os.api('i/webhooks/show', {
+const webhook = await misskeyApi('i/webhooks/show', {
 	webhookId: props.webhookId,
 });
 
@@ -98,7 +99,7 @@ async function save(): Promise<void> {
 async function del(): Promise<void> {
 	const { canceled } = await os.confirm({
 		type: 'warning',
-		text: i18n.t('deleteAreYouSure', { x: webhook.name }),
+		text: i18n.tsx.deleteAreYouSure({ x: webhook.name }),
 	});
 	if (canceled) return;
 
@@ -113,8 +114,8 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: 'Edit webhook',
-	icon: 'ti ti-webhook',
-});
+	icon: 'ph-webhooks-logo ph-bold ph-lg',
+}));
 </script>

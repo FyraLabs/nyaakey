@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -34,6 +34,7 @@ import type { OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
 export type RolePolicies = {
 	gtlAvailable: boolean;
 	ltlAvailable: boolean;
+	btlAvailable: boolean;
 	canPublicNote: boolean;
 	canInvite: boolean;
 	inviteLimit: number;
@@ -55,12 +56,14 @@ export type RolePolicies = {
 	userListLimit: number;
 	userEachUserListsLimit: number;
 	rateLimitFactor: number;
+	canImportNotes: boolean;
 	avatarDecorationLimit: number;
 };
 
 export const DEFAULT_POLICIES: RolePolicies = {
 	gtlAvailable: true,
 	ltlAvailable: true,
+	btlAvailable: false,
 	canPublicNote: true,
 	canInvite: false,
 	inviteLimit: 0,
@@ -82,6 +85,7 @@ export const DEFAULT_POLICIES: RolePolicies = {
 	userListLimit: 10,
 	userEachUserListsLimit: 50,
 	rateLimitFactor: 1,
+	canImportNotes: true,
 	avatarDecorationLimit: 1,
 };
 
@@ -177,9 +181,11 @@ export class RoleService implements OnApplicationShutdown, OnModuleInit {
 				case 'userRoleAssigned': {
 					const cached = this.roleAssignmentByUserIdCache.get(body.userId);
 					if (cached) {
-						cached.push({
+						cached.push({ // TODO: このあたりのデシリアライズ処理は各modelファイル内に関数としてexportしたい
 							...body,
 							expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
+							user: null, // joinなカラムは通常取ってこないので
+							role: null, // joinなカラムは通常取ってこないので
 						});
 					}
 					break;
@@ -321,6 +327,7 @@ export class RoleService implements OnApplicationShutdown, OnModuleInit {
 
 		return {
 			gtlAvailable: calc('gtlAvailable', vs => vs.some(v => v === true)),
+			btlAvailable: calc('btlAvailable', vs => vs.some(v => v === true)),
 			ltlAvailable: calc('ltlAvailable', vs => vs.some(v => v === true)),
 			canPublicNote: calc('canPublicNote', vs => vs.some(v => v === true)),
 			canInvite: calc('canInvite', vs => vs.some(v => v === true)),
@@ -343,6 +350,7 @@ export class RoleService implements OnApplicationShutdown, OnModuleInit {
 			userListLimit: calc('userListLimit', vs => Math.max(...vs)),
 			userEachUserListsLimit: calc('userEachUserListsLimit', vs => Math.max(...vs)),
 			rateLimitFactor: calc('rateLimitFactor', vs => Math.max(...vs)),
+			canImportNotes: calc('canImportNotes', vs => vs.some(v => v === true)),
 			avatarDecorationLimit: calc('avatarDecorationLimit', vs => Math.max(...vs)),
 		};
 	}

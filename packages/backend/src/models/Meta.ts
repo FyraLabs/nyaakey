@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -75,6 +75,11 @@ export class MiMeta {
 		length: 1024, array: true, default: '{}',
 	})
 	public sensitiveWords: string[];
+
+	@Column('varchar', {
+		length: 1024, array: true, default: '{}',
+	})
+	public prohibitedWords: string[];
 
 	@Column('varchar', {
 		length: 1024, array: true, default: '{}',
@@ -177,6 +182,11 @@ export class MiMeta {
 	@Column('boolean', {
 		default: false,
 	})
+	public approvalRequiredForSignup: boolean;
+
+	@Column('boolean', {
+		default: false,
+	})
 	public enableHcaptcha: boolean;
 
 	@Column('varchar', {
@@ -190,6 +200,29 @@ export class MiMeta {
 		nullable: true,
 	})
 	public hcaptchaSecretKey: string | null;
+
+	@Column('boolean', {
+		default: false,
+	})
+	public enableMcaptcha: boolean;
+
+	@Column('varchar', {
+		length: 1024,
+		nullable: true,
+	})
+	public mcaptchaSitekey: string | null;
+
+	@Column('varchar', {
+		length: 1024,
+		nullable: true,
+	})
+	public mcaptchaSecretKey: string | null;
+
+	@Column('varchar', {
+		length: 1024,
+		nullable: true,
+	})
+	public mcaptchaInstanceUrl: string | null;
 
 	@Column('boolean', {
 		default: false,
@@ -225,6 +258,8 @@ export class MiMeta {
 	})
 	public turnstileSecretKey: string | null;
 
+	// chaptcha系を追加した際にはnodeinfoのレスポンスに追加するのを忘れないようにすること
+
 	@Column('enum', {
 		enum: ['none', 'all', 'local', 'remote'],
 		default: 'none',
@@ -246,6 +281,11 @@ export class MiMeta {
 		default: false,
 	})
 	public enableSensitiveMediaDetectionForVideos: boolean;
+
+	@Column('boolean', {
+		default: true,
+	})
+	public enableBotTrending: boolean;
 
 	@Column('varchar', {
 		length: 1024,
@@ -320,6 +360,17 @@ export class MiMeta {
 	})
 	public deeplIsPro: boolean;
 
+	@Column('boolean', {
+		default: false,
+	})
+	public deeplFreeMode: boolean;
+
+	@Column('varchar', {
+		length: 1024,
+		nullable: true,
+	})
+	public deeplFreeInstance: string | null;
+
 	@Column('varchar', {
 		length: 1024,
 		nullable: true,
@@ -328,14 +379,14 @@ export class MiMeta {
 
 	@Column('varchar', {
 		length: 1024,
-		default: 'https://github.com/misskey-dev/misskey',
+		default: 'https://activitypub.software/TransFem-org/Sharkey/',
 		nullable: false,
 	})
-	public repositoryUrl: string;
+	public repositoryUrl: string | null;
 
 	@Column('varchar', {
 		length: 1024,
-		default: 'https://github.com/misskey-dev/misskey/issues/new',
+		default: 'https://activitypub.software/TransFem-org/Sharkey/-/issues/new',
 		nullable: true,
 	})
 	public feedbackUrl: string | null;
@@ -351,6 +402,12 @@ export class MiMeta {
 		nullable: true,
 	})
 	public privacyPolicyUrl: string | null;
+
+	@Column('varchar', {
+		length: 1024,
+		nullable: true,
+	})
+	public donationUrl: string | null;
 
 	@Column('varchar', {
 		length: 8192,
@@ -467,7 +524,7 @@ export class MiMeta {
 		nullable: true,
 	})
 	public truemailInstance: string | null;
-	
+
 	@Column('varchar', {
 		length: 1024,
 		nullable: true,
@@ -493,6 +550,11 @@ export class MiMeta {
 		default: true,
 	})
 	public enableIdenticonGeneration: boolean;
+
+	@Column('boolean', {
+		default: true,
+	})
+	public enableAchievements: boolean;
 
 	@Column('jsonb', {
 		default: { },
@@ -558,4 +620,15 @@ export class MiMeta {
 		default: 0,
 	})
 	public notesPerOneAd: number;
+
+	@Column('varchar', {
+		length: 500,
+		nullable: true,
+	})
+	public defaultLike: string | null;
+
+	@Column('varchar', {
+		length: 256, array: true, default: '{}',
+	})
+	public bubbleInstances: string[];
 }

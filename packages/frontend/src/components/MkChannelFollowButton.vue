@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -12,10 +12,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 >
 	<template v-if="!wait">
 		<template v-if="isFollowing">
-			<span v-if="full" :class="$style.text">{{ i18n.ts.unfollow }}</span><i class="ti ti-minus"></i>
+			<span v-if="full" :class="$style.text">{{ i18n.ts.unfollow }}</span><i class="ph-minus ph-bold ph-lg"></i>
 		</template>
 		<template v-else>
-			<span v-if="full" :class="$style.text">{{ i18n.ts.follow }}</span><i class="ti ti-plus"></i>
+			<span v-if="full" :class="$style.text">{{ i18n.ts.follow }}</span><i class="ph-plus ph-bold ph-lg"></i>
 		</template>
 	</template>
 	<template v-else>
@@ -26,7 +26,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 <script lang="ts" setup>
 import { ref } from 'vue';
-import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 
 const props = withDefaults(defineProps<{
@@ -44,12 +44,12 @@ async function onClick() {
 
 	try {
 		if (isFollowing.value) {
-			await os.api('channels/unfollow', {
+			await misskeyApi('channels/unfollow', {
 				channelId: props.channel.id,
 			});
 			isFollowing.value = false;
 		} else {
-			await os.api('channels/follow', {
+			await misskeyApi('channels/follow', {
 				channelId: props.channel.id,
 			});
 			isFollowing.value = true;
@@ -73,7 +73,7 @@ async function onClick() {
 	padding: 0;
 	height: 31px;
 	font-size: 16px;
-	border-radius: 32px;
+	border-radius: var(--radius-xl);
 	background: #fff;
 
 	&.full {
@@ -95,7 +95,7 @@ async function onClick() {
 			bottom: -5px;
 			left: -5px;
 			border: 2px solid var(--focus);
-			border-radius: 32px;
+			border-radius: var(--radius-xl);
 		}
 	}
 

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -24,8 +24,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 								<p class="acct">@{{ acct(req.follower) }}</p>
 							</div>
 							<div class="commands">
-								<MkButton class="command" rounded primary @click="accept(req.follower)"><i class="ti ti-check"/> {{ i18n.ts.accept }}</MkButton>
-								<MkButton class="command" rounded danger @click="reject(req.follower)"><i class="ti ti-x"/> {{ i18n.ts.reject }}</MkButton>
+								<MkButton class="command" rounded primary @click="accept(req.follower)"><i class="ph-check ph-bold ph-lg"/> {{ i18n.ts.accept }}</MkButton>
+								<MkButton class="command" rounded danger @click="reject(req.follower)"><i class="ph-x ph-bold ph-lg"/> {{ i18n.ts.reject }}</MkButton>
 							</div>
 						</div>
 					</div>
@@ -41,7 +41,7 @@ import { shallowRef, computed } from 'vue';
 import MkPagination from '@/components/MkPagination.vue';
 import MkButton from '@/components/MkButton.vue';
 import { userPage, acct } from '@/filters/user.js';
-import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { infoImageUrl } from '@/instance.js';
@@ -54,13 +54,13 @@ const pagination = {
 };
 
 function accept(user) {
-	os.api('following/requests/accept', { userId: user.id }).then(() => {
+	misskeyApi('following/requests/accept', { userId: user.id }).then(() => {
 		paginationComponent.value.reload();
 	});
 }
 
 function reject(user) {
-	os.api('following/requests/reject', { userId: user.id }).then(() => {
+	misskeyApi('following/requests/reject', { userId: user.id }).then(() => {
 		paginationComponent.value.reload();
 	});
 }
@@ -69,10 +69,10 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(computed(() => ({
+definePageMetadata(() => ({
 	title: i18n.ts.followRequests,
-	icon: 'ti ti-user-plus',
-})));
+	icon: 'ph-user-plus ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" scoped>
@@ -87,7 +87,7 @@ definePageMetadata(computed(() => ({
 			margin: 0 12px 0 0;
 			width: 42px;
 			height: 42px;
-			border-radius: 8px;
+			border-radius: var(--radius-sm);
 		}
 
 		> .body {

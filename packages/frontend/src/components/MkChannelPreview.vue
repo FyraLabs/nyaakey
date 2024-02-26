@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -8,11 +8,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<MkA :to="`/channels/${channel.id}`" class="eftoefju _panel" tabindex="-1" @click="updateLastReadedAt">
 		<div class="banner" :style="bannerStyle">
 			<div class="fade"></div>
-			<div class="name"><i class="ti ti-device-tv"></i> {{ channel.name }}</div>
+			<div class="name"><i class="ph-television ph-bold ph-lg"></i> {{ channel.name }}</div>
 			<div v-if="channel.isSensitive" class="sensitiveIndicator">{{ i18n.ts.sensitive }}</div>
 			<div class="status">
 				<div>
-					<i class="ti ti-users ti-fw"></i>
+					<i class="ph-users ph-bold ph-lg"></i>
 					<I18n :src="i18n.ts._channel.usersCount" tag="span" style="margin-left: 4px;">
 						<template #n>
 							<b>{{ channel.usersCount }}</b>
@@ -20,7 +20,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 					</I18n>
 				</div>
 				<div>
-					<i class="ti ti-pencil ti-fw"></i>
+					<i class="ph-pencil-simple ph-bold ph-lg"></i>
 					<I18n :src="i18n.ts._channel.notesCount" tag="span" style="margin-left: 4px;">
 						<template #n>
 							<b>{{ channel.notesCount }}</b>
@@ -121,7 +121,7 @@ const bannerStyle = computed(() => {
 			padding: 8px 12px;
 			font-size: 80%;
 			background: rgba(0, 0, 0, 0.7);
-			border-radius: 6px;
+			border-radius: var(--radius-sm);
 			color: #fff;
 		}
 
@@ -132,7 +132,7 @@ const bannerStyle = computed(() => {
 			left: 16px;
 			background: rgba(0, 0, 0, 0.7);
 			color: var(--warn);
-			border-radius: 6px;
+			border-radius: var(--radius-sm);
 			font-weight: bold;
 			font-size: 1em;
 			padding: 4px 7px;
@@ -198,7 +198,7 @@ const bannerStyle = computed(() => {
 	transform: translate(25%, -25%);
 	background-color: var(--accent);
 	border: solid var(--bg) 4px;
-	border-radius: 100%;
+	border-radius: var(--radius-full);
 	width: 1.5rem;
 	height: 1.5rem;
 	aspect-ratio: 1 / 1;

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -231,7 +231,15 @@ async function composeNotification(data: PushNotificationDataMap[keyof PushNotif
 						badge: iconUrl('bell'),
 						data,
 					}];
-		
+
+				case 'edited':
+					return [t('_notification.edited', { name: getUserName(data.body.user) }), {
+						body: data.body.note.text ?? '',
+						icon: data.body.user.avatarUrl,
+						badge: iconUrl('messages'),
+						data,
+					}];
+
 				default:
 					return null;
 			}
@@ -257,7 +265,7 @@ export async function createEmptyNotification(): Promise<void> {
 		await globalThis.registration.showNotification(
 			(new URL(origin)).host,
 			{
-				body: `Misskey v${_VERSION_}`,
+				body: `Sharkey v${_VERSION_}`,
 				silent: true,
 				badge: iconUrl('null'),
 				tag: 'read_notification',

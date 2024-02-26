@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -18,20 +18,20 @@ SPDX-License-Identifier: AGPL-3.0-only
 				[$style.type_info]: type === 'info',
 			}]"
 		>
-			<i v-if="type === 'success'" :class="$style.iconInner" class="ti ti-check"></i>
-			<i v-else-if="type === 'error'" :class="$style.iconInner" class="ti ti-circle-x"></i>
-			<i v-else-if="type === 'warning'" :class="$style.iconInner" class="ti ti-alert-triangle"></i>
-			<i v-else-if="type === 'info'" :class="$style.iconInner" class="ti ti-info-circle"></i>
-			<i v-else-if="type === 'question'" :class="$style.iconInner" class="ti ti-help-circle"></i>
+			<i v-if="type === 'success'" :class="$style.iconInner" class="ph-check ph-bold ph-lg"></i>
+			<i v-else-if="type === 'error'" :class="$style.iconInner" class="ph-x-circle ph-bold ph-lg"></i>
+			<i v-else-if="type === 'warning'" :class="$style.iconInner" class="ph-warning ph-bold ph-lg"></i>
+			<i v-else-if="type === 'info'" :class="$style.iconInner" class="ph-info ph-bold ph-lg"></i>
+			<i v-else-if="type === 'question'" :class="$style.iconInner" class="ph-question ph-bold ph-lg"></i>
 			<MkLoading v-else-if="type === 'waiting'" :class="$style.iconInner" :em="true"/>
 		</div>
 		<header v-if="title" :class="$style.title"><Mfm :text="title"/></header>
 		<div v-if="text" :class="$style.text"><Mfm :text="text"/></div>
 		<MkInput v-if="input" v-model="inputValue" autofocus :type="input.type || 'text'" :placeholder="input.placeholder || undefined" :autocomplete="input.autocomplete" @keydown="onInputKeydown">
-			<template v-if="input.type === 'password'" #prefix><i class="ti ti-lock"></i></template>
+			<template v-if="input.type === 'password'" #prefix><i class="ph-lock ph-bold ph-lg"></i></template>
 			<template #caption>
-				<span v-if="okButtonDisabledReason === 'charactersExceeded'" v-text="i18n.t('_dialog.charactersExceeded', { current: (inputValue as string).length, max: input.maxLength ?? 'NaN' })"/>
-				<span v-else-if="okButtonDisabledReason === 'charactersBelow'" v-text="i18n.t('_dialog.charactersBelow', { current: (inputValue as string).length, min: input.minLength ?? 'NaN' })"/>
+				<span v-if="okButtonDisabledReason === 'charactersExceeded'" v-text="i18n.tsx._dialog.charactersExceeded({ current: (inputValue as string)?.length ?? 0, max: input.maxLength ?? 'NaN' })"/>
+				<span v-else-if="okButtonDisabledReason === 'charactersBelow'" v-text="i18n.tsx._dialog.charactersBelow({ current: (inputValue as string)?.length ?? 0, min: input.minLength ?? 'NaN' })"/>
 			</template>
 		</MkInput>
 		<MkSelect v-if="select" v-model="selectedValue" autofocus>
@@ -125,7 +125,7 @@ const selectedValue = ref(props.select?.default ?? null);
 const okButtonDisabledReason = computed<null | 'charactersExceeded' | 'charactersBelow'>(() => {
 	if (props.input) {
 		if (props.input.minLength) {
-			if ((inputValue.value || inputValue.value === '') && (inputValue.value as string).length < props.input.minLength) {
+			if (inputValue.value == null || (inputValue.value as string).length < props.input.minLength) {
 				return 'charactersBelow';
 			}
 		}
@@ -194,7 +194,7 @@ onBeforeUnmount(() => {
 	box-sizing: border-box;
 	text-align: center;
 	background: var(--panel);
-	border-radius: 16px;
+	border-radius: var(--radius-md);
 }
 
 .icon {

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -14,26 +14,26 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div :class="$style.fileQuickActionsRoot">
 			<button class="_button" :class="$style.fileNameEditBtn" @click="rename()">
 				<h2 class="_nowrap" :class="$style.fileName">{{ file.name }}</h2>
-				<i class="ti ti-pencil" :class="$style.fileNameEditIcon"></i>
+				<i class="ph-pencil-simple ph-bold ph-lg" :class="$style.fileNameEditIcon"></i>
 			</button>
 			<div :class="$style.fileQuickActionsOthers">
 				<button v-tooltip="i18n.ts.createNoteFromTheFile" class="_button" :class="$style.fileQuickActionsOthersButton" @click="postThis()">
-					<i class="ti ti-pencil"></i>
+					<i class="ph-pencil-simple ph-bold ph-lg"></i>
 				</button>
 				<button v-if="isImage" v-tooltip="i18n.ts.cropImage" class="_button" :class="$style.fileQuickActionsOthersButton" @click="crop()">
-					<i class="ti ti-crop"></i>
+					<i class="ph-crop ph-bold ph-lg"></i>
 				</button>
 				<button v-if="file.isSensitive" v-tooltip="i18n.ts.unmarkAsSensitive" class="_button" :class="$style.fileQuickActionsOthersButton" @click="toggleSensitive()">
-					<i class="ti ti-eye"></i>
+					<i class="ph-eye ph-bold ph-lg"></i>
 				</button>
 				<button v-else v-tooltip="i18n.ts.markAsSensitive" class="_button" :class="$style.fileQuickActionsOthersButton" @click="toggleSensitive()">
-					<i class="ti ti-eye-exclamation"></i>
+					<i class="ph-eye-slash ph-bold ph-lg"></i>
 				</button>
 				<a v-tooltip="i18n.ts.download" :href="file.url" :download="file.name" class="_button" :class="$style.fileQuickActionsOthersButton">
-					<i class="ti ti-download"></i>
+					<i class="ph-download ph-bold ph-lg"></i>
 				</a>
 				<button v-tooltip="i18n.ts.delete" class="_button" :class="[$style.fileQuickActionsOthersButton, $style.danger]" @click="deleteFile()">
-					<i class="ti ti-trash"></i>
+					<i class="ph-trash ph-bold ph-lg"></i>
 				</button>
 			</div>
 		</div>
@@ -41,7 +41,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<button class="_button" :class="$style.fileAltEditBtn" @click="describe()">
 				<MkKeyValue>
 					<template #key>{{ i18n.ts.description }}</template>
-					<template #value>{{ file.comment ? file.comment : `(${i18n.ts.none})` }}<i class="ti ti-pencil" :class="$style.fileAltEditIcon"></i></template>
+					<template #value>{{ file.comment ? file.comment : `(${i18n.ts.none})` }}<i class="ph-pencil-simple ph-bold ph-lg" :class="$style.fileAltEditIcon"></i></template>
 				</MkKeyValue>
 			</button>
 			<MkKeyValue :class="$style.fileMetaDataChildren">
@@ -79,7 +79,8 @@ import bytes from '@/filters/bytes.js';
 import { infoImageUrl } from '@/instance.js';
 import { i18n } from '@/i18n.js';
 import * as os from '@/os.js';
-import { useRouter } from '@/router.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
+import { useRouter } from '@/router/supplier.js';
 
 const router = useRouter();
 
@@ -94,7 +95,7 @@ const isImage = computed(() => file.value?.type.startsWith('image/'));
 async function fetch() {
 	fetching.value = true;
 
-	file.value = await os.api('drive/files/show', {
+	file.value = await misskeyApi('drive/files/show', {
 		fileId: props.fileId,
 	}).catch((err) => {
 		console.error(err);
@@ -179,7 +180,7 @@ async function deleteFile() {
 
 	const { canceled } = await os.confirm({
 		type: 'warning',
-		text: i18n.t('driveFileDeleteConfirm', { name: file.value.name }),
+		text: i18n.tsx.driveFileDeleteConfirm({ name: file.value.name }),
 	});
 
 	if (canceled) return;
@@ -225,7 +226,7 @@ onMounted(async () => {
 
 	.fileQuickActionsOthersButton {
 		padding: .5rem;
-		border-radius: 99rem;
+		border-radius: var(--radius-ellipse);
 
 		&:hover,
 		&:focus-visible {

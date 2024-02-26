@@ -1,10 +1,10 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
 <template>
-<div>
+<div :class="$style.root">
 	<XBanner v-for="media in mediaList.filter(media => !previewable(media))" :key="media.id" :media="media"/>
 	<div v-if="mediaList.filter(media => previewable(media)).length > 0" :class="$style.container">
 		<div
@@ -21,6 +21,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<template v-for="media in mediaList.filter(media => previewable(media))">
 				<XVideo v-if="media.type.startsWith('video')" :key="`video:${media.id}`" :class="$style.media" :video="media"/>
 				<XImage v-else-if="media.type.startsWith('image')" :key="`image:${media.id}`" :class="$style.media" class="image" :data-id="media.id" :image="media" :raw="raw"/>
+				<XModPlayer v-else-if="isModule(media)" :key="media.id" :module="media"/>
 			</template>
 		</div>
 	</div>
@@ -36,8 +37,9 @@ import 'photoswipe/style.css';
 import XBanner from '@/components/MkMediaBanner.vue';
 import XImage from '@/components/MkMediaImage.vue';
 import XVideo from '@/components/MkMediaVideo.vue';
+import XModPlayer from '@/components/MkModPlayer.vue';
 import * as os from '@/os.js';
-import { FILE_TYPE_BROWSERSAFE } from '@/const.js';
+import { FILE_TYPE_BROWSERSAFE, FILE_EXT_TRACKER_MODULES, FILE_TYPE_TRACKER_MODULES } from '@/const.js';
 import { defaultStore } from '@/store.js';
 
 const props = defineProps<{
@@ -52,7 +54,7 @@ const count = computed(() => props.mediaList.filter(media => previewable(media))
 let lightbox: PhotoSwipeLightbox | null;
 
 const popstateHandler = (): void => {
-	if (lightbox.pswp && lightbox.pswp.isOpen === true) {
+	if (lightbox?.pswp && lightbox.pswp.isOpen === true) {
 		lightbox.pswp.close();
 	}
 };
@@ -67,7 +69,10 @@ async function calcAspectRatio() {
 		return;
 	}
 
-	const ratioMax = (ratio: number) => `${Math.max(ratio, img.properties.width / img.properties.height).toString()} / 1`;
+	const ratioMax = (ratio: number) => {
+		if (img.properties.width == null || img.properties.height == null) return '';
+		return `${Math.max(ratio, img.properties.width / img.properties.height).toString()} / 1`;
+	};
 
 	switch (defaultStore.state.mediaListWithOneImageAppearance) {
 		case '16_9':
@@ -84,6 +89,12 @@ async function calcAspectRatio() {
 			break;
 	}
 }
+
+const isModule = (file: Misskey.entities.DriveFile): boolean => {
+	return FILE_TYPE_TRACKER_MODULES.includes(file.type) || FILE_EXT_TRACKER_MODULES.some((ext) => {
+		return (file.name.toLowerCase().endsWith('.' + ext) || file.name.toLowerCase().endsWith('.' + ext + '.unknown'));
+	});
+};
 
 onMounted(() => {
 	calcAspectRatio();
@@ -137,7 +148,7 @@ onMounted(() => {
 		// element is children
 		const { element } = itemData;
 
-		const id = element.dataset.id;
+		const id = element?.dataset.id;
 		const file = props.mediaList.find(media => media.id === id);
 		if (!file) return;
 
@@ -147,14 +158,14 @@ onMounted(() => {
 		if (file.properties.orientation != null && file.properties.orientation >= 5) {
 			[itemData.w, itemData.h] = [itemData.h, itemData.w];
 		}
-		itemData.msrc = file.thumbnailUrl;
-		itemData.alt = file.comment ?? file.name;
-		itemData.comment = file.comment ?? file.name;
+		itemData.msrc = file.thumbnailUrl ?? undefined;
+		itemData.alt = file.comment ?? undefined;
+		itemData.comment = file.comment;
 		itemData.thumbCropped = true;
 	});
 
 	lightbox.on('uiRegister', () => {
-		lightbox.pswp.ui.registerElement({
+		lightbox?.pswp?.ui?.registerElement({
 			name: 'altText',
 			className: 'pwsp__alt-text-container',
 			appendTo: 'wrapper',
@@ -164,7 +175,13 @@ onMounted(() => {
 				el.appendChild(textBox);
 
 				pwsp.on('change', (a) => {
-					textBox.textContent = pwsp.currSlide.data.comment;
+					if (pwsp.currSlide?.data.comment) {
+						textBox.style.display = '';
+					} else {
+						textBox.style.display = 'none';
+					}
+
+					textBox.textContent = pwsp.currSlide?.data.comment;
 				});
 			},
 		});
@@ -194,11 +211,16 @@ onUnmounted(() => {
 const previewable = (file: Misskey.entities.DriveFile): boolean => {
 	if (file.type === 'image/svg+xml') return true; // svgのwebpublic/thumbnailはpngなのでtrue
 	// FILE_TYPE_BROWSERSAFEに適合しないものはブラウザで表示するのに不適切
+	if (isModule(file)) return true;
 	return (file.type.startsWith('video') || file.type.startsWith('image')) && FILE_TYPE_BROWSERSAFE.includes(file.type);
 };
 </script>
 
 <style lang="scss" module>
+.root {
+	cursor: auto; /* not clickToOpen-able */
+}
+
 .container {
 	position: relative;
 	width: 100%;
@@ -280,7 +302,7 @@ const previewable = (file: Misskey.entities.DriveFile): boolean => {
 
 .media {
 	overflow: hidden; // clipにするとバグる
-	border-radius: 8px;
+	border-radius: var(--radius-sm);
 }
 
 :global(.pswp) {

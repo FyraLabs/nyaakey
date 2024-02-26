@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -95,11 +95,12 @@ describe('ActivityPub', () => {
 		cacheRemoteSensitiveFiles: true,
 		enableFanoutTimeline: true,
 		enableFanoutTimelineDbFallback: true,
-		perUserHomeTimelineCacheMax: 100,
-		perLocalUserUserTimelineCacheMax: 100,
-		perRemoteUserUserTimelineCacheMax: 100,
+		perUserHomeTimelineCacheMax: 800,
+		perLocalUserUserTimelineCacheMax: 800,
+		perRemoteUserUserTimelineCacheMax: 800,
 		blockedHosts: [] as string[],
 		sensitiveWords: [] as string[],
+		prohibitedWords: [] as string[],
 	} as MiMeta;
 	let meta = metaInitial;
 
@@ -202,7 +203,7 @@ describe('ActivityPub', () => {
 
 	describe('Renderer', () => {
 		test('Render an announce with visibility: followers', () => {
-			rendererService.renderAnnounce(null, {
+			rendererService.renderAnnounce('https://example.com/notes/00example', {
 				id: genAidx(Date.now()),
 				visibility: 'followers',
 			} as MiNote);

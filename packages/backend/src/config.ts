@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -7,6 +7,7 @@ import * as fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import * as yaml from 'js-yaml';
+import { globSync } from 'glob';
 import type { RedisOptions } from 'ioredis';
 
 type RedisOptionsSource = Partial<RedisOptions> & {
@@ -57,6 +58,8 @@ type Source = {
 		scope?: 'local' | 'global' | string[];
 	};
 
+	publishTarballInsteadOfProvideRepositoryUrl?: boolean;
+
 	proxy?: string;
 	proxySmtp?: string;
 	proxyBypassHosts?: string[];
@@ -64,6 +67,7 @@ type Source = {
 	allowedPrivateNetworks?: string[];
 
 	maxFileSize?: number;
+	maxNoteLength?: number;
 
 	clusterLimit?: number;
 
@@ -74,10 +78,10 @@ type Source = {
 
 	deliverJobConcurrency?: number;
 	inboxJobConcurrency?: number;
-	relashionshipJobConcurrency?: number;
+	relationshipJobConcurrency?: number;
 	deliverJobPerSec?: number;
 	inboxJobPerSec?: number;
-	relashionshipJobPerSec?: number;
+	relationshipJobPerSec?: number;
 	deliverJobMaxAttempts?: number;
 	inboxJobMaxAttempts?: number;
 
@@ -85,7 +89,10 @@ type Source = {
 	proxyRemoteFiles?: boolean;
 	videoThumbnailGenerator?: string;
 
+	customMOTD?: string[];
+
 	signToActivityPubGet?: boolean;
+	checkActivityPubGetSignature?: boolean;
 
 	perChannelMaxNoteCacheCount?: number;
 	perUserNotificationsMaxCount?: number;
@@ -129,22 +136,26 @@ export type Config = {
 	proxyBypassHosts: string[] | undefined;
 	allowedPrivateNetworks: string[] | undefined;
 	maxFileSize: number | undefined;
+	maxNoteLength: number;
 	clusterLimit: number | undefined;
 	id: string;
 	outgoingAddress: string | undefined;
 	outgoingAddressFamily: 'ipv4' | 'ipv6' | 'dual' | undefined;
 	deliverJobConcurrency: number | undefined;
 	inboxJobConcurrency: number | undefined;
-	relashionshipJobConcurrency: number | undefined;
+	relationshipJobConcurrency: number | undefined;
 	deliverJobPerSec: number | undefined;
 	inboxJobPerSec: number | undefined;
-	relashionshipJobPerSec: number | undefined;
+	relationshipJobPerSec: number | undefined;
 	deliverJobMaxAttempts: number | undefined;
 	inboxJobMaxAttempts: number | undefined;
 	proxyRemoteFiles: boolean | undefined;
-	signToActivityPubGet: boolean | undefined;
+	customMOTD: string[] | undefined;
+	signToActivityPubGet: boolean;
+	checkActivityPubGetSignature: boolean | undefined;
 
 	version: string;
+	publishTarballInsteadOfProvideRepositoryUrl: boolean;
 	host: string;
 	hostname: string;
 	scheme: string;
@@ -188,11 +199,18 @@ const path = process.env.MISSKEY_CONFIG_YML
 
 export function loadConfig(): Config {
 	const meta = JSON.parse(fs.readFileSync(`${_dirname}/../../../built/meta.json`, 'utf-8'));
-	const clientManifestExists = fs.existsSync(_dirname + '/../../../built/_vite_/manifest.json');
+	const clientManifestExists = fs.existsSync(`${_dirname}/../../../built/_vite_/manifest.json`);
 	const clientManifest = clientManifestExists ?
 		JSON.parse(fs.readFileSync(`${_dirname}/../../../built/_vite_/manifest.json`, 'utf-8'))
 		: { 'src/_boot_.ts': { file: 'src/_boot_.ts' } };
-	const config = yaml.load(fs.readFileSync(path, 'utf-8')) as Source;
+
+	const config = globSync(path).sort()
+		.map(path => fs.readFileSync(path, 'utf-8'))
+		.map(contents => yaml.load(contents) as Source)
+		.reduce(
+			(acc: Source, cur: Source) => Object.assign(acc, cur),
+			{} as Source,
+		) as Source;
 
 	const url = tryCreateUrl(config.url);
 	const version = meta.version;
@@ -209,6 +227,7 @@ export function loadConfig(): Config {
 
 	return {
 		version,
+		publishTarballInsteadOfProvideRepositoryUrl: !!config.publishTarballInsteadOfProvideRepositoryUrl,
 		url: url.origin,
 		port: config.port ?? parseInt(process.env.PORT ?? '', 10),
 		socket: config.socket,
@@ -236,19 +255,22 @@ export function loadConfig(): Config {
 		proxyBypassHosts: config.proxyBypassHosts,
 		allowedPrivateNetworks: config.allowedPrivateNetworks,
 		maxFileSize: config.maxFileSize,
+		maxNoteLength: config.maxNoteLength ?? 3000,
 		clusterLimit: config.clusterLimit,
 		outgoingAddress: config.outgoingAddress,
 		outgoingAddressFamily: config.outgoingAddressFamily,
 		deliverJobConcurrency: config.deliverJobConcurrency,
 		inboxJobConcurrency: config.inboxJobConcurrency,
-		relashionshipJobConcurrency: config.relashionshipJobConcurrency,
+		relationshipJobConcurrency: config.relationshipJobConcurrency,
 		deliverJobPerSec: config.deliverJobPerSec,
 		inboxJobPerSec: config.inboxJobPerSec,
-		relashionshipJobPerSec: config.relashionshipJobPerSec,
+		relationshipJobPerSec: config.relationshipJobPerSec,
 		deliverJobMaxAttempts: config.deliverJobMaxAttempts,
 		inboxJobMaxAttempts: config.inboxJobMaxAttempts,
 		proxyRemoteFiles: config.proxyRemoteFiles,
-		signToActivityPubGet: config.signToActivityPubGet,
+		customMOTD: config.customMOTD,
+		signToActivityPubGet: config.signToActivityPubGet ?? true,
+		checkActivityPubGetSignature: config.checkActivityPubGetSignature,
 		mediaProxy: externalMediaProxy ?? internalMediaProxy,
 		externalMediaProxyEnabled: externalMediaProxy !== null && externalMediaProxy !== internalMediaProxy,
 		videoThumbnailGenerator: config.videoThumbnailGenerator ?

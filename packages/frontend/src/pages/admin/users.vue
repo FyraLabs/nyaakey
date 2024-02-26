@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -21,6 +21,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 						<template #label>{{ i18n.ts.state }}</template>
 						<option value="all">{{ i18n.ts.all }}</option>
 						<option value="available">{{ i18n.ts.normal }}</option>
+						<option value="approved">{{ i18n.ts.notApproved }}</option>
 						<option value="admin">{{ i18n.ts.administrator }}</option>
 						<option value="moderator">{{ i18n.ts.moderator }}</option>
 						<option value="suspended">{{ i18n.ts.suspend }}</option>
@@ -90,7 +91,7 @@ const pagination = {
 };
 
 function searchUser() {
-	os.selectUser().then(user => {
+	os.selectUser({ includeSelf: true }).then(user => {
 		show(user);
 	});
 }
@@ -120,27 +121,27 @@ function show(user) {
 }
 
 const headerActions = computed(() => [{
-	icon: 'ti ti-search',
+	icon: 'ph-magnifying-glass ph-bold ph-lg',
 	text: i18n.ts.search,
 	handler: searchUser,
 }, {
 	asFullButton: true,
-	icon: 'ti ti-plus',
+	icon: 'ph-plus ph-bold ph-lg',
 	text: i18n.ts.addUser,
 	handler: addUser,
 }, {
 	asFullButton: true,
-	icon: 'ti ti-search',
+	icon: 'ph-magnifying-glass ph-bold ph-lg',
 	text: i18n.ts.lookup,
 	handler: lookupUser,
 }]);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(computed(() => ({
+definePageMetadata(() => ({
 	title: i18n.ts.users,
-	icon: 'ti ti-users',
-})));
+	icon: 'ph-users ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>

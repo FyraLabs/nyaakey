@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -41,7 +41,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</div>
 
 			<div>
-				<MkButton danger @click="del"><i class="ti ti-trash"></i> {{ i18n.ts.delete }}</MkButton>
+				<MkButton danger @click="del"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts.delete }}</MkButton>
 			</div>
 		</div>
 		<div v-else-if="tab === 'ip' && info" class="_gaps_m">
@@ -79,6 +79,7 @@ import MkUserCardMini from '@/components/MkUserCardMini.vue';
 import MkInfo from '@/components/MkInfo.vue';
 import bytes from '@/filters/bytes.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { iAmAdmin, iAmModerator } from '@/account.js';
@@ -93,8 +94,8 @@ const props = defineProps<{
 }>();
 
 async function fetch() {
-	file.value = await os.api('drive/files/show', { fileId: props.fileId });
-	info.value = await os.api('admin/drive/show-file', { fileId: props.fileId });
+	file.value = await misskeyApi('drive/files/show', { fileId: props.fileId });
+	info.value = await misskeyApi('admin/drive/show-file', { fileId: props.fileId });
 	isSensitive.value = file.value.isSensitive;
 }
 
@@ -103,7 +104,7 @@ fetch();
 async function del() {
 	const { canceled } = await os.confirm({
 		type: 'warning',
-		text: i18n.t('removeAreYouSure', { x: file.value.name }),
+		text: i18n.tsx.removeAreYouSure({ x: file.value.name }),
 	});
 	if (canceled) return;
 
@@ -113,13 +114,13 @@ async function del() {
 }
 
 async function toggleIsSensitive(v) {
-	await os.api('drive/files/update', { fileId: props.fileId, isSensitive: v });
+	await misskeyApi('drive/files/update', { fileId: props.fileId, isSensitive: v });
 	isSensitive.value = v;
 }
 
 const headerActions = computed(() => [{
 	text: i18n.ts.openInNewTab,
-	icon: 'ti ti-external-link',
+	icon: 'ph-arrow-square-out ph-bold ph-lg',
 	handler: () => {
 		window.open(file.value.url, '_blank', 'noopener');
 	},
@@ -128,21 +129,21 @@ const headerActions = computed(() => [{
 const headerTabs = computed(() => [{
 	key: 'overview',
 	title: i18n.ts.overview,
-	icon: 'ti ti-info-circle',
+	icon: 'ph-info ph-bold ph-lg',
 }, iAmModerator ? {
 	key: 'ip',
 	title: 'IP',
-	icon: 'ti ti-password',
+	icon: 'ph-password ph-bold ph-lg',
 } : null, {
 	key: 'raw',
 	title: 'Raw data',
-	icon: 'ti ti-code',
+	icon: 'ph-code ph-bold ph-lg',
 }]);
 
-definePageMetadata(computed(() => ({
-	title: file.value ? i18n.ts.file + ': ' + file.value.name : i18n.ts.file,
-	icon: 'ti ti-file',
-})));
+definePageMetadata(() => ({
+	title: file.value ? `${i18n.ts.file}: ${file.value.name}` : i18n.ts.file,
+	icon: 'ph-file ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" scoped>

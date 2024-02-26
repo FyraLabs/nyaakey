@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -17,12 +17,19 @@ SPDX-License-Identifier: AGPL-3.0-only
 		</template>
 	</MkSelect>
 
+	<MkRadios v-model="hemisphere">
+		<template #label>{{ i18n.ts.hemisphere }}</template>
+		<option value="N">{{ i18n.ts._hemisphere.N }}</option>
+		<option value="S">{{ i18n.ts._hemisphere.S }}</option>
+		<template #caption>{{ i18n.ts._hemisphere.caption }}</template>
+	</MkRadios>
+
 	<MkRadios v-model="overridedDeviceKind">
 		<template #label>{{ i18n.ts.overridedDeviceKind }}</template>
 		<option :value="null">{{ i18n.ts.auto }}</option>
-		<option value="smartphone"><i class="ti ti-device-mobile"/> {{ i18n.ts.smartphone }}</option>
-		<option value="tablet"><i class="ti ti-device-tablet"/> {{ i18n.ts.tablet }}</option>
-		<option value="desktop"><i class="ti ti-device-desktop"/> {{ i18n.ts.desktop }}</option>
+		<option value="smartphone"><i class="ph-device-mobile ph-bold ph-lg"/> {{ i18n.ts.smartphone }}</option>
+		<option value="tablet"><i class="ph-device-tablet ph-bold ph-lg"/> {{ i18n.ts.tablet }}</option>
+		<option value="desktop"><i class="ph-desktop ph-bold ph-lg"/> {{ i18n.ts.desktop }}</option>
 	</MkRadios>
 
 	<FormSection>
@@ -33,7 +40,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<template #label>{{ i18n.ts.pinnedList }}</template>
 				<!-- 複数ピン止め管理できるようにしたいけどめんどいので一旦ひとつのみ -->
 				<MkButton v-if="defaultStore.reactiveState.pinnedUserLists.value.length === 0" @click="setPinnedList()">{{ i18n.ts.add }}</MkButton>
-				<MkButton v-else danger @click="removePinnedList()"><i class="ti ti-trash"></i> {{ i18n.ts.remove }}</MkButton>
+				<MkButton v-else danger @click="removePinnedList()"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts.remove }}</MkButton>
 			</MkFolder>
 		</div>
 	</FormSection>
@@ -46,16 +53,26 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<MkSwitch v-model="showNoteActionsOnlyHover">{{ i18n.ts.showNoteActionsOnlyHover }}</MkSwitch>
 				<MkSwitch v-model="showClipButtonInNoteFooter">{{ i18n.ts.showClipButtonInNoteFooter }}</MkSwitch>
 				<MkSwitch v-model="collapseRenotes">{{ i18n.ts.collapseRenotes }}</MkSwitch>
+				<MkSwitch v-model="collapseFiles">{{ i18n.ts.collapseFiles }}</MkSwitch>
+				<MkSwitch v-model="uncollapseCW">Uncollapse CWs on notes</MkSwitch>
+				<MkSwitch v-model="autoloadConversation">{{ i18n.ts.autoloadConversation }}</MkSwitch>
+				<MkSwitch v-model="expandLongNote">Always expand long notes</MkSwitch>
 				<MkSwitch v-model="advancedMfm">{{ i18n.ts.enableAdvancedMfm }}</MkSwitch>
 				<MkSwitch v-if="advancedMfm" v-model="animatedMfm">{{ i18n.ts.enableAnimatedMfm }}</MkSwitch>
 				<MkSwitch v-if="advancedMfm" v-model="enableQuickAddMfmFunction">{{ i18n.ts.enableQuickAddMfmFunction }}</MkSwitch>
 				<MkSwitch v-model="showGapBetweenNotesInTimeline">{{ i18n.ts.showGapBetweenNotesInTimeline }}</MkSwitch>
 				<MkSwitch v-model="loadRawImages">{{ i18n.ts.loadRawImages }}</MkSwitch>
+				<MkSwitch v-model="showTickerOnReplies">Show instance ticker on replies</MkSwitch>
 				<MkRadios v-model="reactionsDisplaySize">
 					<template #label>{{ i18n.ts.reactionsDisplaySize }}</template>
 					<option value="small">{{ i18n.ts.small }}</option>
 					<option value="medium">{{ i18n.ts.medium }}</option>
 					<option value="large">{{ i18n.ts.large }}</option>
+				</MkRadios>
+				<MkRadios v-model="noteDesign">
+					<template #label>Note Design</template>
+					<option value="sharkey"><i class="sk-icons sk-shark ph-bold" style="top: 2px;position: relative;"></i> Sharkey</option>
+					<option value="misskey"><i class="sk-icons sk-misskey ph-bold" style="top: 2px;position: relative;"></i> Misskey</option>
 				</MkRadios>
 				<MkSwitch v-model="limitWidthOfReaction">{{ i18n.ts.limitWidthOfReaction }}</MkSwitch>
 			</div>
@@ -77,10 +94,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<MkRadios v-model="mediaListWithOneImageAppearance">
 				<template #label>{{ i18n.ts.mediaListWithOneImageAppearance }}</template>
 				<option value="expand">{{ i18n.ts.default }}</option>
-				<option value="16_9">{{ i18n.t('limitTo', { x: '16:9' }) }}</option>
-				<option value="1_1">{{ i18n.t('limitTo', { x: '1:1' }) }}</option>
-				<option value="2_3">{{ i18n.t('limitTo', { x: '2:3' }) }}</option>
+				<option value="16_9">{{ i18n.tsx.limitTo({ x: '16:9' }) }}</option>
+				<option value="1_1">{{ i18n.tsx.limitTo({ x: '1:1' }) }}</option>
+				<option value="2_3">{{ i18n.tsx.limitTo({ x: '2:3' }) }}</option>
 			</MkRadios>
+
+			<MkRange v-model="numberOfReplies" :min="2" :max="20" :step="1" easing>
+				<template #label>{{ i18n.ts.numberOfReplies }}</template>
+				<template #caption>{{ i18n.ts.numberOfRepliesDescription }}</template>
+			</MkRange>
 		</div>
 	</FormSection>
 
@@ -92,16 +114,16 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 			<MkRadios v-model="notificationPosition">
 				<template #label>{{ i18n.ts.position }}</template>
-				<option value="leftTop"><i class="ti ti-align-box-left-top"></i> {{ i18n.ts.leftTop }}</option>
-				<option value="rightTop"><i class="ti ti-align-box-right-top"></i> {{ i18n.ts.rightTop }}</option>
-				<option value="leftBottom"><i class="ti ti-align-box-left-bottom"></i> {{ i18n.ts.leftBottom }}</option>
-				<option value="rightBottom"><i class="ti ti-align-box-right-bottom"></i> {{ i18n.ts.rightBottom }}</option>
+				<option value="leftTop"><i class="ph-arrow-up-left ph-bold ph-lg"></i> {{ i18n.ts.leftTop }}</option>
+				<option value="rightTop"><i class="ph-arrow-up-right ph-bold ph-lg"></i> {{ i18n.ts.rightTop }}</option>
+				<option value="leftBottom"><i class="ph-arrow-down-left ph-bold ph-lg"></i> {{ i18n.ts.leftBottom }}</option>
+				<option value="rightBottom"><i class="ph-arrow-down-right ph-bold ph-lg"></i> {{ i18n.ts.rightBottom }}</option>
 			</MkRadios>
 
 			<MkRadios v-model="notificationStackAxis">
 				<template #label>{{ i18n.ts.stackAxis }}</template>
-				<option value="vertical"><i class="ti ti-carousel-vertical"></i> {{ i18n.ts.vertical }}</option>
-				<option value="horizontal"><i class="ti ti-carousel-horizontal"></i> {{ i18n.ts.horizontal }}</option>
+				<option value="vertical"><i class="ph-split-vertical ph-bold ph-lg"></i> {{ i18n.ts.vertical }}</option>
+				<option value="horizontal"><i class="ph-split-horizontal ph-bold ph-lg"></i> {{ i18n.ts.horizontal }}</option>
 			</MkRadios>
 
 			<MkButton @click="testNotification">{{ i18n.ts._notification.checkNotificationBehavior }}</MkButton>
@@ -123,6 +145,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<MkSwitch v-model="useSystemFont">{{ i18n.ts.useSystemFont }}</MkSwitch>
 				<MkSwitch v-model="disableDrawer">{{ i18n.ts.disableDrawer }}</MkSwitch>
 				<MkSwitch v-model="forceShowAds">{{ i18n.ts.forceShowAds }}</MkSwitch>
+				<MkSwitch v-model="oneko">{{ i18n.ts.oneko }}</MkSwitch>
 				<MkSwitch v-model="enableSeasonalScreenEffect">{{ i18n.ts.seasonalScreenEffect }}</MkSwitch>
 			</div>
 			<div>
@@ -131,6 +154,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 					<option value="native">{{ i18n.ts.native }}</option>
 					<option value="fluentEmoji">Fluent Emoji</option>
 					<option value="twemoji">Twemoji</option>
+					<option value="tossface">Tossface</option>
 				</MkRadios>
 				<div style="margin: 8px 0 0 0; font-size: 1.5em;"><Mfm :key="emojiStyle" text="🍮🍦🍭🍩🍰🍫🍬🥞🍪"/></div>
 			</div>
@@ -142,6 +166,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<option value="2"><span style="font-size: 16px;">Aa</span></option>
 				<option value="3"><span style="font-size: 17px;">Aa</span></option>
 			</MkRadios>
+
+			<MkRadios v-model="cornerRadius">
+				<template #label>{{ i18n.ts.cornerRadius }}</template>
+				<option :value="null"><i class="sk-icons sk-shark ph-bold" style="top: 2px;position: relative;"></i> Sharkey</option>
+				<option value="misskey"><i class="sk-icons sk-misskey ph-bold" style="top: 2px;position: relative;"></i> Misskey</option>
+			</MkRadios>
 		</div>
 	</FormSection>
 
@@ -150,22 +180,42 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 		<div class="_gaps_m">
 			<div class="_gaps_s">
+				<MkSwitch v-model="warnMissingAltText">{{ i18n.ts.warnForMissingAltText }}</MkSwitch>
 				<MkSwitch v-model="imageNewTab">{{ i18n.ts.openImageInNewTab }}</MkSwitch>
 				<MkSwitch v-model="useReactionPickerForContextMenu">{{ i18n.ts.useReactionPickerForContextMenu }}</MkSwitch>
 				<MkSwitch v-model="enableInfiniteScroll">{{ i18n.ts.enableInfiniteScroll }}</MkSwitch>
 				<MkSwitch v-model="keepScreenOn">{{ i18n.ts.keepScreenOn }}</MkSwitch>
+				<MkSwitch v-model="clickToOpen">{{ i18n.ts.clickToOpen }}</MkSwitch>
+				<MkSwitch v-model="showBots">{{ i18n.ts.showBots }}</MkSwitch>
 				<MkSwitch v-model="disableStreamingTimeline">{{ i18n.ts.disableStreamingTimeline }}</MkSwitch>
+				<MkSwitch v-model="enableHorizontalSwipe">{{ i18n.ts.enableHorizontalSwipe }}</MkSwitch>
 			</div>
 			<MkSelect v-model="serverDisconnectedBehavior">
 				<template #label>{{ i18n.ts.whenServerDisconnected }}</template>
-				<option value="reload">{{ i18n.ts._serverDisconnectedBehavior.reload }}</option>
 				<option value="dialog">{{ i18n.ts._serverDisconnectedBehavior.dialog }}</option>
 				<option value="quiet">{{ i18n.ts._serverDisconnectedBehavior.quiet }}</option>
+				<option value="disabled">{{ i18n.ts._serverDisconnectedBehavior.disabled }}</option>
 			</MkSelect>
 			<MkRange v-model="numberOfPageCache" :min="1" :max="10" :step="1" easing>
 				<template #label>{{ i18n.ts.numberOfPageCache }}</template>
 				<template #caption>{{ i18n.ts.numberOfPageCacheDescription }}</template>
 			</MkRange>
+
+			<MkFolder>
+				<template #label>{{ i18n.ts.boostSettings }}</template>
+				<div class="_gaps_m">
+					<MkSwitch v-model="showVisibilitySelectorOnBoost">
+						{{ i18n.ts.showVisibilitySelectorOnBoost }}
+						<template #caption>{{ i18n.ts.showVisibilitySelectorOnBoostDescription }}</template>
+					</MkSwitch>
+					<MkSelect v-model="visibilityOnBoost">
+						<template #label>{{ i18n.ts.visibilityOnBoost }}</template>
+						<option value="public">{{ i18n.ts._visibility['public'] }}</option>
+						<option value="home">{{ i18n.ts._visibility['home'] }}</option>
+						<option value="followers">{{ i18n.ts._visibility['followers'] }}</option>
+					</MkSelect>
+				</div>
+			</MkFolder>
 
 			<MkFolder>
 				<template #label>{{ i18n.ts.dataSaver }}</template>
@@ -206,13 +256,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div class="_gaps">
 			<MkFolder>
 				<template #label>{{ i18n.ts.additionalEmojiDictionary }}</template>
-				<div v-for="lang in emojiIndexLangs" class="_buttons">
-					<MkButton @click="downloadEmojiIndex(lang)"><i class="ti ti-download"></i> {{ lang }}{{ defaultStore.reactiveState.additionalUnicodeEmojiIndexes.value[lang] ? ` (${ i18n.ts.installed })` : '' }}</MkButton>
-					<MkButton v-if="defaultStore.reactiveState.additionalUnicodeEmojiIndexes.value[lang]" danger @click="removeEmojiIndex(lang)"><i class="ti ti-trash"></i> {{ i18n.ts.remove }}</MkButton>
+				<div class="_buttons">
+					<template v-for="lang in emojiIndexLangs" :key="lang">
+						<MkButton v-if="defaultStore.reactiveState.additionalUnicodeEmojiIndexes.value[lang]" danger @click="removeEmojiIndex(lang)"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts.remove }} ({{ getEmojiIndexLangName(lang) }})</MkButton>
+						<MkButton v-else @click="downloadEmojiIndex(lang)"><i class="ph-download ph-bold ph-lg"></i> {{ getEmojiIndexLangName(lang) }}{{ defaultStore.reactiveState.additionalUnicodeEmojiIndexes.value[lang] ? ` (${ i18n.ts.installed })` : '' }}</MkButton>
+					</template>
 				</div>
 			</MkFolder>
 			<FormLink to="/settings/deck">{{ i18n.ts.deck }}</FormLink>
-			<FormLink to="/settings/custom-css"><template #icon><i class="ti ti-code"></i></template>{{ i18n.ts.customCss }}</FormLink>
+			<FormLink to="/settings/custom-css"><template #icon><i class="ph-code ph-bold ph-lg"></i></template>{{ i18n.ts.customCss }}</FormLink>
 		</div>
 	</FormSection>
 </div>
@@ -234,6 +286,7 @@ import MkInfo from '@/components/MkInfo.vue';
 import { langs } from '@/config.js';
 import { defaultStore } from '@/store.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { unisonReload } from '@/scripts/unison-reload.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
@@ -243,6 +296,7 @@ import { claimAchievement } from '@/scripts/achievements.js';
 
 const lang = ref(miLocalStorage.getItem('lang'));
 const fontSize = ref(miLocalStorage.getItem('fontSize'));
+const cornerRadius = ref(miLocalStorage.getItem('cornerRadius'));
 const useSystemFont = ref(miLocalStorage.getItem('useSystemFont') != null);
 const dataSaver = ref(defaultStore.state.dataSaver);
 
@@ -256,6 +310,7 @@ async function reloadAsk() {
 	unisonReload();
 }
 
+const hemisphere = computed(defaultStore.makeGetterSetter('hemisphere'));
 const overridedDeviceKind = computed(defaultStore.makeGetterSetter('overridedDeviceKind'));
 const serverDisconnectedBehavior = computed(defaultStore.makeGetterSetter('serverDisconnectedBehavior'));
 const showNoteActionsOnlyHover = computed(defaultStore.makeGetterSetter('showNoteActionsOnlyHover'));
@@ -263,6 +318,10 @@ const showClipButtonInNoteFooter = computed(defaultStore.makeGetterSetter('showC
 const reactionsDisplaySize = computed(defaultStore.makeGetterSetter('reactionsDisplaySize'));
 const limitWidthOfReaction = computed(defaultStore.makeGetterSetter('limitWidthOfReaction'));
 const collapseRenotes = computed(defaultStore.makeGetterSetter('collapseRenotes'));
+const clickToOpen = computed(defaultStore.makeGetterSetter('clickToOpen'));
+const showBots = computed(defaultStore.makeGetterSetter('tlWithBots'));
+const collapseFiles = computed(defaultStore.makeGetterSetter('collapseFiles'));
+const autoloadConversation = computed(defaultStore.makeGetterSetter('autoloadConversation'));
 const reduceAnimation = computed(defaultStore.makeGetterSetter('animation', v => !v, v => !v));
 const useBlurEffectForModal = computed(defaultStore.makeGetterSetter('useBlurEffectForModal'));
 const useBlurEffect = computed(defaultStore.makeGetterSetter('useBlurEffect'));
@@ -274,13 +333,16 @@ const emojiStyle = computed(defaultStore.makeGetterSetter('emojiStyle'));
 const disableDrawer = computed(defaultStore.makeGetterSetter('disableDrawer'));
 const disableShowingAnimatedImages = computed(defaultStore.makeGetterSetter('disableShowingAnimatedImages'));
 const forceShowAds = computed(defaultStore.makeGetterSetter('forceShowAds'));
+const oneko = computed(defaultStore.makeGetterSetter('oneko'));
 const loadRawImages = computed(defaultStore.makeGetterSetter('loadRawImages'));
 const highlightSensitiveMedia = computed(defaultStore.makeGetterSetter('highlightSensitiveMedia'));
 const imageNewTab = computed(defaultStore.makeGetterSetter('imageNewTab'));
+const warnMissingAltText = computed(defaultStore.makeGetterSetter('warnMissingAltText'));
 const nsfw = computed(defaultStore.makeGetterSetter('nsfw'));
 const showFixedPostForm = computed(defaultStore.makeGetterSetter('showFixedPostForm'));
 const showFixedPostFormInChannel = computed(defaultStore.makeGetterSetter('showFixedPostFormInChannel'));
 const numberOfPageCache = computed(defaultStore.makeGetterSetter('numberOfPageCache'));
+const numberOfReplies = computed(defaultStore.makeGetterSetter('numberOfReplies'));
 const instanceTicker = computed(defaultStore.makeGetterSetter('instanceTicker'));
 const enableInfiniteScroll = computed(defaultStore.makeGetterSetter('enableInfiniteScroll'));
 const useReactionPickerForContextMenu = computed(defaultStore.makeGetterSetter('useReactionPickerForContextMenu'));
@@ -292,7 +354,14 @@ const notificationStackAxis = computed(defaultStore.makeGetterSetter('notificati
 const keepScreenOn = computed(defaultStore.makeGetterSetter('keepScreenOn'));
 const disableStreamingTimeline = computed(defaultStore.makeGetterSetter('disableStreamingTimeline'));
 const useGroupedNotifications = computed(defaultStore.makeGetterSetter('useGroupedNotifications'));
+const showTickerOnReplies = computed(defaultStore.makeGetterSetter('showTickerOnReplies'));
+const noteDesign = computed(defaultStore.makeGetterSetter('noteDesign'));
+const uncollapseCW = computed(defaultStore.makeGetterSetter('uncollapseCW'));
+const expandLongNote = computed(defaultStore.makeGetterSetter('expandLongNote'));
 const enableSeasonalScreenEffect = computed(defaultStore.makeGetterSetter('enableSeasonalScreenEffect'));
+const showVisibilitySelectorOnBoost = computed(defaultStore.makeGetterSetter('showVisibilitySelectorOnBoost'));
+const visibilityOnBoost = computed(defaultStore.makeGetterSetter('visibilityOnBoost'));
+const enableHorizontalSwipe = computed(defaultStore.makeGetterSetter('enableHorizontalSwipe'));
 
 watch(lang, () => {
 	miLocalStorage.setItem('lang', lang.value as string);
@@ -308,6 +377,14 @@ watch(fontSize, () => {
 	}
 });
 
+watch(cornerRadius, () => {
+	if (cornerRadius.value == null) {
+		miLocalStorage.removeItem('cornerRadius');
+	} else {
+		miLocalStorage.setItem('cornerRadius', cornerRadius.value);
+	}
+});
+
 watch(useSystemFont, () => {
 	if (useSystemFont.value) {
 		miLocalStorage.setItem('useSystemFont', 't');
@@ -316,9 +393,17 @@ watch(useSystemFont, () => {
 	}
 });
 
+watch(noteDesign, async (newval) => {
+	if (noteDesign.value === newval) {
+		await reloadAsk();
+	}
+});
+
 watch([
+	hemisphere,
 	lang,
 	fontSize,
+	cornerRadius,
 	useSystemFont,
 	enableInfiniteScroll,
 	squareAvatars,
@@ -333,19 +418,35 @@ watch([
 	keepScreenOn,
 	disableStreamingTimeline,
 	enableSeasonalScreenEffect,
+	showVisibilitySelectorOnBoost,
+	visibilityOnBoost,
 ], async () => {
 	await reloadAsk();
 });
 
-const emojiIndexLangs = ['en-US'];
+const emojiIndexLangs = ['en-US', 'ja-JP', 'ja-JP_hira'] as const;
 
-function downloadEmojiIndex(lang: string) {
+function getEmojiIndexLangName(targetLang: typeof emojiIndexLangs[number]) {
+	if (langs.find(x => x[0] === targetLang)) {
+		return langs.find(x => x[0] === targetLang)![1];
+	} else {
+		// 絵文字辞書限定の言語定義
+		switch (targetLang) {
+			case 'ja-JP_hira': return 'ひらがな';
+			default: return targetLang;
+		}
+	}
+}
+
+function downloadEmojiIndex(lang: typeof emojiIndexLangs[number]) {
 	async function main() {
 		const currentIndexes = defaultStore.state.additionalUnicodeEmojiIndexes;
 
 		function download() {
 			switch (lang) {
 				case 'en-US': return import('../../unicode-emoji-indexes/en-US.json').then(x => x.default);
+				case 'ja-JP': return import('../../unicode-emoji-indexes/ja-JP.json').then(x => x.default);
+				case 'ja-JP_hira': return import('../../unicode-emoji-indexes/ja-JP_hira.json').then(x => x.default);
 				default: throw new Error('unrecognized lang: ' + lang);
 			}
 		}
@@ -368,7 +469,7 @@ function removeEmojiIndex(lang: string) {
 }
 
 async function setPinnedList() {
-	const lists = await os.api('users/lists/list');
+	const lists = await misskeyApi('users/lists/list');
 	const { canceled, result: list } = await os.select({
 		title: i18n.ts.selectList,
 		items: lists.map(x => ({
@@ -437,8 +538,8 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.general,
-	icon: 'ti ti-adjustments',
-});
+	icon: 'ph-faders ph-bold ph-lg',
+}));
 </script>

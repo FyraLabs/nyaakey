@@ -1,10 +1,10 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
-import { waitFor } from '@storybook/testing-library';
+import { waitFor } from '@storybook/test';
 import { StoryObj } from '@storybook/vue3';
 import MkPageHeader from './MkPageHeader.vue';
 export const Empty = {
@@ -60,7 +60,7 @@ export const Icon = {
 		tabs: [
 			{
 				...OneTab.args.tabs[0],
-				icon: 'ti ti-home',
+				icon: 'ph-house ph-bold ph-lg',
 			},
 		],
 	},
@@ -87,17 +87,17 @@ export const SomeTabs = {
 			{
 				key: 'princess',
 				title: 'Princess',
-				icon: 'ti ti-crown',
+				icon: 'ph-crown ph-bold ph-lg',
 			},
 			{
 				key: 'fairy',
 				title: 'Fairy',
-				icon: 'ti ti-snowflake',
+				icon: 'ph-snowflake ph-bold ph-lg',
 			},
 			{
 				key: 'angel',
 				title: 'Angel',
-				icon: 'ti ti-feather',
+				icon: 'ph-feather ph-bold ph-lg',
 			},
 		],
 	},

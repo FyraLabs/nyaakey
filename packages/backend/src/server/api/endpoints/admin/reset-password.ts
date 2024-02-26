@@ -1,10 +1,11 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
 import { Inject, Injectable } from '@nestjs/common';
-import bcrypt from 'bcryptjs';
+//import bcrypt from 'bcryptjs';
+import * as argon2 from 'argon2';
 import { Endpoint } from '@/server/api/endpoint-base.js';
 import type { UsersRepository, UserProfilesRepository } from '@/models/_.js';
 import { DI } from '@/di-symbols.js';
@@ -65,7 +66,7 @@ export default class extends Endpoint<typeof meta, typeof paramDef> { // eslint-
 			const passwd = secureRndstr(8);
 
 			// Generate hash of password
-			const hash = bcrypt.hashSync(passwd);
+			const hash = await argon2.hash(passwd);
 
 			await this.userProfilesRepository.update({
 				userId: user.id,

@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -22,6 +22,7 @@ import type { CustomEmojiService } from '../CustomEmojiService.js';
 import type { ReactionService } from '../ReactionService.js';
 import type { UserEntityService } from './UserEntityService.js';
 import type { DriveFileEntityService } from './DriveFileEntityService.js';
+import type { Config } from '@/config.js';
 
 @Injectable()
 export class NoteEntityService implements OnModuleInit {
@@ -37,6 +38,9 @@ export class NoteEntityService implements OnModuleInit {
 
 		@Inject(DI.usersRepository)
 		private usersRepository: UsersRepository,
+
+		@Inject(DI.config)
+		private config: Config,
 
 		@Inject(DI.notesRepository)
 		private notesRepository: NotesRepository,
@@ -106,16 +110,29 @@ export class NoteEntityService implements OnModuleInit {
 			} else if (packedNote.mentions && packedNote.mentions.some(id => meId === id)) {
 				// 自分へのメンション
 				hide = false;
+			} else if (packedNote.renote && (meId === packedNote.renote.userId)) {
+				hide = false;
 			} else {
-				// フォロワーかどうか
-				const isFollowing = await this.followingsRepository.exist({
-					where: {
-						followeeId: packedNote.userId,
-						followerId: meId,
-					},
-				});
+				if (packedNote.renote) {
+					const isFollowing = await this.followingsRepository.exists({
+						where: {
+							followeeId: packedNote.renote.userId,
+							followerId: meId,
+						},
+					});
+					
+					hide = !isFollowing;
+				} else {
+					// フォロワーかどうか
+					const isFollowing = await this.followingsRepository.exists({
+						where: {
+							followeeId: packedNote.userId,
+							followerId: meId,
+						},
+					});
 
-				hide = !isFollowing;
+					hide = !isFollowing;
+				}
 			}
 		}
 
@@ -164,7 +181,7 @@ export class NoteEntityService implements OnModuleInit {
 
 		return {
 			multiple: poll.multiple,
-			expiresAt: poll.expiresAt,
+			expiresAt: poll.expiresAt?.toISOString() ?? null,
 			choices,
 		};
 	}
@@ -323,10 +340,9 @@ export class NoteEntityService implements OnModuleInit {
 		const packed: Packed<'Note'> = await awaitAll({
 			id: note.id,
 			createdAt: this.idService.parse(note.id).date.toISOString(),
+			updatedAt: note.updatedAt ? note.updatedAt.toISOString() : undefined,
 			userId: note.userId,
-			user: this.userEntityService.pack(note.user ?? note.userId, me, {
-				detail: false,
-			}),
+			user: this.userEntityService.pack(note.user ?? note.userId, me),
 			text: text,
 			cw: note.cw,
 			visibility: note.visibility,
@@ -351,10 +367,15 @@ export class NoteEntityService implements OnModuleInit {
 				color: channel.color,
 				isSensitive: channel.isSensitive,
 				allowRenoteToExternal: channel.allowRenoteToExternal,
+				userId: channel.userId,
 			} : undefined,
-			mentions: note.mentions.length > 0 ? note.mentions : undefined,
+			mentions: note.mentions && note.mentions.length > 0 ? note.mentions : undefined,
 			uri: note.uri ?? undefined,
 			url: note.url ?? undefined,
+			poll: note.hasPoll ? this.populatePoll(note, meId) : undefined,
+			...(meId && Object.keys(note.reactions).length > 0 ? {
+				myReaction: this.populateMyReaction(note, meId, options?._hint_),
+			} : {}),
 
 			...(opts.detail ? {
 				clippedCount: note.clippedCount,
@@ -372,12 +393,6 @@ export class NoteEntityService implements OnModuleInit {
 					withReactionAndUserPairCache: opts.withReactionAndUserPairCache,
 					_hint_: options?._hint_,
 				}) : undefined,
-
-				poll: note.hasPoll ? this.populatePoll(note, meId) : undefined,
-
-				...(meId && Object.keys(note.reactions).length > 0 ? {
-					myReaction: this.populateMyReaction(note, meId, options?._hint_),
-				} : {}),
 			} : {}),
 		});
 

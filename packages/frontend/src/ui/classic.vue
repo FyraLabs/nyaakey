@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -52,19 +52,21 @@ import XCommon from './_common_/common.vue';
 import { instanceName } from '@/config.js';
 import { StickySidebar } from '@/scripts/sticky-sidebar.js';
 import * as os from '@/os.js';
-import { mainRouter } from '@/router.js';
-import { PageMetadata, provideMetadataReceiver } from '@/scripts/page-metadata.js';
+import { PageMetadata, provideMetadataReceiver, provideReactiveMetadata } from '@/scripts/page-metadata.js';
 import { defaultStore } from '@/store.js';
 import { i18n } from '@/i18n.js';
 import { miLocalStorage } from '@/local-storage.js';
+import { mainRouter } from '@/router/main.js';
 const XHeaderMenu = defineAsyncComponent(() => import('./classic.header.vue'));
 const XWidgets = defineAsyncComponent(() => import('./universal.widgets.vue'));
+
+const isRoot = computed(() => mainRouter.currentRoute.value.name === 'index');
 
 const DESKTOP_THRESHOLD = 1100;
 
 const isDesktop = ref(window.innerWidth >= DESKTOP_THRESHOLD);
 
-const pageMetadata = ref<null | PageMetadata>();
+const pageMetadata = ref<null | PageMetadata>(null);
 const widgetsShowing = ref(false);
 const fullView = ref(false);
 const globalHeaderHeight = ref(0);
@@ -75,12 +77,18 @@ const widgetsLeft = ref<HTMLElement>();
 const widgetsRight = ref<HTMLElement>();
 
 provide('router', mainRouter);
-provideMetadataReceiver((info) => {
-	pageMetadata.value = info.value;
+provideMetadataReceiver((metadataGetter) => {
+	const info = metadataGetter();
+	pageMetadata.value = info;
 	if (pageMetadata.value) {
-		document.title = `${pageMetadata.value.title} | ${instanceName}`;
+		if (isRoot.value && pageMetadata.value.title === instanceName) {
+			document.title = pageMetadata.value.title;
+		} else {
+			document.title = `${pageMetadata.value.title} | ${instanceName}`;
+		}
 	}
 });
+provideReactiveMetadata(pageMetadata);
 provide('shouldHeaderThin', showMenuOnTop.value);
 provide('forceSpacerMin', true);
 
@@ -110,13 +118,13 @@ function onContextmenu(ev: MouseEvent) {
 		type: 'label',
 		text: path,
 	}, {
-		icon: fullView.value ? 'ti ti-minimize' : 'ti ti-maximize',
+		icon: fullView.value ? 'ph-arrows-in-simple ph-bold ph-lg' : 'ph-frame-corners ph-bold ph-lg',
 		text: fullView.value ? i18n.ts.quitFullView : i18n.ts.fullView,
 		action: () => {
 			fullView.value = !fullView.value;
 		},
 	}, {
-		icon: 'ti ti-window-maximize',
+		icon: 'ph-frame-corners ph-bold ph-lg',
 		text: i18n.ts.openInWindow,
 		action: () => {
 			os.pageWindow(path);
@@ -253,9 +261,13 @@ onMounted(() => {
 		}
 
 		> .widgets {
-			//--panelBorder: none;
+			position: sticky;
+			top: 0;
 			width: 300px;
-			padding-bottom: calc(var(--margin) + env(safe-area-inset-bottom, 0px));
+			height: 100%;
+			padding-top: 16px;
+			box-sizing: border-box;
+			overflow: auto;
 
 			@media (max-width: $widgets-hide-threshold) {
 				display: none;

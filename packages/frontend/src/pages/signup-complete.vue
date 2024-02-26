@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -9,10 +9,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 	<div :class="$style.formContainer">
 		<form :class="$style.form" class="_panel" @submit.prevent="submit()">
 			<div :class="$style.banner">
-				<i class="ti ti-user-check"></i>
+				<i class="ph-check ph-bold ph-lg"></i>
 			</div>
 			<div class="_gaps_m" style="padding: 32px;">
-				<div>{{ i18n.t('clickToFinishEmailVerification', { ok: i18n.ts.gotIt }) }}</div>
+				<div>{{ i18n.tsx.clickToFinishEmailVerification({ ok: i18n.ts.gotIt }) }}</div>
 				<div>
 					<MkButton gradate large rounded type="submit" :disabled="submitting" data-cy-admin-ok style="margin: 0 auto;">
 						{{ submitting ? i18n.ts.processing : i18n.ts.gotIt }}<MkEllipsis v-if="submitting"/>
@@ -31,6 +31,7 @@ import MkAnimBg from '@/components/MkAnimBg.vue';
 import { login } from '@/account.js';
 import { i18n } from '@/i18n.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 
 const submitting = ref(false);
 
@@ -42,9 +43,16 @@ function submit() {
 	if (submitting.value) return;
 	submitting.value = true;
 
-	os.api('signup-pending', {
+	misskeyApi('signup-pending', {
 		code: props.code,
 	}).then(res => {
+		if (res.pendingApproval) {
+			return os.alert({
+				type: 'success',
+				title: i18n.ts._signup.almostThere,
+				text: i18n.ts._signup.approvalPending,
+			});
+		}
 		return login(res.i, '/');
 	}).catch(() => {
 		submitting.value = false;

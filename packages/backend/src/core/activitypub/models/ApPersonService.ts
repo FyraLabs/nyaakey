@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -38,6 +38,7 @@ import { MetaService } from '@/core/MetaService.js';
 import { DriveFileEntityService } from '@/core/entities/DriveFileEntityService.js';
 import type { AccountMoveService } from '@/core/AccountMoveService.js';
 import { checkHttps } from '@/misc/check-https.js';
+import { isNotNull } from '@/misc/is-not-null.js';
 import { getApId, getApType, getOneApHrefNullable, isActor, isCollection, isCollectionOrOrderedCollection, isPropertyValue } from '../type.js';
 import { extractApHashtags } from './tag.js';
 import type { OnModuleInit } from '@nestjs/common';
@@ -225,20 +226,42 @@ export class ApPersonService implements OnModuleInit {
 		return null;
 	}
 
-	private async resolveAvatarAndBanner(user: MiRemoteUser, icon: any, image: any): Promise<Pick<MiRemoteUser, 'avatarId' | 'bannerId' | 'avatarUrl' | 'bannerUrl' | 'avatarBlurhash' | 'bannerBlurhash'>> {
-		const [avatar, banner] = await Promise.all([icon, image].map(img => {
-			if (img == null) return null;
-			if (user == null) throw new Error('failed to create user: user is null');
+	private async resolveAvatarAndBanner(user: MiRemoteUser, icon: any, image: any, bgimg: any): Promise<Partial<Pick<MiRemoteUser, 'avatarId' | 'bannerId' | 'backgroundId' | 'avatarUrl' | 'bannerUrl' | 'backgroundUrl' | 'avatarBlurhash' | 'bannerBlurhash' | 'backgroundBlurhash'>>> {
+		if (user == null) throw new Error('failed to create user: user is null');
+
+		const [avatar, banner, background] = await Promise.all([icon, image, bgimg].map(img => {
+			// if we have an explicitly missing image, return an
+			// explicitly-null set of values
+			if ((img == null) || (typeof img === 'object' && img.url == null)) {
+				return { id: null, url: null, blurhash: null };
+			}
+
 			return this.apImageService.resolveImage(user, img).catch(() => null);
 		}));
 
+		/*
+			we don't want to return nulls on errors! if the database fields
+			are already null, nothing changes; if the database has old
+			values, we should keep those. The exception is if the remote has
+			actually removed the images: in that case, the block above
+			returns the special {id:null}&c value, and we return those
+		*/
 		return {
-			avatarId: avatar?.id ?? null,
-			bannerId: banner?.id ?? null,
-			avatarUrl: avatar ? this.driveFileEntityService.getPublicUrl(avatar, 'avatar') : null,
-			bannerUrl: banner ? this.driveFileEntityService.getPublicUrl(banner) : null,
-			avatarBlurhash: avatar?.blurhash ?? null,
-			bannerBlurhash: banner?.blurhash ?? null,
+			...( avatar ? {
+				avatarId: avatar.id,
+				avatarUrl: avatar.url ? this.driveFileEntityService.getPublicUrl(avatar, 'avatar') : null,
+				avatarBlurhash: avatar.blurhash,
+			} : {}),
+			...( banner ? {
+				bannerId: banner.id,
+				bannerUrl: banner.url ? this.driveFileEntityService.getPublicUrl(banner) : null,
+				bannerBlurhash: banner.blurhash,
+			} : {}),
+			...( background ? {
+				backgroundId: background.id,
+				backgroundUrl: background.url ? this.driveFileEntityService.getPublicUrl(background) : null,
+				backgroundBlurhash: background.blurhash,
+			} : {}),
 		};
 	}
 
@@ -291,6 +314,12 @@ export class ApPersonService implements OnModuleInit {
 			});
 		//#endregion
 
+		//#region resolve counts
+		const _resolver = resolver ?? this.apResolverService.createResolver();
+		const outboxcollection = await _resolver.resolveCollection(person.outbox).catch(() => { return null; });
+		const followerscollection = await _resolver.resolveCollection(person.followers!).catch(() => { return null; });
+		const followingcollection = await _resolver.resolveCollection(person.following!).catch(() => { return null; });
+
 		try {
 			// Start transaction
 			await this.db.transaction(async transactionalEntityManager => {
@@ -298,24 +327,31 @@ export class ApPersonService implements OnModuleInit {
 					id: this.idService.gen(),
 					avatarId: null,
 					bannerId: null,
+					backgroundId: null,
 					lastFetchedAt: new Date(),
 					name: truncate(person.name, nameLength),
+					noindex: (person as any).noindex ?? false,
 					isLocked: person.manuallyApprovesFollowers,
 					movedToUri: person.movedTo,
 					movedAt: person.movedTo ? new Date() : null,
 					alsoKnownAs: person.alsoKnownAs,
 					isExplorable: person.discoverable,
 					username: person.preferredUsername,
+					approved: true,
 					usernameLower: person.preferredUsername?.toLowerCase(),
 					host,
 					inbox: person.inbox,
 					sharedInbox: person.sharedInbox ?? person.endpoints?.sharedInbox,
+					notesCount: outboxcollection?.totalItems ?? 0,
+					followersCount: followerscollection?.totalItems ?? 0,
+					followingCount: followingcollection?.totalItems ?? 0,
 					followersUri: person.followers ? getApId(person.followers) : undefined,
 					featured: person.featured ? getApId(person.featured) : undefined,
 					uri: person.id,
 					tags,
 					isBot,
 					isCat: (person as any).isCat === true,
+					speakAsCat: (person as any).speakAsCat != null ? (person as any).speakAsCat === true : (person as any).isCat === true,
 					emojis,
 				})) as MiRemoteUser;
 
@@ -335,6 +371,7 @@ export class ApPersonService implements OnModuleInit {
 					birthday: bday?.[0] ?? null,
 					location: person['vcard:Address'] ?? null,
 					userHost: host,
+					listenbrainz: person.listenbrainz ?? null,
 				}));
 
 				if (person.publicKey) {
@@ -380,7 +417,7 @@ export class ApPersonService implements OnModuleInit {
 
 		//#region アバターとヘッダー画像をフェッチ
 		try {
-			const updates = await this.resolveAvatarAndBanner(user, person.icon, person.image);
+			const updates = await this.resolveAvatarAndBanner(user, person.icon, person.image, person.backgroundUrl);
 			await this.usersRepository.update(user.id, updates);
 			user = { ...user, ...updates };
 
@@ -456,14 +493,17 @@ export class ApPersonService implements OnModuleInit {
 			emojis: emojiNames,
 			name: truncate(person.name, nameLength),
 			tags,
+			approved: true,
 			isBot: getApType(object) === 'Service' || getApType(object) === 'Application',
 			isCat: (person as any).isCat === true,
+			speakAsCat: (person as any).speakAsCat != null ? (person as any).speakAsCat === true : (person as any).isCat === true,
+			noindex: (person as any).noindex ?? false,
 			isLocked: person.manuallyApprovesFollowers,
 			movedToUri: person.movedTo ?? null,
 			alsoKnownAs: person.alsoKnownAs ?? null,
 			isExplorable: person.discoverable,
-			...(await this.resolveAvatarAndBanner(exist, person.icon, person.image).catch(() => ({}))),
-		} as Partial<MiRemoteUser> & Pick<MiRemoteUser, 'isBot' | 'isCat' | 'isLocked' | 'movedToUri' | 'alsoKnownAs' | 'isExplorable'>;
+			...(await this.resolveAvatarAndBanner(exist, person.icon, person.image, person.backgroundUrl).catch(() => ({}))),
+		} as Partial<MiRemoteUser> & Pick<MiRemoteUser, 'isBot' | 'isCat' | 'speakAsCat' | 'isLocked' | 'movedToUri' | 'alsoKnownAs' | 'isExplorable'>;
 
 		const moving = ((): boolean => {
 			// 移行先がない→ある
@@ -509,6 +549,7 @@ export class ApPersonService implements OnModuleInit {
 			description: _description,
 			birthday: bday?.[0] ?? null,
 			location: person['vcard:Address'] ?? null,
+			listenbrainz: person.listenbrainz ?? null,
 		});
 
 		this.globalEventService.publishInternalEvent('remoteUserUpdated', { id: exist.id });
@@ -619,7 +660,7 @@ export class ApPersonService implements OnModuleInit {
 
 			// とりあえずidを別の時間で生成して順番を維持
 			let td = 0;
-			for (const note of featuredNotes.filter((note): note is MiNote => note != null)) {
+			for (const note of featuredNotes.filter(isNotNull)) {
 				td -= 1000;
 				transactionalEntityManager.insert(MiUserNotePining, {
 					id: this.idService.gen(Date.now() + td),

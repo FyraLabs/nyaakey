@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -16,7 +16,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<template #suffix>@{{ host }}</template>
 			</MkInput>
 			<MkInput v-if="!user || user && !user.usePasswordLessLogin" v-model="password" :placeholder="i18n.ts.password" type="password" autocomplete="current-password webauthn" :withPasswordToggle="true" required data-cy-signin-password>
-				<template #prefix><i class="ti ti-lock"></i></template>
+				<template #prefix><i class="ph-lock ph-bold ph-lg"></i></template>
 				<template #caption><button class="_textButton" type="button" @click="resetPassword">{{ i18n.ts.forgotPassword }}</button></template>
 			</MkInput>
 			<MkButton type="submit" large primary rounded :disabled="signing" style="margin: 0 auto;">{{ signing ? i18n.ts.loggingIn : i18n.ts.login }}</MkButton>
@@ -35,11 +35,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<p style="margin-bottom:0;">{{ i18n.ts['2fa'] }}</p>
 				<MkInput v-if="user && user.usePasswordLessLogin" v-model="password" type="password" autocomplete="current-password" :withPasswordToggle="true" required>
 					<template #label>{{ i18n.ts.password }}</template>
-					<template #prefix><i class="ti ti-lock"></i></template>
+					<template #prefix><i class="ph-lock ph-bold ph-lg"></i></template>
 				</MkInput>
 				<MkInput v-model="token" type="text" pattern="^([0-9]{6}|[A-Z0-9]{32})$" autocomplete="one-time-code" :spellcheck="false" required>
 					<template #label>{{ i18n.ts.token }}</template>
-					<template #prefix><i class="ti ti-123"></i></template>
+					<template #prefix><i class="ph-keyhole ph-bold ph-lg"></i></template>
 				</MkInput>
 				<MkButton type="submit" :disabled="signing" large primary rounded style="margin: 0 auto;">{{ signing ? i18n.ts.loggingIn : i18n.ts.login }}</MkButton>
 			</div>
@@ -59,6 +59,7 @@ import MkInput from '@/components/MkInput.vue';
 import MkInfo from '@/components/MkInfo.vue';
 import { host as configHost } from '@/config.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { login } from '@/account.js';
 import { i18n } from '@/i18n.js';
 
@@ -95,7 +96,7 @@ const props = defineProps({
 });
 
 function onUsernameChange(): void {
-	os.api('users/show', {
+	misskeyApi('users/show', {
 		username: username.value,
 	}).then(userResponse => {
 		user.value = userResponse;
@@ -111,6 +112,7 @@ function onLogin(res: any): Promise<void> | void {
 }
 
 async function queryKey(): Promise<void> {
+	if (credentialRequest.value == null) return;
 	queryingKey.value = true;
 	await webAuthnRequest(credentialRequest.value)
 		.catch(() => {
@@ -120,7 +122,7 @@ async function queryKey(): Promise<void> {
 			credentialRequest.value = null;
 			queryingKey.value = false;
 			signing.value = true;
-			return os.api('signin', {
+			return misskeyApi('signin', {
 				username: username.value,
 				password: password.value,
 				credential: credential.toJSON(),
@@ -142,7 +144,7 @@ function onSubmit(): void {
 	signing.value = true;
 	if (!totpLogin.value && user.value && user.value.twoFactorEnabled) {
 		if (webAuthnSupported() && user.value.securityKeys) {
-			os.api('signin', {
+			misskeyApi('signin', {
 				username: username.value,
 				password: password.value,
 			}).then(res => {
@@ -159,7 +161,7 @@ function onSubmit(): void {
 			signing.value = false;
 		}
 	} else {
-		os.api('signin', {
+		misskeyApi('signin', {
 			username: username.value,
 			password: password.value,
 			token: user.value?.twoFactorEnabled ? token.value : undefined,
@@ -228,6 +230,6 @@ function resetPassword(): void {
 	background: #ddd;
 	background-position: center;
 	background-size: cover;
-	border-radius: 100%;
+	border-radius: var(--radius-full);
 }
 </style>

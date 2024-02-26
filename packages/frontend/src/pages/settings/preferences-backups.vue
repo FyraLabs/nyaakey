@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -37,12 +37,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { v4 as uuid } from 'uuid';
 import FormSection from '@/components/form/section.vue';
 import MkButton from '@/components/MkButton.vue';
 import MkInfo from '@/components/MkInfo.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { ColdDeviceStorage, defaultStore } from '@/store.js';
 import { unisonReload } from '@/scripts/unison-reload.js';
 import { useStream } from '@/stream.js';
@@ -70,6 +71,7 @@ const defaultStoreSaveKeys: (keyof typeof defaultStore['state'])[] = [
 	'animatedMfm',
 	'advancedMfm',
 	'loadRawImages',
+	'warnMissingAltText',
 	'imageNewTab',
 	'dataSaver',
 	'disableShowingAnimatedImages',
@@ -97,6 +99,8 @@ const defaultStoreSaveKeys: (keyof typeof defaultStore['state'])[] = [
 	'showClipButtonInNoteFooter',
 	'reactionsDisplaySize',
 	'forceShowAds',
+	'oneko',
+	'numberOfReplies',
 	'aiChanMode',
 	'devMode',
 	'mediaListWithOneImageAppearance',
@@ -135,6 +139,7 @@ type Profile = {
 		hot: Record<keyof typeof defaultStoreSaveKeys, unknown>;
 		cold: Record<keyof typeof coldDeviceStorageSaveKeys, unknown>;
 		fontSize: string | null;
+		cornerRadius: string | null;
 		useSystemFont: 't' | null;
 		wallpaper: string | null;
 	};
@@ -144,7 +149,7 @@ const connection = $i && useStream().useChannel('main');
 
 const profiles = ref<Record<string, Profile> | null>(null);
 
-os.api('i/registry/get-all', { scope })
+misskeyApi('i/registry/get-all', { scope })
 	.then(res => {
 		profiles.value = res || {};
 	});
@@ -192,6 +197,7 @@ function getSettings(): Profile['settings'] {
 		hot,
 		cold,
 		fontSize: miLocalStorage.getItem('fontSize'),
+		cornerRadius: miLocalStorage.getItem('cornerRadius'),
 		useSystemFont: miLocalStorage.getItem('useSystemFont') as 't' | null,
 		wallpaper: miLocalStorage.getItem('wallpaper'),
 	};
@@ -305,6 +311,13 @@ async function applyProfile(id: string): Promise<void> {
 		miLocalStorage.removeItem('fontSize');
 	}
 
+	// cornerRadius
+	if (settings.cornerRadius) {
+		miLocalStorage.setItem('cornerRadius', settings.cornerRadius);
+	} else {
+		miLocalStorage.removeItem('cornerRadius');
+	}
+
 	// useSystemFont
 	if (settings.useSystemFont) {
 		miLocalStorage.setItem('useSystemFont', settings.useSystemFont);
@@ -398,25 +411,25 @@ function menu(ev: MouseEvent, profileId: string) {
 
 	return os.popupMenu([{
 		text: ts._preferencesBackups.apply,
-		icon: 'ti ti-check',
+		icon: 'ph-check ph-bold ph-lg',
 		action: () => applyProfile(profileId),
 	}, {
 		type: 'a',
 		text: ts.download,
-		icon: 'ti ti-download',
+		icon: 'ph-download ph-bold ph-lg',
 		href: URL.createObjectURL(new Blob([JSON.stringify(profiles.value[profileId], null, 2)], { type: 'application/json' })),
 		download: `${profiles.value[profileId].name}.json`,
 	}, { type: 'divider' }, {
 		text: ts.rename,
-		icon: 'ti ti-forms',
+		icon: 'ph-textbox ph-bold ph-lg',
 		action: () => rename(profileId),
 	}, {
 		text: ts._preferencesBackups.save,
-		icon: 'ti ti-device-floppy',
+		icon: 'ph-floppy-disk ph-bold ph-lg',
 		action: () => save(profileId),
 	}, { type: 'divider' }, {
 		text: ts.delete,
-		icon: 'ti ti-trash',
+		icon: 'ph-trash ph-bold ph-lg',
 		action: () => deleteProfile(profileId),
 		danger: true,
 	}], (ev.currentTarget ?? ev.target ?? undefined) as unknown as HTMLElement | undefined);
@@ -436,10 +449,10 @@ onUnmounted(() => {
 	connection?.off('registryUpdated');
 });
 
-definePageMetadata(computed(() => ({
+definePageMetadata(() => ({
 	title: ts.preferencesBackups,
-	icon: 'ti ti-device-floppy',
-})));
+	icon: 'ph-floppy-disk ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>

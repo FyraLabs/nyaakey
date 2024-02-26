@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -15,10 +15,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<div class="_gaps">
 					<FormLink v-for="webhook in items" :key="webhook.id" :to="`/settings/webhook/edit/${webhook.id}`">
 						<template #icon>
-							<i v-if="webhook.active === false" class="ti ti-player-pause"></i>
-							<i v-else-if="webhook.latestStatus === null" class="ti ti-circle"></i>
-							<i v-else-if="[200, 201, 204].includes(webhook.latestStatus)" class="ti ti-check" :style="{ color: 'var(--success)' }"></i>
-							<i v-else class="ti ti-alert-triangle" :style="{ color: 'var(--error)' }"></i>
+							<i v-if="webhook.active === false" class="ph-pause ph-bold ph-lg"></i>
+							<i v-else-if="webhook.latestStatus === null" class="ph-circle ph-bold ph-lg"></i>
+							<i v-else-if="[200, 201, 204].includes(webhook.latestStatus)" class="ph-check ph-bold ph-lg" :style="{ color: 'var(--success)' }"></i>
+							<i v-else class="ph-warning ph-bold ph-lg" :style="{ color: 'var(--error)' }"></i>
 						</template>
 						{{ webhook.name || webhook.url }}
 						<template #suffix>
@@ -50,8 +50,8 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: 'Webhook',
-	icon: 'ti ti-webhook',
-});
+	icon: 'ph-webhooks-logo ph-bold ph-lg',
+}));
 </script>

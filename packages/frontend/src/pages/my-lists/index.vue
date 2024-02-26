@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -15,11 +15,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 			</div>
 
-			<MkButton primary rounded style="margin: 0 auto;" @click="create"><i class="ti ti-plus"></i> {{ i18n.ts.createList }}</MkButton>
+			<MkButton primary rounded style="margin: 0 auto;" @click="create"><i class="ph-plus ph-bold ph-lg"></i> {{ i18n.ts.createList }}</MkButton>
 
 			<div v-if="items.length > 0" class="_gaps">
 				<MkA v-for="list in items" :key="list.id" class="_panel" :class="$style.list" :to="`/my/lists/${ list.id }`">
-					<div style="margin-bottom: 4px;">{{ list.name }} <span :class="$style.nUsers">({{ i18n.t('nUsers', { n: `${list.userIds.length}/${$i?.policies['userEachUserListsLimit']}` }) }})</span></div>
+					<div style="margin-bottom: 4px;">{{ list.name }} <span :class="$style.nUsers">({{ i18n.tsx.nUsers({ n: `${list.userIds.length}/${$i.policies['userEachUserListsLimit']}` }) }})</span></div>
 					<MkAvatars :userIds="list.userIds" :limit="10"/>
 				</MkA>
 			</div>
@@ -37,7 +37,9 @@ import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { userListsCache } from '@/cache.js';
 import { infoImageUrl } from '@/instance.js';
-import { $i } from '@/account.js';
+import { signinRequired } from '@/account.js';
+
+const $i = signinRequired();
 
 const items = computed(() => userListsCache.value.value ?? []);
 
@@ -59,7 +61,7 @@ async function create() {
 
 const headerActions = computed(() => [{
 	asFullButton: true,
-	icon: 'ti ti-refresh',
+	icon: 'ph-arrows-counter-clockwise ph-bold ph-lg',
 	text: i18n.ts.reload,
 	handler: () => {
 		userListsCache.delete();
@@ -69,10 +71,10 @@ const headerActions = computed(() => [{
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.manageLists,
-	icon: 'ti ti-list',
-});
+	icon: 'ph-list ph-bold ph-lg',
+}));
 
 onActivated(() => {
 	fetch();
@@ -84,7 +86,7 @@ onActivated(() => {
 	display: block;
 	padding: 16px;
 	border: solid 1px var(--divider);
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	margin-bottom: 8px;
 
 	&:hover {

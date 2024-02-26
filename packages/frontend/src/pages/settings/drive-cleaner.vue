@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -30,7 +30,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 								<span>{{ bytes(file.size) }}</span>
 							</div>
 							<div>
-								<span>{{ i18n.ts.registeredDate }}: <MkTime :time="file.createdAt" mode="detail"/></span>
+								<span>{{ i18n.ts.createdAt }}: <MkTime :time="file.createdAt" mode="detail"/></span>
 							</div>
 							<div v-if="sortModeSelect === 'sizeDesc'">
 								<div :class="$style.meter"><div :class="$style.meterValue" :style="genUsageBar(file.size)"></div></div>
@@ -51,6 +51,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 import { computed, ref, watch } from 'vue';
 import tinycolor from 'tinycolor2';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import MkPagination from '@/components/MkPagination.vue';
 import MkDriveFileThumbnail from '@/components/MkDriveFileThumbnail.vue';
 import { i18n } from '@/i18n.js';
@@ -94,7 +95,7 @@ watch(sortModeSelect, () => {
 
 function fetchDriveInfo(): void {
 	fetching.value = true;
-	os.api('drive').then(info => {
+	misskeyApi('drive').then(info => {
 		capacity.value = info.capacity;
 		usage.value = info.usage;
 		fetching.value = false;
@@ -116,10 +117,10 @@ function onContextMenu(ev: MouseEvent, file): void {
 	os.contextMenu(getDriveFileMenu(file), ev);
 }
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.drivecleaner,
-	icon: 'ti ti-trash',
-});
+	icon: 'ph-trash ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>
@@ -151,7 +152,7 @@ definePageMetadata({
 	height: 12px;
 	background: rgba(0, 0, 0, 0.1);
 	overflow: clip;
-	border-radius: 999px;
+	border-radius: var(--radius-ellipse);
 }
 
 .meterValue {

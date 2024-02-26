@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -18,17 +18,26 @@ SPDX-License-Identifier: AGPL-3.0-only
 						<template #label>{{ i18n.ts.emailRequiredForSignup }}</template>
 					</MkSwitch>
 
+					<MkSwitch v-model="approvalRequiredForSignup">
+						<template #label>{{ i18n.ts.approvalRequiredForSignup }}</template>
+					</MkSwitch>
+
 					<FormLink to="/admin/server-rules">{{ i18n.ts.serverRules }}</FormLink>
 
 					<MkInput v-model="tosUrl" type="url">
-						<template #prefix><i class="ti ti-link"></i></template>
+						<template #prefix><i class="ph-link ph-bold ph-lg"></i></template>
 						<template #label>{{ i18n.ts.tosUrl }}</template>
 					</MkInput>
 
 					<MkInput v-model="privacyPolicyUrl" type="url">
-						<template #prefix><i class="ti ti-link"></i></template>
+						<template #prefix><i class="ph-link ph-bold ph-lg"></i></template>
 						<template #label>{{ i18n.ts.privacyPolicyUrl }}</template>
 					</MkInput>
+
+					<MkTextarea v-if="bubbleTimelineEnabled" v-model="bubbleTimeline">
+						<template #label>Bubble timeline</template>
+						<template #caption>Choose which instances should be displayed in the bubble.</template>
+					</MkTextarea>
 
 					<MkTextarea v-model="preservedUsernames">
 						<template #label>{{ i18n.ts.preservedUsernames }}</template>
@@ -38,6 +47,11 @@ SPDX-License-Identifier: AGPL-3.0-only
 					<MkTextarea v-model="sensitiveWords">
 						<template #label>{{ i18n.ts.sensitiveWords }}</template>
 						<template #caption>{{ i18n.ts.sensitiveWordsDescription }}<br>{{ i18n.ts.sensitiveWordsDescription2 }}</template>
+					</MkTextarea>
+
+					<MkTextarea v-model="prohibitedWords">
+						<template #label>{{ i18n.ts.prohibitedWords }}</template>
+						<template #caption>{{ i18n.ts.prohibitedWordsDescription }}<br>{{ i18n.ts.prohibitedWordsDescription2 }}</template>
 					</MkTextarea>
 
 					<MkTextarea v-model="hiddenTags">
@@ -50,7 +64,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<template #footer>
 			<div :class="$style.footer">
 				<MkSpacer :contentMax="700" :marginMin="16" :marginMax="16">
-					<MkButton primary rounded @click="save"><i class="ti ti-check"></i> {{ i18n.ts.save }}</MkButton>
+					<MkButton primary rounded @click="save"><i class="ph-check ph-bold ph-lg"></i> {{ i18n.ts.save }}</MkButton>
 				</MkSpacer>
 			</div>
 		</template>
@@ -66,6 +80,7 @@ import MkInput from '@/components/MkInput.vue';
 import MkTextarea from '@/components/MkTextarea.vue';
 import FormSuspense from '@/components/form/suspense.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { fetchInstance } from '@/instance.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
@@ -74,43 +89,54 @@ import FormLink from '@/components/form/link.vue';
 
 const enableRegistration = ref<boolean>(false);
 const emailRequiredForSignup = ref<boolean>(false);
+const approvalRequiredForSignup = ref<boolean>(false);
+const bubbleTimelineEnabled = ref<boolean>(false);
 const sensitiveWords = ref<string>('');
+const prohibitedWords = ref<string>('');
 const hiddenTags = ref<string>('');
 const preservedUsernames = ref<string>('');
+const bubbleTimeline = ref<string>('');
 const tosUrl = ref<string | null>(null);
 const privacyPolicyUrl = ref<string | null>(null);
 
 async function init() {
-	const meta = await os.api('admin/meta');
+	const meta = await misskeyApi('admin/meta');
 	enableRegistration.value = !meta.disableRegistration;
 	emailRequiredForSignup.value = meta.emailRequiredForSignup;
+	approvalRequiredForSignup.value = meta.approvalRequiredForSignup;
 	sensitiveWords.value = meta.sensitiveWords.join('\n');
+	prohibitedWords.value = meta.prohibitedWords.join('\n');
 	hiddenTags.value = meta.hiddenTags.join('\n');
 	preservedUsernames.value = meta.preservedUsernames.join('\n');
 	tosUrl.value = meta.tosUrl;
 	privacyPolicyUrl.value = meta.privacyPolicyUrl;
+	bubbleTimeline.value = meta.bubbleInstances.join('\n');
+	bubbleTimelineEnabled.value = meta.policies.btlAvailable;
 }
 
 function save() {
 	os.apiWithDialog('admin/update-meta', {
 		disableRegistration: !enableRegistration.value,
 		emailRequiredForSignup: emailRequiredForSignup.value,
+		approvalRequiredForSignup: approvalRequiredForSignup.value,
 		tosUrl: tosUrl.value,
 		privacyPolicyUrl: privacyPolicyUrl.value,
 		sensitiveWords: sensitiveWords.value.split('\n'),
+		prohibitedWords: prohibitedWords.value.split('\n'),
 		hiddenTags: hiddenTags.value.split('\n'),
 		preservedUsernames: preservedUsernames.value.split('\n'),
+		bubbleInstances: bubbleTimeline.value.split('\n'),
 	}).then(() => {
-		fetchInstance();
+		fetchInstance(true);
 	});
 }
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.moderation,
-	icon: 'ti ti-shield',
-});
+	icon: 'ph-shield ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" module>

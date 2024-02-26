@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -35,6 +35,13 @@ export class MiUserProfile {
 		comment: 'The birthday (YYYY-MM-DD) of the User.',
 	})
 	public birthday: string | null;
+
+	@Column("varchar", {
+		length: 128,
+		nullable: true,
+		comment: "The ListenBrainz username of the User.",
+	})
+	public listenbrainz: string | null;
 
 	@Column('varchar', {
 		length: 2048, nullable: true,

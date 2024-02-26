@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -7,7 +7,9 @@ import { markRaw, ref } from 'vue';
 import * as Misskey from 'misskey-js';
 import { miLocalStorage } from './local-storage.js';
 import type { SoundType } from '@/scripts/sound.js';
+import type { BuiltinTheme as ShikiBuiltinTheme } from 'shiki';
 import { Storage } from '@/pizzax.js';
+import { hemisphere } from '@/scripts/intl-const.js';
 
 interface PostFormAction {
 	title: string,
@@ -85,7 +87,19 @@ export const defaultStore = markRaw(new Storage('base', {
 	},
 	collapseRenotes: {
 		where: 'account',
-		default: true,
+		default: false,
+	},
+	collapseFiles: {
+		where: 'account',
+		default: false,
+	},
+	uncollapseCW: {
+		where: 'account',
+		default: false,
+	},
+	expandLongNote: {
+		where: 'device',
+		default: false,
 	},
 	rememberNoteVisibility: {
 		where: 'account',
@@ -127,24 +141,40 @@ export const defaultStore = markRaw(new Storage('base', {
 		where: 'account',
 		default: 'nonSensitiveOnly' as 'likeOnly' | 'likeOnlyForRemote' | 'nonSensitiveOnly' | 'nonSensitiveOnlyForLocalLikeOnlyForRemote' | null,
 	},
+	like: {
+		where: 'account',
+		default: null as string | null,
+	},
 	mutedAds: {
 		where: 'account',
 		default: [] as string[],
+	},
+	autoloadConversation: {
+		where: 'account',
+		default: true,
+	},
+	showVisibilitySelectorOnBoost: {
+		where: 'account',
+		default: true,
+	},
+	visibilityOnBoost: {
+		where: 'account',
+		default: 'public' as 'public' | 'home' | 'followers',
 	},
 
 	menu: {
 		where: 'deviceAccount',
 		default: [
 			'notifications',
-			'clips',
-			'drive',
+			'explore',
 			'followRequests',
 			'-',
-			'explore',
 			'announcements',
 			'search',
 			'-',
-			'ui',
+			'favorites',
+			'drive',
+			'achievements',
 		],
 	},
 	visibility: {
@@ -182,8 +212,15 @@ export const defaultStore = markRaw(new Storage('base', {
 	tl: {
 		where: 'deviceAccount',
 		default: {
-			src: 'home' as 'home' | 'local' | 'social' | 'global' | `list:${string}`,
+			src: 'home' as 'home' | 'local' | 'social' | 'global' | 'bubble' | `list:${string}`,
 			userList: null as Misskey.entities.UserList | null,
+			filter: {
+				withReplies: true,
+				withRenotes: true,
+				withBots: true,
+				withSensitive: true,
+				onlyFiles: false,
+			},
 		},
 	},
 	pinnedUserLists: {
@@ -197,7 +234,7 @@ export const defaultStore = markRaw(new Storage('base', {
 	},
 	serverDisconnectedBehavior: {
 		where: 'device',
-		default: 'quiet' as 'quiet' | 'reload' | 'dialog',
+		default: 'disabled' as 'quiet' | 'dialog' | 'disabled',
 	},
 	nsfw: {
 		where: 'device',
@@ -226,6 +263,10 @@ export const defaultStore = markRaw(new Storage('base', {
 	loadRawImages: {
 		where: 'device',
 		default: false,
+	},
+	warnMissingAltText: {
+		where: 'device',
+		default: true,
 	},
 	imageNewTab: {
 		where: 'device',
@@ -258,6 +299,14 @@ export const defaultStore = markRaw(new Storage('base', {
 	showFixedPostFormInChannel: {
 		where: 'device',
 		default: false,
+	},
+	showTickerOnReplies: {
+		where: 'device',
+		default: false,
+	},
+	noteDesign: {
+		where: 'device',
+		default: 'sharkey' as 'sharkey' | 'misskey',
 	},
 	enableInfiniteScroll: {
 		where: 'device',
@@ -317,7 +366,7 @@ export const defaultStore = markRaw(new Storage('base', {
 	},
 	squareAvatars: {
 		where: 'device',
-		default: false,
+		default: true,
 	},
 	showAvatarDecorations: {
 		where: 'device',
@@ -339,6 +388,10 @@ export const defaultStore = markRaw(new Storage('base', {
 		where: 'device',
 		default: 3,
 	},
+	numberOfReplies: {
+		where: 'device',
+		default: 5,
+	},
 	showNoteActionsOnlyHover: {
 		where: 'device',
 		default: false,
@@ -358,6 +411,14 @@ export const defaultStore = markRaw(new Storage('base', {
 	forceShowAds: {
 		where: 'device',
 		default: false,
+	},
+	oneko: {
+		where: 'device',
+		default: false,
+	},
+	clickToOpen: {
+		where: 'device',
+		default: true,
 	},
 	aiChanMode: {
 		where: 'device',
@@ -391,10 +452,6 @@ export const defaultStore = markRaw(new Storage('base', {
 		where: 'device',
 		default: false,
 	},
-	tlWithReplies: {
-		where: 'device',
-		default: false,
-	},
 	defaultWithReplies: {
 		where: 'account',
 		default: false,
@@ -420,6 +477,21 @@ export const defaultStore = markRaw(new Storage('base', {
 		where: 'device',
 		default: false,
 	},
+	dropAndFusion: {
+		where: 'device',
+		default: {
+			bgmVolume: 0.25,
+			sfxVolume: 1,
+		},
+	},
+	hemisphere: {
+		where: 'device',
+		default: hemisphere as 'N' | 'S',
+	},
+	enableHorizontalSwipe: {
+		where: 'device',
+		default: true,
+	},
 
 	sound_masterVolume: {
 		where: 'device',
@@ -435,7 +507,7 @@ export const defaultStore = markRaw(new Storage('base', {
 	},
 	sound_note: {
 		where: 'device',
-		default: { type: 'syuilo/n-aec', volume: 1 } as SoundStore,
+		default: { type: 'syuilo/n-aec', volume: 0 } as SoundStore,
 	},
 	sound_noteMy: {
 		where: 'device',
@@ -486,8 +558,8 @@ interface Watcher {
 /**
  * 常にメモリにロードしておく必要がないような設定情報を保管するストレージ(非リアクティブ)
  */
-import lightTheme from '@/themes/l-light.json5';
-import darkTheme from '@/themes/d-green-lime.json5';
+import lightTheme from '@/themes/l-cherry.json5';
+import darkTheme from '@/themes/d-ice.json5';
 
 export class ColdDeviceStorage {
 	public static default = {

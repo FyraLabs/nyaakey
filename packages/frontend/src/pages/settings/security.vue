@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -19,8 +19,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<div>
 					<div v-for="item in items" :key="item.id" v-panel class="timnmucd">
 						<header>
-							<i v-if="item.success" class="ti ti-check icon succ"></i>
-							<i v-else class="ti ti-circle-x icon fail"></i>
+							<i v-if="item.success" class="ph-check ph-bold ph-lg icon succ"></i>
+							<i v-else class="ph-x-circle ph-bold ph-lg icon fail"></i>
 							<code class="ip _monospace">{{ item.ip }}</code>
 							<MkTime :time="item.createdAt" class="time"/>
 						</header>
@@ -32,7 +32,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 	<FormSection>
 		<FormSlot>
-			<MkButton danger @click="regenerateToken"><i class="ti ti-refresh"></i> {{ i18n.ts.regenerateLoginToken }}</MkButton>
+			<MkButton danger @click="regenerateToken"><i class="ph-arrows-counter-clockwise ph-bold ph-lg"></i> {{ i18n.ts.regenerateLoginToken }}</MkButton>
 			<template #caption>{{ i18n.ts.regenerateLoginTokenDescription }}</template>
 		</FormSlot>
 	</FormSection>
@@ -47,6 +47,7 @@ import FormSlot from '@/components/form/slot.vue';
 import MkButton from '@/components/MkButton.vue';
 import MkPagination from '@/components/MkPagination.vue';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { i18n } from '@/i18n.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 
@@ -92,7 +93,7 @@ async function regenerateToken() {
 	const auth = await os.authenticateDialog();
 	if (auth.canceled) return;
 
-	os.api('i/regenerate-token', {
+	misskeyApi('i/regenerate-token', {
 		password: auth.result.password,
 		token: auth.result.token,
 	});
@@ -102,10 +103,10 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata({
+definePageMetadata(() => ({
 	title: i18n.ts.security,
-	icon: 'ti ti-lock',
-});
+	icon: 'ph-lock ph-bold ph-lg',
+}));
 </script>
 
 <style lang="scss" scoped>

@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -19,18 +19,18 @@ SPDX-License-Identifier: AGPL-3.0-only
 			<div class="_gaps_s">
 				<div v-for="file in files" :key="file.id" class="wqugxsfx" :style="{ backgroundImage: file ? `url(${ file.thumbnailUrl })` : null }">
 					<div class="name">{{ file.name }}</div>
-					<button v-tooltip="i18n.ts.remove" class="remove _button" @click="remove(file)"><i class="ti ti-x"></i></button>
+					<button v-tooltip="i18n.ts.remove" class="remove _button" @click="remove(file)"><i class="ph-x ph-bold ph-lg"></i></button>
 				</div>
-				<MkButton primary @click="selectFile"><i class="ti ti-plus"></i> {{ i18n.ts.attachFile }}</MkButton>
+				<MkButton primary @click="selectFile"><i class="ph-plus ph-bold ph-lg"></i> {{ i18n.ts.attachFile }}</MkButton>
 			</div>
 
 			<MkSwitch v-model="isSensitive">{{ i18n.ts.markAsSensitive }}</MkSwitch>
 
 			<div class="_buttons">
-				<MkButton v-if="postId" primary @click="save"><i class="ti ti-device-floppy"></i> {{ i18n.ts.save }}</MkButton>
-				<MkButton v-else primary @click="save"><i class="ti ti-device-floppy"></i> {{ i18n.ts.publish }}</MkButton>
+				<MkButton v-if="postId" primary @click="save"><i class="ph-floppy-disk ph-bold ph-lg"></i> {{ i18n.ts.save }}</MkButton>
+				<MkButton v-else primary @click="save"><i class="ph-floppy-disk ph-bold ph-lg"></i> {{ i18n.ts.publish }}</MkButton>
 
-				<MkButton v-if="postId" danger @click="del"><i class="ti ti-trash"></i> {{ i18n.ts.delete }}</MkButton>
+				<MkButton v-if="postId" danger @click="del"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts.delete }}</MkButton>
 			</div>
 		</FormSuspense>
 	</MkSpacer>
@@ -47,9 +47,10 @@ import MkSwitch from '@/components/MkSwitch.vue';
 import FormSuspense from '@/components/form/suspense.vue';
 import { selectFiles } from '@/scripts/select-file.js';
 import * as os from '@/os.js';
-import { useRouter } from '@/router.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { i18n } from '@/i18n.js';
+import { useRouter } from '@/router/supplier.js';
 
 const router = useRouter();
 
@@ -107,7 +108,7 @@ async function del() {
 }
 
 watch(() => props.postId, () => {
-	init.value = () => props.postId ? os.api('gallery/posts/show', {
+	init.value = () => props.postId ? misskeyApi('gallery/posts/show', {
 		postId: props.postId,
 	}).then(post => {
 		files.value = post.files ?? [];
@@ -121,12 +122,9 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(computed(() => props.postId ? {
-	title: i18n.ts.edit,
-	icon: 'ti ti-pencil',
-} : {
-	title: i18n.ts.postToGallery,
-	icon: 'ti ti-pencil',
+definePageMetadata(() => ({
+	title: props.postId ? i18n.ts.edit : i18n.ts.postToGallery,
+	icon: 'ph-pencil-simple ph-bold ph-lg',
 }));
 </script>
 

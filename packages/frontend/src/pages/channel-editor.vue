@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -29,10 +29,10 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</MkSwitch>
 
 			<div>
-				<MkButton v-if="bannerId == null" @click="setBannerImage"><i class="ti ti-plus"></i> {{ i18n.ts._channel.setBanner }}</MkButton>
+				<MkButton v-if="bannerId == null" @click="setBannerImage"><i class="ph-plus ph-bold ph-lg"></i> {{ i18n.ts._channel.setBanner }}</MkButton>
 				<div v-else-if="bannerUrl">
 					<img :src="bannerUrl" style="width: 100%;"/>
-					<MkButton @click="removeBannerImage()"><i class="ti ti-trash"></i> {{ i18n.ts._channel.removeBanner }}</MkButton>
+					<MkButton @click="removeBannerImage()"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts._channel.removeBanner }}</MkButton>
 				</div>
 			</div>
 
@@ -40,7 +40,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 				<template #label>{{ i18n.ts.pinnedNotes }}</template>
 
 				<div class="_gaps">
-					<MkButton primary rounded @click="addPinnedNote()"><i class="ti ti-plus"></i></MkButton>
+					<MkButton primary rounded @click="addPinnedNote()"><i class="ph-plus ph-bold ph-lg"></i></MkButton>
 
 					<Sortable
 						v-model="pinnedNotes"
@@ -50,9 +50,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 					>
 						<template #item="{element,index}">
 							<div :class="$style.pinnedNote">
-								<button class="_button" :class="$style.pinnedNoteHandle"><i class="ti ti-menu"></i></button>
+								<button class="_button" :class="$style.pinnedNoteHandle"><i class="ph-list ph-bold ph-lg"></i></button>
 								{{ element.id }}
-								<button class="_button" :class="$style.pinnedNoteRemove" @click="removePinnedNote(index)"><i class="ti ti-x"></i></button>
+								<button class="_button" :class="$style.pinnedNoteRemove" @click="removePinnedNote(index)"><i class="ph-x ph-bold ph-lg"></i></button>
 							</div>
 						</template>
 					</Sortable>
@@ -60,8 +60,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</MkFolder>
 
 			<div class="_buttons">
-				<MkButton primary @click="save()"><i class="ti ti-device-floppy"></i> {{ channelId ? i18n.ts.save : i18n.ts.create }}</MkButton>
-				<MkButton v-if="channelId" danger @click="archive()"><i class="ti ti-trash"></i> {{ i18n.ts.archive }}</MkButton>
+				<MkButton primary @click="save()"><i class="ph-floppy-disk ph-bold ph-lg"></i> {{ channelId ? i18n.ts.save : i18n.ts.create }}</MkButton>
+				<MkButton v-if="channelId" danger @click="archive()"><i class="ph-trash ph-bold ph-lg"></i> {{ i18n.ts.archive }}</MkButton>
 			</div>
 		</div>
 	</MkSpacer>
@@ -76,12 +76,13 @@ import MkInput from '@/components/MkInput.vue';
 import MkColorInput from '@/components/MkColorInput.vue';
 import { selectFile } from '@/scripts/select-file.js';
 import * as os from '@/os.js';
-import { useRouter } from '@/router.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import { definePageMetadata } from '@/scripts/page-metadata.js';
 import { i18n } from '@/i18n.js';
 import MkFolder from '@/components/MkFolder.vue';
 import MkSwitch from '@/components/MkSwitch.vue';
 import MkTextarea from '@/components/MkTextarea.vue';
+import { useRouter } from '@/router/supplier.js';
 
 const Sortable = defineAsyncComponent(() => import('vuedraggable').then(x => x.default));
 
@@ -105,7 +106,7 @@ watch(() => bannerId.value, async () => {
 	if (bannerId.value == null) {
 		bannerUrl.value = null;
 	} else {
-		bannerUrl.value = (await os.api('drive/files/show', {
+		bannerUrl.value = (await misskeyApi('drive/files/show', {
 			fileId: bannerId.value,
 		})).url;
 	}
@@ -114,7 +115,7 @@ watch(() => bannerId.value, async () => {
 async function fetchChannel() {
 	if (props.channelId == null) return;
 
-	channel.value = await os.api('channels/show', {
+	channel.value = await misskeyApi('channels/show', {
 		channelId: props.channelId,
 	});
 
@@ -173,13 +174,13 @@ function save() {
 async function archive() {
 	const { canceled } = await os.confirm({
 		type: 'warning',
-		title: i18n.t('channelArchiveConfirmTitle', { name: name.value }),
+		title: i18n.tsx.channelArchiveConfirmTitle({ name: name.value }),
 		text: i18n.ts.channelArchiveConfirmDescription,
 	});
 
 	if (canceled) return;
 
-	os.api('channels/update', {
+	misskeyApi('channels/update', {
 		channelId: props.channelId,
 		isArchived: true,
 	}).then(() => {
@@ -201,12 +202,9 @@ const headerActions = computed(() => []);
 
 const headerTabs = computed(() => []);
 
-definePageMetadata(computed(() => props.channelId ? {
-	title: i18n.ts._channel.edit,
-	icon: 'ti ti-device-tv',
-} : {
-	title: i18n.ts._channel.create,
-	icon: 'ti ti-device-tv',
+definePageMetadata(() => ({
+	title: props.channelId ? i18n.ts._channel.edit : i18n.ts._channel.create,
+	icon: 'ph-television ph-bold ph-lg',
 }));
 </script>
 

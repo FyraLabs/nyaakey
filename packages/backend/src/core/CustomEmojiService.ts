@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: syuilo and other misskey contributors
+ * SPDX-FileCopyrightText: syuilo and misskey-project
  * SPDX-License-Identifier: AGPL-3.0-only
  */
 
@@ -12,13 +12,15 @@ import { EmojiEntityService } from '@/core/entities/EmojiEntityService.js';
 import { GlobalEventService } from '@/core/GlobalEventService.js';
 import type { MiDriveFile } from '@/models/DriveFile.js';
 import type { MiEmoji } from '@/models/Emoji.js';
-import type { EmojisRepository, MiRole, MiUser } from '@/models/_.js';
+import type { DriveFilesRepository, EmojisRepository, MiRole, MiUser } from '@/models/_.js';
 import { bindThis } from '@/decorators.js';
 import { MemoryKVCache, RedisSingleCache } from '@/misc/cache.js';
 import { UtilityService } from '@/core/UtilityService.js';
 import { query } from '@/misc/prelude/url.js';
 import type { Serialized } from '@/types.js';
 import { ModerationLogService } from '@/core/ModerationLogService.js';
+import type { Config } from '@/config.js';
+import { DriveService } from './DriveService.js';
 
 const parseEmojiStrRegexp = /^(\w+)(?:@([\w.-]+))?$/;
 
@@ -31,14 +33,21 @@ export class CustomEmojiService implements OnApplicationShutdown {
 		@Inject(DI.redis)
 		private redisClient: Redis.Redis,
 
+		@Inject(DI.config)
+		private config: Config,
+
 		@Inject(DI.emojisRepository)
 		private emojisRepository: EmojisRepository,
+
+		@Inject(DI.driveFilesRepository)
+		private driveFilesRepository: DriveFilesRepository,
 
 		private utilityService: UtilityService,
 		private idService: IdService,
 		private emojiEntityService: EmojiEntityService,
 		private moderationLogService: ModerationLogService,
 		private globalEventService: GlobalEventService,
+		private driveService: DriveService,
 	) {
 		this.cache = new MemoryKVCache<MiEmoji | null>(1000 * 60 * 60 * 12);
 
@@ -255,6 +264,12 @@ export class CustomEmojiService implements OnApplicationShutdown {
 
 		this.localEmojisCache.refresh();
 
+		const file = await this.driveFilesRepository.findOneBy({ url: emoji.originalUrl, userHost: emoji.host ? emoji.host : IsNull() });
+
+		if (file) {
+			await this.driveService.deleteFile(file, false, moderator ? moderator : undefined);
+		}
+
 		this.globalEventService.publishBroadcastStream('emojiDeleted', {
 			emojis: [await this.emojiEntityService.packDetailed(emoji)],
 		});
@@ -275,6 +290,12 @@ export class CustomEmojiService implements OnApplicationShutdown {
 
 		for (const emoji of emojis) {
 			await this.emojisRepository.delete(emoji.id);
+
+			const file = await this.driveFilesRepository.findOneBy({ url: emoji.originalUrl, userHost: emoji.host ? emoji.host : IsNull() });
+
+			if (file) {
+				await this.driveService.deleteFile(file, false, moderator ? moderator : undefined);
+			}
 
 			if (moderator) {
 				this.moderationLogService.log(moderator, 'deleteCustomEmoji', {
@@ -329,9 +350,11 @@ export class CustomEmojiService implements OnApplicationShutdown {
 		if (name == null) return null;
 		if (host == null) return null;
 
+		const newHost = host === this.config.host ? null : host; 
+
 		const queryOrNull = async () => (await this.emojisRepository.findOneBy({
 			name,
-			host,
+			host: newHost ?? IsNull(),
 		})) ?? null;
 
 		const emoji = await this.cache.fetch(`${name} ${host}`, queryOrNull);
@@ -385,7 +408,7 @@ export class CustomEmojiService implements OnApplicationShutdown {
 	 */
 	@bindThis
 	public checkDuplicate(name: string): Promise<boolean> {
-		return this.emojisRepository.exist({ where: { name, host: IsNull() } });
+		return this.emojisRepository.exists({ where: { name, host: IsNull() } });
 	}
 
 	@bindThis

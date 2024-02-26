@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -19,13 +19,13 @@ SPDX-License-Identifier: AGPL-3.0-only
 				</div>
 				<div :class="$style.headerRight">
 					<span :class="$style.headerRightText"><slot name="suffix"></slot></span>
-					<i v-if="opened" class="ti ti-chevron-up icon"></i>
-					<i v-else class="ti ti-chevron-down icon"></i>
+					<i v-if="opened" class="ph-caret-up ph-bold ph-lg icon"></i>
+					<i v-else class="ph-caret-down ph-bold ph-lg icon"></i>
 				</div>
 			</div>
 		</template>
 
-		<div v-if="openedAtLeastOnce" :class="[$style.body, { [$style.bgSame]: bgSame }]" :style="{ maxHeight: maxHeight ? `${maxHeight}px` : null, overflow: maxHeight ? `auto` : null }" :aria-hidden="!opened">
+		<div v-if="openedAtLeastOnce" :class="[$style.body, { [$style.bgSame]: bgSame }]" :style="{ maxHeight: maxHeight ? `${maxHeight}px` : undefined, overflow: maxHeight ? `auto` : undefined }" :aria-hidden="!opened">
 			<Transition
 				:enterActiveClass="defaultStore.state.animation ? $style.transition_toggle_enterActive : ''"
 				:leaveActiveClass="defaultStore.state.animation ? $style.transition_toggle_leaveActive : ''"
@@ -109,7 +109,7 @@ function toggle() {
 
 onMounted(() => {
 	const computedStyle = getComputedStyle(document.documentElement);
-	const parentBg = getBgColor(rootEl.value.parentElement);
+	const parentBg = getBgColor(rootEl.value!.parentElement!);
 	const myBg = computedStyle.getPropertyValue('--panel');
 	bgSame.value = parentBg === myBg;
 });
@@ -139,7 +139,7 @@ onMounted(() => {
 	background: var(--buttonBg);
 	-webkit-backdrop-filter: var(--blur, blur(15px));
 	backdrop-filter: var(--blur, blur(15px));
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 	transition: border-radius 0.3s;
 
 	&:hover {
@@ -153,7 +153,7 @@ onMounted(() => {
 	}
 
 	&.opened {
-		border-radius: 6px 6px 0 0;
+		border-radius: var(--radius-sm) var(--radius-sm) 0 0;
 	}
 }
 
@@ -207,7 +207,7 @@ onMounted(() => {
 
 .body {
 	background: var(--panel);
-	border-radius: 0 0 6px 6px;
+	border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 	container-type: inline-size;
 
 	&.bgSame {

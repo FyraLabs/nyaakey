@@ -1,5 +1,5 @@
 <!--
-SPDX-FileCopyrightText: syuilo and other misskey contributors
+SPDX-FileCopyrightText: syuilo and misskey-project
 SPDX-License-Identifier: AGPL-3.0-only
 -->
 
@@ -7,7 +7,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 <div
 	v-if="!muted"
 	v-show="!isDeleted"
-	ref="el"
+	ref="rootEl"
 	v-hotkey="keymap"
 	:class="$style.root"
 >
@@ -15,12 +15,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 		<div v-if="!conversationLoaded" style="padding: 16px">
 			<MkButton style="margin: 0 auto;" primary rounded @click="loadConversation">{{ i18n.ts.loadConversation }}</MkButton>
 		</div>
-		<MkNoteSub v-for="note in conversation" :key="note.id" :class="$style.replyToMore" :note="note"/>
+		<MkNoteSub v-for="note in conversation" :key="note.id" :class="$style.replyToMore" :note="note" :expandAllCws="props.expandAllCws"/>
 	</div>
-	<MkNoteSub v-if="appearNote.reply" :note="appearNote.reply" :class="$style.replyTo"/>
+	<MkNoteSub v-if="appearNote.reply" :note="appearNote.reply" :class="$style.replyTo" :expandAllCws="props.expandAllCws"/>
 	<div v-if="isRenote" :class="$style.renote">
 		<MkAvatar :class="$style.renoteAvatar" :user="note.user" link preview/>
-		<i class="ti ti-repeat" style="margin-right: 4px;"></i>
+		<i class="ph-rocket-launch ph-bold ph-lg" style="margin-right: 4px;"></i>
 		<span :class="$style.renoteText">
 			<I18n :src="i18n.ts.renotedBy" tag="span">
 				<template #user>
@@ -32,15 +32,15 @@ SPDX-License-Identifier: AGPL-3.0-only
 		</span>
 		<div :class="$style.renoteInfo">
 			<button ref="renoteTime" class="_button" :class="$style.renoteTime" @click="showRenoteMenu()">
-				<i v-if="isMyRenote" class="ti ti-dots" style="margin-right: 4px;"></i>
+				<i v-if="isMyRenote" class="ph-dots-three ph-bold ph-lg" style="margin-right: 4px;"></i>
 				<MkTime :time="note.createdAt"/>
 			</button>
 			<span v-if="note.visibility !== 'public'" style="margin-left: 0.5em;" :title="i18n.ts._visibility[note.visibility]">
-				<i v-if="note.visibility === 'home'" class="ti ti-home"></i>
-				<i v-else-if="note.visibility === 'followers'" class="ti ti-lock"></i>
-				<i v-else-if="note.visibility === 'specified'" ref="specified" class="ti ti-mail"></i>
+				<i v-if="note.visibility === 'home'" class="ph-house ph-bold ph-lg"></i>
+				<i v-else-if="note.visibility === 'followers'" class="ph-lock ph-bold ph-lg"></i>
+				<i v-else-if="note.visibility === 'specified'" ref="specified" class="ph-envelope ph-bold ph-lg"></i>
 			</span>
-			<span v-if="note.localOnly" style="margin-left: 0.5em;" :title="i18n.ts._visibility['disableFederation']"><i class="ti ti-rocket-off"></i></span>
+			<span v-if="note.localOnly" style="margin-left: 0.5em;" :title="i18n.ts._visibility['disableFederation']"><i class="ph-rocket ph-bold ph-lg"></i></span>
 		</div>
 	</div>
 	<article :class="$style.note" @contextmenu.stop="onContextmenu">
@@ -54,11 +54,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 					<span v-if="appearNote.user.isBot" :class="$style.isBot">bot</span>
 					<div :class="$style.noteHeaderInfo">
 						<span v-if="appearNote.visibility !== 'public'" style="margin-left: 0.5em;" :title="i18n.ts._visibility[appearNote.visibility]">
-							<i v-if="appearNote.visibility === 'home'" class="ti ti-home"></i>
-							<i v-else-if="appearNote.visibility === 'followers'" class="ti ti-lock"></i>
-							<i v-else-if="appearNote.visibility === 'specified'" ref="specified" class="ti ti-mail"></i>
+							<i v-if="appearNote.visibility === 'home'" class="ph-house ph-bold ph-lg"></i>
+							<i v-else-if="appearNote.visibility === 'followers'" class="ph-lock ph-bold ph-lg"></i>
+							<i v-else-if="appearNote.visibility === 'specified'" ref="specified" class="ph-envelope ph-bold ph-lg"></i>
 						</span>
-						<span v-if="appearNote.localOnly" style="margin-left: 0.5em;" :title="i18n.ts._visibility['disableFederation']"><i class="ti ti-rocket-off"></i></span>
+						<span v-if="appearNote.updatedAt" ref="menuVersionsButton" style="margin-left: 0.5em;" title="Edited" @mousedown="menuVersions()"><i class="ph-pencil-simple ph-bold ph-lg"></i></span>
+						<span v-if="appearNote.localOnly" style="margin-left: 0.5em;" :title="i18n.ts._visibility['disableFederation']"><i class="ph-rocket ph-bold ph-lg"></i></span>
 					</div>
 				</div>
 				<div :class="$style.noteHeaderUsername"><MkAcct :user="appearNote.user"/></div>
@@ -72,7 +73,7 @@ SPDX-License-Identifier: AGPL-3.0-only
 			</p>
 			<div v-show="appearNote.cw == null || showContent">
 				<span v-if="appearNote.isHidden" style="opacity: 0.5">({{ i18n.ts.private }})</span>
-				<MkA v-if="appearNote.replyId" :class="$style.noteReplyTarget" :to="`/notes/${appearNote.replyId}`"><i class="ti ti-arrow-back-up"></i></MkA>
+				<MkA v-if="appearNote.replyId" :class="$style.noteReplyTarget" :to="`/notes/${appearNote.replyId}`"><i class="ph-arrow-bend-left-up ph-bold ph-lg"></i></MkA>
 				<Mfm
 					v-if="appearNote.text"
 					:parsedNodes="parsed"
@@ -82,33 +83,39 @@ SPDX-License-Identifier: AGPL-3.0-only
 					:emojiUrls="appearNote.emojis"
 					:enableEmojiMenu="true"
 					:enableEmojiMenuReaction="true"
+					:isAnim="allowAnim"
 				/>
 				<a v-if="appearNote.renote != null" :class="$style.rn">RN:</a>
 				<div v-if="translating || translation" :class="$style.translation">
 					<MkLoading v-if="translating" mini/>
-					<div v-else>
-						<b>{{ i18n.t('translatedFrom', { x: translation.sourceLang }) }}: </b>
+					<div v-else-if="translation">
+						<b>{{ i18n.tsx.translatedFrom({ x: translation.sourceLang }) }}: </b>
 						<Mfm :text="translation.text" :author="appearNote.user" :nyaize="'respect'" :emojiUrls="appearNote.emojis"/>
 					</div>
 				</div>
-				<div v-if="appearNote.files.length > 0">
+				<MkButton v-if="!allowAnim && animated" :class="$style.playMFMButton" :small="true" @click="animatedMFM()" @click.stop><i class="ph-play ph-bold ph-lg "></i> {{ i18n.ts._animatedMFM.play }}</MkButton>
+				<MkButton v-else-if="!defaultStore.state.animatedMfm && allowAnim && animated" :class="$style.playMFMButton" :small="true" @click="animatedMFM()" @click.stop><i class="ph-stop ph-bold ph-lg "></i> {{ i18n.ts._animatedMFM.stop }}</MkButton>
+				<div v-if="appearNote.files && appearNote.files.length > 0">
 					<MkMediaList :mediaList="appearNote.files"/>
 				</div>
-				<MkPoll v-if="appearNote.poll" ref="pollViewer" :note="appearNote" :class="$style.poll"/>
+				<MkPoll v-if="appearNote.poll" ref="pollViewer" :noteId="appearNote.id" :poll="appearNote.poll" :class="$style.poll"/>
 				<MkUrlPreview v-for="url in urls" :key="url" :url="url" :compact="true" :detail="true" style="margin-top: 6px;"/>
-				<div v-if="appearNote.renote" :class="$style.quote"><MkNoteSimple :note="appearNote.renote" :class="$style.quoteNote"/></div>
+				<div v-if="appearNote.renote" :class="$style.quote"><MkNoteSimple :note="appearNote.renote" :class="$style.quoteNote" :expandAllCws="props.expandAllCws"/></div>
 			</div>
-			<MkA v-if="appearNote.channel && !inChannel" :class="$style.channel" :to="`/channels/${appearNote.channel.id}`"><i class="ti ti-device-tv"></i> {{ appearNote.channel.name }}</MkA>
+			<MkA v-if="appearNote.channel && !inChannel" :class="$style.channel" :to="`/channels/${appearNote.channel.id}`"><i class="ph-television ph-bold ph-lg"></i> {{ appearNote.channel.name }}</MkA>
 		</div>
-		<footer>
+		<footer :class="$style.footer">
 			<div :class="$style.noteFooterInfo">
+				<div v-if="appearNote.updatedAt">
+					{{ i18n.ts.edited }}: <MkTime :time="appearNote.updatedAt" mode="detail"/>
+				</div>
 				<MkA :to="notePage(appearNote)">
 					<MkTime :time="appearNote.createdAt" mode="detail" colored/>
 				</MkA>
 			</div>
 			<MkReactionsViewer ref="reactionsViewer" :note="appearNote"/>
 			<button class="_button" :class="$style.noteFooterButton" @click="reply()">
-				<i class="ti ti-arrow-back-up"></i>
+				<i class="ph-arrow-u-up-left ph-bold ph-lg"></i>
 				<p v-if="appearNote.repliesCount > 0" :class="$style.noteFooterButtonCount">{{ appearNote.repliesCount }}</p>
 			</button>
 			<button
@@ -116,40 +123,54 @@ SPDX-License-Identifier: AGPL-3.0-only
 				ref="renoteButton"
 				class="_button"
 				:class="$style.noteFooterButton"
-				@mousedown="renote()"
+				:style="renoted ? 'color: var(--accent) !important;' : ''"
+				@mousedown="renoted ? undoRenote() : boostVisibility()"
 			>
-				<i class="ti ti-repeat"></i>
+				<i class="ph-rocket-launch ph-bold ph-lg"></i>
 				<p v-if="appearNote.renoteCount > 0" :class="$style.noteFooterButtonCount">{{ appearNote.renoteCount }}</p>
 			</button>
 			<button v-else class="_button" :class="$style.noteFooterButton" disabled>
-				<i class="ti ti-ban"></i>
+				<i class="ph-prohibit ph-bold ph-lg"></i>
+			</button>
+			<button
+				v-if="canRenote"
+				ref="quoteButton"
+				class="_button"
+				:class="$style.noteFooterButton"
+				@mousedown="quote()"
+			>
+				<i class="ph-quotes ph-bold ph-lg"></i>
+			</button>
+			<button v-if="appearNote.myReaction == null && appearNote.reactionAcceptance !== 'likeOnly'" ref="likeButton" :class="$style.noteFooterButton" class="_button" @mousedown="like()">
+				<i class="ph-heart ph-bold ph-lg"></i>
 			</button>
 			<button v-if="appearNote.myReaction == null" ref="reactButton" :class="$style.noteFooterButton" class="_button" @mousedown="react()">
-				<i v-if="appearNote.reactionAcceptance === 'likeOnly'" class="ti ti-heart"></i>
-				<i v-else class="ti ti-plus"></i>
+				<i v-if="appearNote.reactionAcceptance === 'likeOnly'" class="ph-heart ph-bold ph-lg"></i>
+				<i v-else class="ph-smiley ph-bold ph-lg"></i>
 			</button>
 			<button v-if="appearNote.myReaction != null" ref="reactButton" class="_button" :class="[$style.noteFooterButton, $style.reacted]" @click="undoReact(appearNote)">
-				<i class="ti ti-minus"></i>
+				<i class="ph-minus ph-bold ph-lg"></i>
 			</button>
 			<button v-if="defaultStore.state.showClipButtonInNoteFooter" ref="clipButton" class="_button" :class="$style.noteFooterButton" @mousedown="clip()">
-				<i class="ti ti-paperclip"></i>
+				<i class="ph-paperclip ph-bold ph-lg"></i>
 			</button>
-			<button ref="menuButton" class="_button" :class="$style.noteFooterButton" @mousedown="menu()">
-				<i class="ti ti-dots"></i>
+			<button ref="menuButton" class="_button" :class="$style.noteFooterButton" @mousedown="showMenu()">
+				<i class="ph-dots-three ph-bold ph-lg"></i>
 			</button>
 		</footer>
 	</article>
 	<div :class="$style.tabs">
-		<button class="_button" :class="[$style.tab, { [$style.tabActive]: tab === 'replies' }]" @click="tab = 'replies'"><i class="ti ti-arrow-back-up"></i> {{ i18n.ts.replies }}</button>
-		<button class="_button" :class="[$style.tab, { [$style.tabActive]: tab === 'renotes' }]" @click="tab = 'renotes'"><i class="ti ti-repeat"></i> {{ i18n.ts.renotes }}</button>
-		<button class="_button" :class="[$style.tab, { [$style.tabActive]: tab === 'reactions' }]" @click="tab = 'reactions'"><i class="ti ti-icons"></i> {{ i18n.ts.reactions }}</button>
+		<button class="_button" :class="[$style.tab, { [$style.tabActive]: tab === 'replies' }]" @click="tab = 'replies'"><i class="ph-arrow-u-up-left ph-bold ph-lg"></i> {{ i18n.ts.replies }}</button>
+		<button class="_button" :class="[$style.tab, { [$style.tabActive]: tab === 'renotes' }]" @click="tab = 'renotes'"><i class="ph-rocket-launch ph-bold ph-lg"></i> {{ i18n.ts.renotes }}</button>
+		<button class="_button" :class="[$style.tab, { [$style.tabActive]: tab === 'quotes' }]" @click="tab = 'quotes'"><i class="ph-quotes ph-bold ph-lg"></i> {{ i18n.ts._notification._types.quote }}</button>
+		<button class="_button" :class="[$style.tab, { [$style.tabActive]: tab === 'reactions' }]" @click="tab = 'reactions'"><i class="ph-smiley ph-bold ph-lg"></i> {{ i18n.ts.reactions }}</button>
 	</div>
 	<div>
-		<div v-if="tab === 'replies'">
+		<div v-if="tab === 'replies'" :class="$style.tab_replies">
 			<div v-if="!repliesLoaded" style="padding: 16px">
 				<MkButton style="margin: 0 auto;" primary rounded @click="loadReplies">{{ i18n.ts.loadReplies }}</MkButton>
 			</div>
-			<MkNoteSub v-for="note in replies" :key="note.id" :note="note" :class="$style.reply" :detail="true"/>
+			<MkNoteSub v-for="note in replies" :key="note.id" :note="note" :class="$style.reply" :detail="true" :expandAllCws="props.expandAllCws" :onDeleteCallback="removeReply"/>
 		</div>
 		<div v-else-if="tab === 'renotes'" :class="$style.tab_renotes">
 			<MkPagination :pagination="renotesPagination" :disableAutoLoad="true">
@@ -161,6 +182,12 @@ SPDX-License-Identifier: AGPL-3.0-only
 					</div>
 				</template>
 			</MkPagination>
+		</div>
+		<div v-if="tab === 'quotes'" :class="$style.tab_replies">
+			<div v-if="!quotesLoaded" style="padding: 16px">
+				<MkButton style="margin: 0 auto;" primary rounded @click="loadQuotes">{{ i18n.ts.loadReplies }}</MkButton>
+			</div>
+			<MkNoteSub v-for="note in quotes" :key="note.id" :note="note" :class="$style.reply" :detail="true" :expandAllCws="props.expandAllCws"/>
 		</div>
 		<div v-else-if="tab === 'reactions'" :class="$style.tab_reactions">
 			<div :class="$style.reactionTabs">
@@ -193,8 +220,8 @@ SPDX-License-Identifier: AGPL-3.0-only
 </template>
 
 <script lang="ts" setup>
-import { computed, inject, onMounted, provide, ref, shallowRef } from 'vue';
-import * as mfm from 'mfm-js';
+import { computed, inject, onMounted, provide, ref, shallowRef, watch } from 'vue';
+import * as mfm from '@transfem-org/sfm-js';
 import * as Misskey from 'misskey-js';
 import MkNoteSub from '@/components/MkNoteSub.vue';
 import MkNoteSimple from '@/components/MkNoteSimple.vue';
@@ -210,26 +237,31 @@ import { checkWordMute } from '@/scripts/check-word-mute.js';
 import { userPage } from '@/filters/user.js';
 import { notePage } from '@/filters/note.js';
 import * as os from '@/os.js';
+import { misskeyApi } from '@/scripts/misskey-api.js';
 import * as sound from '@/scripts/sound.js';
 import { defaultStore, noteViewInterruptors } from '@/store.js';
 import { reactionPicker } from '@/scripts/reaction-picker.js';
 import { extractUrlFromMfm } from '@/scripts/extract-url-from-mfm.js';
 import { $i } from '@/account.js';
 import { i18n } from '@/i18n.js';
-import { getNoteClipMenu, getNoteMenu, getRenoteMenu } from '@/scripts/get-note-menu.js';
+import { getNoteClipMenu, getNoteMenu } from '@/scripts/get-note-menu.js';
+import { getNoteVersionsMenu } from '@/scripts/get-note-versions-menu.js';
 import { useNoteCapture } from '@/scripts/use-note-capture.js';
 import { deepClone } from '@/scripts/clone.js';
 import { useTooltip } from '@/scripts/use-tooltip.js';
 import { claimAchievement } from '@/scripts/achievements.js';
+import { checkAnimationFromMfm } from '@/scripts/check-animated-mfm.js';
 import MkRippleEffect from '@/components/MkRippleEffect.vue';
 import { showMovedDialog } from '@/scripts/show-moved-dialog.js';
 import MkUserCardMini from '@/components/MkUserCardMini.vue';
-import MkPagination from '@/components/MkPagination.vue';
+import MkPagination, { type Paging } from '@/components/MkPagination.vue';
 import MkReactionIcon from '@/components/MkReactionIcon.vue';
 import MkButton from '@/components/MkButton.vue';
+import { boostMenuItems, type Visibility } from '@/scripts/boost-quote.js';
 
 const props = defineProps<{
 	note: Misskey.entities.Note;
+	expandAllCws?: boolean;
 }>();
 
 const inChannel = inject('inChannel', null);
@@ -242,7 +274,7 @@ if (noteViewInterruptors.length > 0) {
 		let result: Misskey.entities.Note | null = deepClone(note.value);
 		for (const interruptor of noteViewInterruptors) {
 			try {
-				result = await interruptor.handler(result);
+				result = await interruptor.handler(result!) as Misskey.entities.Note | null;
 				if (result === null) {
 					isDeleted.value = true;
 					return;
@@ -251,48 +283,70 @@ if (noteViewInterruptors.length > 0) {
 				console.error(err);
 			}
 		}
-		note.value = result;
+		note.value = result as Misskey.entities.Note;
 	});
 }
 
 const isRenote = (
 	note.value.renote != null &&
 	note.value.text == null &&
-	note.value.fileIds.length === 0 &&
+	note.value.fileIds && note.value.fileIds.length === 0 &&
 	note.value.poll == null
 );
 
-const el = shallowRef<HTMLElement>();
+const rootEl = shallowRef<HTMLElement>();
 const menuButton = shallowRef<HTMLElement>();
+const menuVersionsButton = shallowRef<HTMLElement>();
 const renoteButton = shallowRef<HTMLElement>();
 const renoteTime = shallowRef<HTMLElement>();
 const reactButton = shallowRef<HTMLElement>();
+const quoteButton = shallowRef<HTMLElement>();
 const clipButton = shallowRef<HTMLElement>();
+const likeButton = shallowRef<HTMLElement>();
 const appearNote = computed(() => isRenote ? note.value.renote as Misskey.entities.Note : note.value);
 const isMyRenote = $i && ($i.id === note.value.userId);
-const showContent = ref(false);
+const showContent = ref(defaultStore.state.uncollapseCW);
 const isDeleted = ref(false);
+const renoted = ref(false);
 const muted = ref($i ? checkWordMute(appearNote.value, $i, $i.mutedWords) : false);
 const translation = ref<Misskey.entities.NotesTranslateResponse | null>(null);
 const translating = ref(false);
 const parsed = appearNote.value.text ? mfm.parse(appearNote.value.text) : null;
-const urls = parsed ? extractUrlFromMfm(parsed) : null;
+const urls = parsed ? extractUrlFromMfm(parsed).filter((url) => appearNote.value.renote?.url !== url && appearNote.value.renote?.uri !== url) : null;
+const animated = computed(() => parsed ? checkAnimationFromMfm(parsed) : null);
+const allowAnim = ref(defaultStore.state.advancedMfm && defaultStore.state.animatedMfm ? true : false);
 const showTicker = (defaultStore.state.instanceTicker === 'always') || (defaultStore.state.instanceTicker === 'remote' && appearNote.value.user.instance);
 const conversation = ref<Misskey.entities.Note[]>([]);
 const replies = ref<Misskey.entities.Note[]>([]);
-const canRenote = computed(() => ['public', 'home'].includes(appearNote.value.visibility) || appearNote.value.userId === $i.id);
+const quotes = ref<Misskey.entities.Note[]>([]);
+const canRenote = computed(() => ['public', 'home'].includes(appearNote.value.visibility) || (appearNote.value.visibility === 'followers' && appearNote.value.userId === $i?.id));
+const defaultLike = computed(() => defaultStore.state.like ? defaultStore.state.like : null);
+
+watch(() => props.expandAllCws, (expandAllCws) => {
+	if (expandAllCws !== showContent.value) showContent.value = expandAllCws;
+});
+
+if ($i) {
+	misskeyApi('notes/renotes', {
+		noteId: appearNote.value.id,
+		userId: $i.id,
+		limit: 1,
+	}).then((res) => {
+		renoted.value = res.length > 0;
+	});
+}
 
 const keymap = {
 	'r': () => reply(true),
 	'e|a|plus': () => react(true),
-	'q': () => renoteButton.value.renote(true),
+	'q': () => renote(appearNote.value.visibility),
 	'esc': blur,
-	'm|o': () => menu(true),
+	'm|o': () => showMenu(true),
 	's': () => showContent.value !== showContent.value,
 };
 
 provide('react', (reaction: string) => {
-	os.api('notes/reactions/create', {
+	misskeyApi('notes/reactions/create', {
 		noteId: appearNote.value.id,
 		reaction: reaction,
 	});
@@ -301,7 +355,7 @@ provide('react', (reaction: string) => {
 const tab = ref('replies');
 const reactionTabType = ref<string | null>(null);
 
-const renotesPagination = computed(() => ({
+const renotesPagination = computed<Paging>(() => ({
 	endpoint: 'notes/renotes',
 	limit: 10,
 	params: {
@@ -309,7 +363,7 @@ const renotesPagination = computed(() => ({
 	},
 }));
 
-const reactionsPagination = computed(() => ({
+const reactionsPagination = computed<Paging>(() => ({
 	endpoint: 'notes/reactions',
 	limit: 10,
 	params: {
@@ -318,15 +372,29 @@ const reactionsPagination = computed(() => ({
 	},
 }));
 
+async function addReplyTo(replyNote: Misskey.entities.Note) {
+	replies.value.unshift(replyNote);
+	appearNote.value.repliesCount += 1;
+}
+
+async function removeReply(id: Misskey.entities.Note['id']) {
+	const replyIdx = replies.value.findIndex(note => note.id === id);
+	if (replyIdx >= 0) {
+		replies.value.splice(replyIdx, 1);
+		appearNote.value.repliesCount -= 1;
+	}
+}
+
 useNoteCapture({
-	rootEl: el,
+	rootEl: rootEl,
 	note: appearNote,
 	pureNote: note,
 	isDeletedRef: isDeleted,
+	onReplyCallback: addReplyTo,
 });
 
 useTooltip(renoteButton, async (showing) => {
-	const renotes = await os.api('notes/renotes', {
+	const renotes = await misskeyApi('notes/renotes', {
 		noteId: appearNote.value.id,
 		limit: 11,
 	});
@@ -343,14 +411,123 @@ useTooltip(renoteButton, async (showing) => {
 	}, {}, 'closed');
 });
 
-function renote(viaKeyboard = false) {
+useTooltip(quoteButton, async (showing) => {
+	const renotes = await misskeyApi('notes/renotes', {
+		noteId: appearNote.value.id,
+		limit: 11,
+		quote: true,
+	});
+
+	const users = renotes.map(x => x.user);
+
+	if (users.length < 1) return;
+
+	os.popup(MkUsersTooltip, {
+		showing,
+		users,
+		count: appearNote.value.renoteCount,
+		targetElement: quoteButton.value,
+	}, {}, 'closed');
+});
+
+function boostVisibility() {
+	if (!defaultStore.state.showVisibilitySelectorOnBoost) {
+		renote(defaultStore.state.visibilityOnBoost);
+	} else {
+		os.popupMenu(boostMenuItems(appearNote, renote), renoteButton.value);
+	}
+}
+
+function renote(visibility: Visibility, localOnly: boolean = false) {
 	pleaseLogin();
 	showMovedDialog();
 
-	const { menu } = getRenoteMenu({ note: note.value, renoteButton });
-	os.popupMenu(menu, renoteButton.value, {
-		viaKeyboard,
-	});
+	if (appearNote.value.channel) {
+		const el = renoteButton.value as HTMLElement | null | undefined;
+		if (el) {
+			const rect = el.getBoundingClientRect();
+			const x = rect.left + (el.offsetWidth / 2);
+			const y = rect.top + (el.offsetHeight / 2);
+			os.popup(MkRippleEffect, { x, y }, {}, 'end');
+		}
+
+		misskeyApi('notes/create', {
+			renoteId: appearNote.value.id,
+			channelId: appearNote.value.channelId,
+		}).then(() => {
+			os.toast(i18n.ts.renoted);
+			renoted.value = true;
+		});
+	} else if (!appearNote.value.channel || appearNote.value.channel.allowRenoteToExternal) {
+		const el = renoteButton.value as HTMLElement | null | undefined;
+		if (el) {
+			const rect = el.getBoundingClientRect();
+			const x = rect.left + (el.offsetWidth / 2);
+			const y = rect.top + (el.offsetHeight / 2);
+			os.popup(MkRippleEffect, { x, y }, {}, 'end');
+		}
+
+		misskeyApi('notes/create', {
+			localOnly: localOnly,
+			visibility: visibility,
+			renoteId: appearNote.value.id,
+		}).then(() => {
+			os.toast(i18n.ts.renoted);
+			renoted.value = true;
+		});
+	}
+}
+
+function quote() {
+	pleaseLogin();
+	showMovedDialog();
+
+	if (appearNote.value.channel) {
+		os.post({
+			renote: appearNote.value,
+			channel: appearNote.value.channel,
+		}).then(() => {
+			misskeyApi('notes/renotes', {
+				noteId: appearNote.value.id,
+				userId: $i?.id,
+				limit: 1,
+				quote: true,
+			}).then((res) => {
+				if (!(res.length > 0)) return;
+				const el = quoteButton.value as HTMLElement | null | undefined;
+				if (el && res.length > 0) {
+					const rect = el.getBoundingClientRect();
+					const x = rect.left + (el.offsetWidth / 2);
+					const y = rect.top + (el.offsetHeight / 2);
+					os.popup(MkRippleEffect, { x, y }, {}, 'end');
+				}
+
+				os.toast(i18n.ts.quoted);
+			});
+		});
+	} else {
+		os.post({
+			renote: appearNote.value,
+		}).then(() => {
+			misskeyApi('notes/renotes', {
+				noteId: appearNote.value.id,
+				userId: $i?.id,
+				limit: 1,
+				quote: true,
+			}).then((res) => {
+				if (!(res.length > 0)) return;
+				const el = quoteButton.value as HTMLElement | null | undefined;
+				if (el && res.length > 0) {
+					const rect = el.getBoundingClientRect();
+					const x = rect.left + (el.offsetWidth / 2);
+					const y = rect.top + (el.offsetHeight / 2);
+					os.popup(MkRippleEffect, { x, y }, {}, 'end');
+				}
+
+				os.toast(i18n.ts.quoted);
+			});
+		});
+	}
 }
 
 function reply(viaKeyboard = false): void {
@@ -360,7 +537,7 @@ function reply(viaKeyboard = false): void {
 		reply: appearNote.value,
 		channel: appearNote.value.channel,
 		animation: !viaKeyboard,
-	}, () => {
+	}).then(() => {
 		focus();
 	});
 }
@@ -369,11 +546,11 @@ function react(viaKeyboard = false): void {
 	pleaseLogin();
 	showMovedDialog();
 	if (appearNote.value.reactionAcceptance === 'likeOnly') {
-		sound.play('reaction');
+		sound.playMisskeySfx('reaction');
 
-		os.api('notes/reactions/create', {
+		misskeyApi('notes/like', {
 			noteId: appearNote.value.id,
-			reaction: '❤️',
+			override: defaultLike.value,
 		});
 		const el = reactButton.value as HTMLElement | null | undefined;
 		if (el) {
@@ -384,10 +561,10 @@ function react(viaKeyboard = false): void {
 		}
 	} else {
 		blur();
-		reactionPicker.show(reactButton.value, reaction => {
-			sound.play('reaction');
+		reactionPicker.show(reactButton.value ?? null, note.value, reaction => {
+			sound.playMisskeySfx('reaction');
 
-			os.api('notes/reactions/create', {
+			misskeyApi('notes/reactions/create', {
 				noteId: appearNote.value.id,
 				reaction: reaction,
 			});
@@ -400,36 +577,79 @@ function react(viaKeyboard = false): void {
 	}
 }
 
+function like(): void {
+	pleaseLogin();
+	showMovedDialog();
+	sound.playMisskeySfx('reaction');
+	misskeyApi('notes/like', {
+		noteId: appearNote.value.id,
+		override: defaultLike.value,
+	});
+	const el = likeButton.value as HTMLElement | null | undefined;
+	if (el) {
+		const rect = el.getBoundingClientRect();
+		const x = rect.left + (el.offsetWidth / 2);
+		const y = rect.top + (el.offsetHeight / 2);
+		os.popup(MkRippleEffect, { x, y }, {}, 'end');
+	}
+}
+
 function undoReact(note): void {
 	const oldReaction = note.myReaction;
 	if (!oldReaction) return;
-	os.api('notes/reactions/delete', {
+	misskeyApi('notes/reactions/delete', {
 		noteId: note.id,
 	});
 }
 
+function undoRenote() : void {
+	if (!renoted.value) return;
+	misskeyApi('notes/unrenote', {
+		noteId: appearNote.value.id,
+	});
+	os.toast(i18n.ts.rmboost);
+	renoted.value = false;
+
+	const el = renoteButton.value as HTMLElement | null | undefined;
+	if (el) {
+		const rect = el.getBoundingClientRect();
+		const x = rect.left + (el.offsetWidth / 2);
+		const y = rect.top + (el.offsetHeight / 2);
+		os.popup(MkRippleEffect, { x, y }, {}, 'end');
+	}
+}
+
 function onContextmenu(ev: MouseEvent): void {
-	const isLink = (el: HTMLElement) => {
+	const isLink = (el: HTMLElement): boolean => {
 		if (el.tagName === 'A') return true;
 		if (el.parentElement) {
 			return isLink(el.parentElement);
 		}
+		return false;
 	};
-	if (isLink(ev.target)) return;
-	if (window.getSelection().toString() !== '') return;
+
+	if (ev.target && isLink(ev.target as HTMLElement)) return;
+	if (window.getSelection()?.toString() !== '') return;
 
 	if (defaultStore.state.useReactionPickerForContextMenu) {
 		ev.preventDefault();
 		react();
 	} else {
-		const { menu, cleanup } = getNoteMenu({ note: note.value, translating, translation, menuButton, isDeleted });
+		const { menu, cleanup } = getNoteMenu({ note: note.value, translating, translation, isDeleted });
 		os.contextMenu(menu, ev).then(focus).finally(cleanup);
 	}
 }
 
-function menu(viaKeyboard = false): void {
-	const { menu, cleanup } = getNoteMenu({ note: note.value, translating, translation, menuButton, isDeleted });
+function showMenu(viaKeyboard = false): void {
+	const { menu, cleanup } = getNoteMenu({ note: note.value, translating, translation, isDeleted });
 	os.popupMenu(menu, menuButton.value, {
+		viaKeyboard,
+	}).then(focus).finally(cleanup);
+}
+
+async function menuVersions(viaKeyboard = false): Promise<void> {
+	const { menu, cleanup } = await getNoteVersionsMenu({ note: note.value, menuVersionsButton });
+	os.popupMenu(menu, menuVersionsButton.value, {
 		viaKeyboard,
 	}).then(focus).finally(cleanup);
 }
@@ -443,10 +663,10 @@ function showRenoteMenu(viaKeyboard = false): void {
 	pleaseLogin();
 	os.popupMenu([{
 		text: i18n.ts.unrenote,
-		icon: 'ti ti-trash',
+		icon: 'ph-trash ph-bold ph-lg',
 		danger: true,
 		action: () => {
-			os.api('notes/delete', {
+			misskeyApi('notes/delete', {
 				noteId: note.value.id,
 			});
 			isDeleted.value = true;
@@ -457,34 +677,67 @@ function showRenoteMenu(viaKeyboard = false): void {
 }
 
 function focus() {
-	el.value.focus();
+	rootEl.value?.focus();
 }
 
 function blur() {
-	el.value.blur();
+	rootEl.value?.blur();
 }
 
 const repliesLoaded = ref(false);
 
 function loadReplies() {
 	repliesLoaded.value = true;
-	os.api('notes/children', {
+	misskeyApi('notes/children', {
 		noteId: appearNote.value.id,
 		limit: 30,
+		showQuotes: false,
 	}).then(res => {
 		replies.value = res;
 	});
 }
 
+loadReplies();
+
+const quotesLoaded = ref(false);
+
+function loadQuotes() {
+	quotesLoaded.value = true;
+	misskeyApi('notes/renotes', {
+		noteId: appearNote.value.id,
+		limit: 30,
+		quote: true,
+	}).then(res => {
+		quotes.value = res;
+	});
+}
+
+loadQuotes();
+
 const conversationLoaded = ref(false);
 
 function loadConversation() {
 	conversationLoaded.value = true;
-	os.api('notes/conversation', {
+	if (appearNote.value.replyId == null) return;
+	misskeyApi('notes/conversation', {
 		noteId: appearNote.value.replyId,
 	}).then(res => {
 		conversation.value = res.reverse();
 	});
+}
+
+if (appearNote.value.reply && appearNote.value.reply.replyId && defaultStore.state.autoloadConversation) loadConversation();
+
+function animatedMFM() {
+	if (allowAnim.value) {
+		allowAnim.value = false;
+	} else {
+		os.confirm({
+			type: 'warning',
+			text: i18n.ts._animatedMFM._alert.text,
+			okText: i18n.ts._animatedMFM._alert.confirm,
+		}).then((res) => { if (!res.canceled) allowAnim.value = true; });
+	}
 }
 </script>
 
@@ -494,6 +747,15 @@ function loadConversation() {
 	transition: box-shadow 0.1s ease;
 	overflow: clip;
 	contain: content;
+}
+
+.footer {
+		position: relative;
+		z-index: 1;
+		margin-top: 0.4em;
+		width: max-content;
+		min-width: min-content;
+		max-width: fit-content;
 }
 
 .replyTo {
@@ -520,7 +782,7 @@ function loadConversation() {
 	width: 28px;
 	height: 28px;
 	margin: 0 8px 0 0;
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 }
 
 .renoteText {
@@ -551,6 +813,7 @@ function loadConversation() {
 .note {
 	padding: 32px;
 	font-size: 1.2em;
+	overflow: hidden;
 
 	&:hover > .main > .footer > .button {
 		opacity: 1;
@@ -562,13 +825,14 @@ function loadConversation() {
 	position: relative;
 	margin-bottom: 16px;
 	align-items: center;
+	z-index: 2;
 }
 
 .noteHeaderAvatar {
 	display: block;
 	flex-shrink: 0;
-	width: 58px;
-	height: 58px;
+	width: var(--avatar);
+	height: var(--avatar);
 }
 
 .noteHeaderBody {
@@ -592,7 +856,7 @@ function loadConversation() {
 	font-size: 80%;
 	line-height: 1;
 	border: solid 0.5px var(--divider);
-	border-radius: 4px;
+	border-radius: var(--radius-xs);
 }
 
 .noteHeaderInfo {
@@ -605,9 +869,14 @@ function loadConversation() {
 	word-wrap: anywhere;
 }
 
+.playMFMButton {
+	margin-top: 5px;
+}
+
 .noteContent {
 	container-type: inline-size;
 	overflow-wrap: break-word;
+	z-index: 1;
 }
 
 .cw {
@@ -647,7 +916,7 @@ function loadConversation() {
 .quoteNote {
 	padding: 16px;
 	border: dashed 1px var(--renote);
-	border-radius: 8px;
+	border-radius: var(--radius-sm);
 	overflow: clip;
 }
 
@@ -668,7 +937,7 @@ function loadConversation() {
 	opacity: 0.7;
 
 	&:not(:last-child) {
-		margin-right: 28px;
+		margin-right: 1.5em;
 	}
 
 	&:hover {
@@ -725,7 +994,7 @@ function loadConversation() {
 .reactionTab {
 	padding: 4px 6px;
 	border: solid 1px var(--divider);
-	border-radius: 6px;
+	border-radius: var(--radius-sm);
 }
 
 .reactionTabActive {
@@ -756,7 +1025,7 @@ function loadConversation() {
 @container (max-width: 350px) {
 	.noteFooterButton {
 		&:not(:last-child) {
-			margin-right: 18px;
+			margin-right: 0.1em;
 		}
 	}
 }
@@ -773,7 +1042,7 @@ function loadConversation() {
 
 	.noteFooterButton {
 		&:not(:last-child) {
-			margin-right: 12px;
+			margin-right: 0.1em;
 		}
 	}
 }

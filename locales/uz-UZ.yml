@@ -366,6 +366,8 @@ hcaptcha: "hCaptcha"
 enableHcaptcha: "hCaptchani yoqish"
 hcaptchaSiteKey: "Sayt kaliti"
 hcaptchaSecretKey: "Mahfiy kalit"
+mcaptchaSiteKey: "Sayt kaliti"
+mcaptchaSecretKey: "Maxfiy kalit"
 recaptcha: "reCAPTCHA"
 enableRecaptcha: "reCAPTCHA ni yoqish"
 recaptchaSiteKey: "Sayt kaliti"
@@ -841,7 +843,7 @@ rolesAssignedToMe: "Mening rollarim"
 resetPasswordConfirm: "Qayta parol o'rnatmoqchimisiz?"
 sensitiveWords: "Ta'sirchan so'zlar"
 icon: "Avatar"
-replies: "Javob berish"
+replies: "Javoblar"
 renotes: "Qayta qayd etish"
 flip: "Teskari"
 _achievements:
@@ -973,6 +975,7 @@ _profile:
   changeBanner: "Bannerni o'zgartirish"
 _exportOrImport:
   allNotes: "Barcha qaydlar"
+  clips: "Klip"
   followingList: "Obuna bo‘lish"
   muteList: "Ovozni o‘chirish"
   blockingList: "Bloklangan foydalanuvchilar"
@@ -1085,3 +1088,6 @@ _webhookSettings:
 _moderationLogTypes:
   suspend: "To'xtatish"
   resetPassword: "Parolni tiklash"
+_reversi:
+  total: "Jami"
+
