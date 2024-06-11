@@ -983,7 +983,7 @@ function emitUpdReaction(emoji: string, delta: number) {
 
 .collapsedInReplyToLine {
 	position: absolute;
-	left: 56px;
+	left: calc(32px + .5 * var(--avatar));
 	// using solid instead of dotted, stylelistic choice
 	border-left: var(--thread-width) solid var(--thread);
 	top: calc(28px + 28px); // 28px of .root padding, plus 28px of avatar height (see SkNote)
@@ -1173,7 +1173,7 @@ function emitUpdReaction(emoji: string, delta: number) {
 	}
 
 	.collapsedInReplyToLine {
-		left: 47px;
+		left: calc(26px + .5 * var(--avatar));
 	}
 
 	.article {
@@ -1192,6 +1192,10 @@ function emitUpdReaction(emoji: string, delta: number) {
 
 	.footer {
 		margin-bottom: -8px;
+	}
+
+	.collapsedInReplyToLine {
+		left: calc(25px + .5 * var(--avatar));
 	}
 }
 
@@ -1228,7 +1232,7 @@ function emitUpdReaction(emoji: string, delta: number) {
 	}
 
 	.collapsedInReplyToLine {
-		left: 45px;
+		left: calc(24px + .5 * var(--avatar));
 	}
 
 	.article {
