@@ -310,7 +310,7 @@ export const defaultStore = markRaw(new Storage('base', {
 		default: false,
 	},
 	searchEngine: {
-		where: 'device',
+		where: 'account',
 		default: Object.keys(searchEngineMap)[0],
 	},
 	noteDesign: {
