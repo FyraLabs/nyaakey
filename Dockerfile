@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
 	pnpm i --prod --frozen-lockfile --aggregate-output
 RUN rm -rf .git
 
-FROM node:${NODE_VERSION}
+FROM bun:1.1.13-alpine
 
 ARG UID="991"
 ARG GID="991"
@@ -77,4 +77,4 @@ COPY --chown=sharkey:sharkey packages/misskey-bubble-game/package.json ./package
 ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
 ENV NODE_ENV=production
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["pnpm", "run", "migrateandstart"]
+CMD ["bun", "run", "--bun", "migrateandstart"]
