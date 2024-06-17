@@ -1,8 +1,10 @@
 # syntax = docker/dockerfile:1.4
 
 ARG NODE_VERSION=20.10.0-alpine3.18
+ARG BUN_VERSION=1.1.13-alpine
 
-FROM node:${NODE_VERSION} as build
+# FROM node:${NODE_VERSION} as build
+FROM oven/bun:${BUN_VERSION} as build
 
 RUN apk add git linux-headers build-base
 
@@ -11,35 +13,35 @@ RUN apk add --update python3 && ln -sf python3 /usr/bin/python
 RUN python3 -m ensurepip
 RUN pip3 install --no-cache --upgrade pip setuptools
 
-RUN corepack enable
+# RUN corepack enable
 
 WORKDIR /sharkey
 
 COPY --link . ./
 
 RUN git submodule update --init --recursive
-RUN pnpm config set fetch-retries 5
+# RUN pnpm config set fetch-retries 5
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
-	pnpm i --frozen-lockfile --aggregate-output
-RUN pnpm build
-RUN node scripts/trim-deps.mjs
+	bun i --frozen-lockfile --aggregate-output
+RUN bun run --bun build
+RUN bun scripts/trim-deps.mjs
 RUN mv packages/frontend/assets sharkey-assets
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
-	pnpm prune
+	bun run --bun prune
 RUN rm -r node_modules packages/frontend packages/sw
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
-	pnpm i --prod --frozen-lockfile --aggregate-output
+	bun i --prod --frozen-lockfile --aggregate-output
 RUN rm -rf .git
 
-FROM oven/bun:1.1.13-alpine
+FROM oven/bun:1.1.13-debian
 
 ARG UID="991"
 ARG GID="991"
 
-RUN apk add ffmpeg tini jemalloc \
-	&& corepack enable \
-	&& addgroup -g "${GID}" sharkey \
-	&& adduser -D -u "${UID}" -G sharkey -h /sharkey sharkey \
+RUN apt update && apt install -y ffmpeg tini
+
+RUN groupadd -g ${GID} sharkey \
+ 	&& useradd -u ${UID} -g ${GID} sharkey \
 	&& find / -type d -path /sys -prune -o -type d -path /proc -prune -o -type f -perm /u+s -exec chmod u-s {} \; \
 	&& find / -type d -path /sys -prune -o -type d -path /proc -prune -o -type f -perm /g+s -exec chmod g-s {} \;
 
@@ -74,8 +76,8 @@ COPY --chown=sharkey:sharkey packages/misskey-js/package.json ./packages/misskey
 COPY --chown=sharkey:sharkey packages/misskey-reversi/package.json ./packages/misskey-reversi/package.json
 COPY --chown=sharkey:sharkey packages/misskey-bubble-game/package.json ./packages/misskey-bubble-game/package.json
 
-ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
+# ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
 ENV NODE_ENV=production
 # RUN corepack enable
-ENTRYPOINT ["/sbin/tini", "--"]
+# ENTRYPOINT ["/bin/tini", "--"]
 CMD ["bun", "run", "--bun", "migrateandstart"]
