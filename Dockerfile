@@ -14,8 +14,8 @@ RUN apk add --update python3 && ln -sf python3 /usr/bin/python
 # RUN apt install -y python3 python3-pip
 RUN python3 -m ensurepip
 RUN pip3 install --no-cache --upgrade pip setuptools
-
-# RUN corepack enable
+# TODO: Recursive build script https://github.com/oven-sh/bun/issues/5350
+RUN corepack enable
 
 WORKDIR /sharkey
 
@@ -25,7 +25,7 @@ RUN git submodule update --init --recursive
 # RUN pnpm config set fetch-retries 5
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
 	bun i --aggregate-output --frozen-lockfile --cache-dir=.cache
-RUN bun run --bun build
+RUN bun run build
 RUN bun scripts/trim-deps.mjs
 RUN mv packages/frontend/assets sharkey-assets
 # RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
