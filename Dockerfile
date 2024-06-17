@@ -24,15 +24,15 @@ COPY --link . ./
 RUN git submodule update --init --recursive
 # RUN pnpm config set fetch-retries 5
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
-	bun i --aggregate-output
+	bun i --aggregate-output --frozen-lockfile --cache-dir=.cache
 RUN bun run --bun build
 RUN bun scripts/trim-deps.mjs
 RUN mv packages/frontend/assets sharkey-assets
 # RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
 	# bun run --bun prune
-RUN rm -r node_modules packages/frontend packages/sw
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
-	bun i --production --aggregate-output
+# RUN rm -r node_modules packages/frontend packages/sw
+# RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
+# 	bun i --aggregate-output --frozen-lockfile
 RUN rm -rf .git
 
 FROM oven/bun:${BUN_VERSION}
@@ -80,5 +80,5 @@ COPY --chown=sharkey:sharkey packages/misskey-bubble-game/package.json ./package
 # ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
 ENV NODE_ENV=production
 # RUN corepack enable
-# ENTRYPOINT ["/bin/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["bun", "run", "--bun", "migrateandstart"]
