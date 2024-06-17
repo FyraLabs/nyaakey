@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
 	pnpm i --prod --frozen-lockfile --aggregate-output
 RUN rm -rf .git
 
-FROM oven/bun:1.1.13-alpine
+FROM node:${NODE_VERSION}
 
 ARG UID="991"
 ARG GID="991"
@@ -76,6 +76,6 @@ COPY --chown=sharkey:sharkey packages/misskey-bubble-game/package.json ./package
 
 ENV LD_PRELOAD=/usr/lib/libjemalloc.so.2
 ENV NODE_ENV=production
-# RUN corepack enable
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["bun", "run", "--bun", "migrateandstart"]
+CMD ["pnpm", "run", "migrateandstart"]
+
