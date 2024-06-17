@@ -34,12 +34,14 @@ async function loadConfig() {
 	return fs.readFile(configPath, 'utf-8').then(data => yaml.load(data)).catch(() => null);
 }
 
+// We are now building with Bun, so these files will now be in the global node_modules folder
+
 async function copyFrontendFonts() {
-  await fs.cp('./packages/frontend/node_modules/three/examples/fonts', './built/_frontend_dist_/fonts', { dereference: true, recursive: true });
+  await fs.cp('./node_modules/three/examples/fonts', './built/_frontend_dist_/fonts', { dereference: true, recursive: true });
 }
 
 async function copyFrontendTablerIcons() {
-  await fs.cp('./packages/frontend/node_modules/@phosphor-icons/web/src', './built/_frontend_dist_/phosphor-icons', { dereference: true, recursive: true });
+  await fs.cp('./node_modules/@phosphor-icons/web/src', './built/_frontend_dist_/phosphor-icons', { dereference: true, recursive: true });
 }
 
 async function copyFrontendLocales() {

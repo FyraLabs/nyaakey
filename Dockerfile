@@ -6,10 +6,12 @@ ARG BUN_VERSION=1.1.13-alpine
 # FROM node:${NODE_VERSION} as build
 FROM oven/bun:${BUN_VERSION} as build
 
-RUN apk add git linux-headers build-base
-
+# we need nodejs for node-gyp anyway :sob:
+RUN apk add git linux-headers build-base nodejs npm
+# RUN apt update && apt install -y git build-essential
 ENV PYTHONUNBUFFERED=1
 RUN apk add --update python3 && ln -sf python3 /usr/bin/python
+# RUN apt install -y python3 python3-pip
 RUN python3 -m ensurepip
 RUN pip3 install --no-cache --upgrade pip setuptools
 
@@ -22,26 +24,25 @@ COPY --link . ./
 RUN git submodule update --init --recursive
 # RUN pnpm config set fetch-retries 5
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
-	bun i --frozen-lockfile --aggregate-output --build_v8_with_gn=false
+	bun i --aggregate-output
 RUN bun run --bun build
 RUN bun scripts/trim-deps.mjs
 RUN mv packages/frontend/assets sharkey-assets
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
-	bun run --bun prune
+# RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
+	# bun run --bun prune
 RUN rm -r node_modules packages/frontend packages/sw
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
-	bun i --prod --frozen-lockfile --aggregate-output
+	bun i --production --aggregate-output
 RUN rm -rf .git
 
-FROM oven/bun:1.1.13-debian
+FROM oven/bun:${BUN_VERSION}
 
 ARG UID="991"
 ARG GID="991"
 
-RUN apt update && apt install -y ffmpeg tini
-
-RUN groupadd -g ${GID} sharkey \
- 	&& useradd -u ${UID} -g ${GID} sharkey \
+RUN apk add ffmpeg tini jemalloc \
+	&& addgroup -g "${GID}" sharkey \
+	&& adduser -D -u "${UID}" -G sharkey -h /sharkey sharkey \
 	&& find / -type d -path /sys -prune -o -type d -path /proc -prune -o -type f -perm /u+s -exec chmod u-s {} \; \
 	&& find / -type d -path /sys -prune -o -type d -path /proc -prune -o -type f -perm /g+s -exec chmod g-s {} \;
 

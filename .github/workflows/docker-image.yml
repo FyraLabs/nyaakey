@@ -2,7 +2,7 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "develop" ]
+    branches: [ "develop", "c/bun-port" ]
   pull_request:
     branches: [ "develop" ]
 

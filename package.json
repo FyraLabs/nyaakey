@@ -43,10 +43,15 @@
     "lodash": "4.17.21"
   },
   "dependencies": {
+    "cssnano": "^7.0.2",
     "fast-glob": "3.3.2",
     "ignore-walk": "6.0.4",
     "js-yaml": "4.1.0",
-    "tar": "6.2.0"
+    "postcss": "^8.4.38",
+    "re2": "^1.21.3",
+    "tar": "6.2.0",
+    "terser": "^5.31.1",
+    "yaml": "^2.4.5"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "7.1.0",
