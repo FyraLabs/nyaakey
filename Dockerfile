@@ -22,7 +22,7 @@ COPY --link . ./
 RUN git submodule update --init --recursive
 # RUN pnpm config set fetch-retries 5
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store,sharing=locked \
-	bun i --frozen-lockfile --aggregate-output
+	bun i --frozen-lockfile --aggregate-output --build_v8_with_gn=false
 RUN bun run --bun build
 RUN bun scripts/trim-deps.mjs
 RUN mv packages/frontend/assets sharkey-assets

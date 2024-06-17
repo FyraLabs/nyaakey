@@ -29,19 +29,21 @@ await $`cd ${_dirname}/../ && bun clean`;
 await $`cd ${_dirname}/../ && bun run --bun build-pre`;
 
 
-// await execa('pnpm', ['build-assets'], {
-// 	cwd: _dirname + '/../',
-// 	stdout: process.stdout,
-// 	stderr: process.stderr,
-// });
+await execa('bun', ['run','build-assets'], {
+	cwd: _dirname + '/../',
+	stdout: process.stdout,
+	stderr: process.stderr,
+});
 
-await $`cd ${_dirname}/../ && bun run --bun build-assets`;
+// await $`cd ${_dirname}/../ && bun run --bun build-assets`;
 
 // await execa('pnpm', ['--filter', 'misskey-js', 'ts'], {
 // 	cwd: _dirname + '/../',
 // 	stdout: process.stdout,
 // 	stderr: process.stderr,
 // });
+
+await $`cd ${_dirname}/../ && bun --filter misskey-js ts`;
 
 
 await $`cd ${_dirname}/../ && bun run --bun megalodon build`;
